@@ -1,0 +1,78 @@
+{
+  "common": {
+    "siteName": "الزين للشاي",
+    "loading": "جاري التحميل...",
+    "error": "حدث خطأ",
+    "retry": "حاول مجدداً",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "search": "بحث",
+    "back": "رجوع"
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "products": "المنتجات",
+    "about": "عن المتجر",
+    "contact": "تواصل معنا",
+    "faq": "الأسئلة الشائعة",
+    "cart": "السلة",
+    "account": "حسابي",
+    "orders": "طلباتي",
+    "login": "تسجيل الدخول",
+    "register": "إنشاء حساب",
+    "logout": "تسجيل الخروج",
+    "admin": "لوحة التحكم"
+  },
+  "product": {
+    "addToCart": "أضف إلى السلة",
+    "outOfStock": "نفد المخزون",
+    "price": "السعر",
+    "quantity": "الكمية",
+    "category": "الفئة",
+    "relatedProducts": "منتجات مشابهة"
+  },
+  "cart": {
+    "title": "سلة التسوق",
+    "empty": "السلة فارغة",
+    "continueShopping": "متابعة التسوق",
+    "checkout": "الدفع",
+    "subtotal": "المجموع الفرعي",
+    "shipping": "الشحن",
+    "tax": "الضريبة",
+    "total": "الإجمالي",
+    "remove": "إزالة"
+  },
+  "checkout": {
+    "title": "إتمام الشراء",
+    "shippingInfo": "معلومات الشحن",
+    "paymentMethod": "طريقة الدفع",
+    "creditCard": "بطاقة ائتمان",
+    "localGateway": "بوابة الدفع المحلية",
+    "vatNumber": "الرقم الضريبي (اختياري)",
+    "placeOrder": "تأكيد الطلب",
+    "selectCountry": "اختر دولتك"
+  },
+  "order": {
+    "status": {
+      "PENDING": "قيد الانتظار",
+      "CONFIRMED": "مؤكد",
+      "PROCESSING": "قيد المعالجة",
+      "SHIPPED": "تم الشحن",
+      "DELIVERED": "تم التسليم",
+      "CANCELLED": "ملغي",
+      "REFUNDED": "مسترجع"
+    }
+  },
+  "auth": {
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "login": "تسجيل الدخول",
+    "register": "إنشاء حساب",
+    "alreadyHaveAccount": "لديك حساب؟",
+    "noAccount": "ليس لديك حساب؟"
+  }
+}

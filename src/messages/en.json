@@ -1,0 +1,18 @@
+{
+  "HomePage": {
+    "boxes": {
+      "box1": {
+        "title": "Create Your Survey",
+        "text": "Choose a template or start from scratch using our easy-to-use builder"
+      },
+      "box2": {
+        "title": "Share With Your Audience",
+        "text": "Send your survey via email, social media, or embed it in your website"
+      },
+      "box3": {
+        "title": "Analyze Responses",
+        "text": "Get instant insights with clean charts and downloadable reports"
+      }
+    }
+  }
+}
