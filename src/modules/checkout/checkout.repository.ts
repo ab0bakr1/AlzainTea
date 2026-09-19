@@ -6,6 +6,8 @@ export interface CreateOrderData {
   guestEmail?: string;
   country: string;
   currency: string;
+  /** "stripe" | "tap" | "moyasar" — يُحدَّد ديناميكياً في checkout.service حسب دولة العميل */
+  paymentMethod: string;
   subtotal: number;
   discount: number;
   shippingCost: number;
@@ -22,8 +24,9 @@ export interface CreateOrderData {
  * داخل معاملة واحدة (Prisma Transaction) لمنع البيع الزائد (Overselling)
  * عند تزامن أكثر من عملية شراء على نفس المنتج.
  *
- * ملاحظة: منطق "تحرير" المخزون المحجوز تلقائياً عند إلغاء/فشل/انتهاء صلاحية الطلب
- * سيُستكمل في وحدة إدارة المخزون الكاملة (الأسبوع 6 من خارطة الطريق).
+ * ملاحظة: إن فشل الدفع أو انتهت صلاحية الجلسة، يُحرَّر هذا الحجز عبر releaseReservedStock
+ * أدناه (تُستدعى من معالجات الـ Webhook). التحرير التلقائي المبني على مهلة زمنية
+ * (Timeout job) لا يزال يُستكمل ضمن وحدة إدارة المخزون الكاملة (الأسبوع 6).
  */
 export async function createOrderWithStockReservation(data: CreateOrderData) {
   return prisma.$transaction(async (tx) => {
@@ -63,7 +66,7 @@ export async function createOrderWithStockReservation(data: CreateOrderData) {
         vatNumber: data.vatNumber,
         couponId: data.couponId,
         shippingAddressId: data.shippingAddressId,
-        paymentMethod: "stripe",
+        paymentMethod: data.paymentMethod,
         paymentStatus: "UNPAID",
         status: "PENDING",
         items: {
@@ -91,11 +94,16 @@ export function findOrderByPaymentRef(paymentRef: string) {
   return prisma.order.findUnique({ where: { paymentRef }, include: { items: true } });
 }
 
+export function findOrderById(orderId: string) {
+  return prisma.order.findUnique({ where: { id: orderId }, include: { items: true } });
+}
+
 /**
- * يُستدعى من Stripe Webhook بعد نجاح الدفع فعلياً (وليس بمجرد إعادة التوجيه).
+ * يُستدعى من أي Webhook (Stripe أو البوابة المحلية) بعد نجاح الدفع فعلياً.
  * مبني ليكون Idempotent: إن كان الطلب مدفوعاً مسبقاً لا يُعاد خصم المخزون مرة أخرى.
+ * gatewayLabel اختياري، يُستخدم فقط لنص سجل الحالة (OrderStatusLog) لتوضيح مصدر التأكيد.
  */
-export async function markOrderPaid(orderId: string) {
+export async function markOrderPaid(orderId: string, gatewayLabel = "المزوّد") {
   return prisma.$transaction(async (tx) => {
     const order = await tx.order.findUnique({ where: { id: orderId }, include: { items: true } });
     if (!order || order.paymentStatus === "PAID") {
@@ -118,8 +126,71 @@ export async function markOrderPaid(orderId: string) {
       data: {
         paymentStatus: "PAID",
         status: "CONFIRMED",
-        statusHistory: { create: { status: "CONFIRMED", note: "تم تأكيد الدفع عبر Stripe Webhook" } },
+        statusHistory: { create: { status: "CONFIRMED", note: `تم تأكيد الدفع عبر ${gatewayLabel} Webhook` } },
       },
     });
+  });
+}
+
+/**
+ * يُستدعى عند فشل الدفع أو انتهاء صلاحية جلسة الدفع (Webhook)، أو مستقبلاً عند
+ * إلغاء الطلب يدوياً. يُعيد المخزون المحجوز (reservedStock للمنتجات العادية)،
+ * أو يُعيد الكمية المخصومة مباشرة (للمتغيرات، لأن حجزها يخصم من stock فوراً عند الإنشاء).
+ *
+ * مبني ليكون Idempotent: لا يُحرَّر مخزون طلب مدفوع بالفعل، ولا يُكرَّر التحرير
+ * لطلب فشل أو أُلغي مسبقاً (لمنع إعادة المخزون مرتين عند تكرار نفس حدث الـ Webhook).
+ */
+export async function releaseReservedStock(orderId: string, reason: string) {
+  return prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({ where: { id: orderId }, include: { items: true } });
+    if (!order) return null;
+
+    if (order.paymentStatus === "PAID" || order.status === "CANCELLED" || order.status === "FAILED") {
+      return order;
+    }
+
+    for (const item of order.items) {
+      if (item.variantId) {
+        await tx.productVariant.update({
+          where: { id: item.variantId },
+          data: { stock: { increment: item.quantity } },
+        });
+      } else {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { reservedStock: { decrement: item.quantity } },
+        });
+      }
+    }
+
+    return tx.order.update({
+      where: { id: orderId },
+      data: {
+        status: "FAILED",
+        paymentStatus: "FAILED",
+        statusHistory: { create: { status: "FAILED", note: reason } },
+      },
+    });
+  });
+}
+
+/**
+ * يُستدعى من مسار إدارة الطلبات بعد تنفيذ استرداد ناجح عبر provider.refund().
+ * لا يُعيد المخزون تلقائياً هنا (قرار تجاري: هل البضاعة المرتجعة صالحة لإعادة البيع؟) —
+ * يُترك تحديث المخزون الفعلي لواجهة إدارة المرتجعات القادمة (الأسبوع 6).
+ */
+export async function markOrderRefunded(orderId: string) {
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
+  if (!order || order.paymentStatus !== "PAID") {
+    throw new ApiError("VALIDATION_ERROR", "لا يمكن استرداد طلب لم يُدفع بعد", 400);
+  }
+
+  return prisma.order.update({
+    where: { id: orderId },
+    data: {
+      paymentStatus: "REFUNDED",
+      status: "REFUNDED",
+      statusHistory: { create: { status: "REFUNDED", note: "تم استرداد المبلغ للعميل" } },
+    },
   });
 }

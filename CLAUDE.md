@@ -15,11 +15,12 @@
 
 ### الأهداف الأساسية:
 - **تجربة مستخدم راقية وثنائية اللغة (i18n):** دعم كامل للغتين العربية (RTL) والإنجليزية (LTR) مع تبديل فوري عبر `next-intl`.
-- **نظام دفع ذكي متعدد المزودين (Adapter/Strategy Pattern):** طبقة دفع موحدة (`PaymentProvider`) تدعم **Stripe** للعملاء الدوليين (US, GB) مع الاستعداد لربط البوابة الخليجية المحلية (**Tap Payments / Moyasar** لدعم Apple Pay و Mada).
-- **إتمام شراء متكامل وآمن (Checkout & Stock Reservation):** إعادة احتساب كاملة للأسعار، الضرائب (VAT)، الشحن، والخصومات على الخادم، مع حجز فوري للمخزون (`reservedStock`) داخل معاملة Prisma واحدة لمنع البيع الزائد (Overselling).
-- **تعدد العملات وحساب الشحن الديناميكي:** عرض الأسعار وتحويلها بعملات متعددة (SAR, OMR, AED, KWD, BHD, QAR, USD, EUR, GBP) مع حساب تكلفة وأيام الشحن المتوقعة حسب الدولة.
+- **نظام دفع ذكي متعدد المزودين (Dual Gateway & Strategy Pattern - منجز بالكامل):** طبقة دفع موحدة (`PaymentProvider`) تدعم **Stripe** للعملاء الدوليين (US, GB وبقية العالم) بالدولار الأمريكي، وبوابات الدفع الخليجية المحلية (**Tap Payments** و **Moyasar**) لدعم العملات المحلية، و Apple Pay و Mada والبطاقات الخليجية. يتم التبديل بين مزودي الخليج عبر Feature Flag دون أي تعديل برمجي.
+- **إتمام شراء متكامل وآمن (Checkout & Stock Reservation):** إعادة احتساب كاملة للأسعار، الضرائب (VAT)، الشحن، والخصومات على الخادم، مع حجز فوري للمخزون (`reservedStock`) داخل معاملة Prisma واحدة لمنع البيع الزائد (Overselling)، مع آلية تحرير فوري للمخزون (`releaseReservedStock`) عند فشل الدفع أو إلغائه.
+- **تعدد العملات وحساب الشحن الديناميكي:** دعم كامل لعملات دول الخليج (SAR, AED, OMR, KWD, BHD, QAR) مع معالجة دقيقة للعملات ثلاثية الخانات العشرية (KWD, BHD, OMR)، بالإضافة إلى العملات العالمية (USD, EUR, GBP) مع حساب تكلفة وأيام الشحن المتوقعة حسب الدولة.
 - **سلة مشتريات ذكية ومتزامنة (Cart System):** إدارة السلة عبر Zustand محلياً مع دعم المفاتيح المتعددة (`guest` و `userId`)، ودمج تلقائي عند تسجيل الدخول (`cart-merge.ts`)، وتحقق لحظي من المخزون والأسعار عبر `/api/cart/validate`.
 - **نظام كوبونات وعناوين متطور:** التحقق الصارم من شروط الكوبونات (حد أدنى، حد استخدام عام ولكل مستخدم، تاريخ الصلاحية)، وإدارة العناوين مع حماية الملكية للمستخدم المسجل.
+- **Webhooks موثوقة ومحمية من التكرار (Idempotent Webhooks):** معالجة أحداث الدفع من Stripe و Tap و Moyasar مع التحقق المشفر من التواقيع (HMAC-SHA256 و Timing-Safe Equal)، وضمان عدم تكرار خصم أو تحرير المخزون.
 - **لوحة تحكم إدارية متكاملة (Admin Dashboard):** لإدارة المنتجات، الفئات الهرمية، متابعة الطلبات، وتحديث حالات الشحن والمخزون، مع حماية أمنية متعددة الطبقات (Defense in Depth).
 
 ---
@@ -40,7 +41,8 @@
 | **Authentication** | **NextAuth.js (v4 JWT)** | إدارة الجلسات، الأدوار (`CUSTOMER`, `ADMIN`, `SUPER_ADMIN`) وحماية المسارات |
 | **Password Hashing** | **Argon2 (argon2id)** | تشفير فائق الأمان لكلمات المرور وفق معايير OWASP (مع دعم fallback لـ bcrypt) |
 | **Rate Limiting** | **Upstash Redis + @upstash/ratelimit** | حماية مسارات المصادقة والدفع من الهجمات وهجمات التخمين |
-| **Payments** | **Stripe (مفعّل) + Tap / Moyasar (V2)** | نمط Strategy Provider موحد، مع معالجات Webhook Idempotent لتأكيد الدفع وخصم المخزون |
+| **Payments** | **Stripe + Tap + Moyasar (مكتمل بالكامل)** | طبقة موحدة (`PaymentProvider`) مع توجيه ذكي للدول الخليجية والدولية، دعم Apple Pay و Mada، تحويل دقيق لعملات الخليج، وتبديل عبر Feature Flag، وWebhooks مؤمنة بـ HMAC وTiming-Safe |
+| **Testing** | **Vitest** | اختبارات وحدة وتكاملية لدورة الدفع، توجيه البوابات، تحويل العملات، وفحص الـ Webhooks والـ Idempotency |
 | **Localization (i18n)**| **next-intl** | الترجمة وتعدد اللغات مع ملفات الرسائل في `src/messages/` وتوافق كامل مع اتجاه RTL |
 | **Theme** | **next-themes** | دعم الوضع الداكن والفاتح (Dark / Light Mode) |
 | **Animations** | **GSAP + Lottie** | مؤثرات حركية فاخرة (`@lottiefiles`, `lottie-react`, `gsap`) |
@@ -109,8 +111,8 @@ alzainTea/
 │   │   │   ├── shipping/
 │   │   │   │   └── calculate/       # GET حاسبة رسوم وأيام الشحن حسب الدولة
 │   │   │   └── webhooks/
-│   │   │       ├── stripe/          # POST معالج إشعارات Stripe الموقعة رقمياً
-│   │   │       └── local-gateway/   # POST معالج إشعارات البوابة الخليجية (جاهز للربط)
+│   │   │       ├── stripe/          # POST معالج إشعارات Stripe الموقعة رقمياً (تأكيد أو تحرير مخزون)
+│   │   │       └── local-gateway/   # POST معالج إشعارات البوابة الخليجية (Tap / Moyasar)
 │   │   ├── globals.css              # ملف التنسيق العام و Tailwind
 │   │   ├── layout.tsx               # Root Layout
 │   │   └── page.tsx                 # الصفحة الرئيسية (Landing Page)
@@ -136,8 +138,9 @@ alzainTea/
 │   │   ├── cart-merge.ts            # منطق دمج سلة الزائر مع سلة المستخدم في التخزين المحلي
 │   │   ├── cn.tsx                   # دمج كلاسات Tailwind
 │   │   ├── currency.ts              # تحويل العملات وتنسيق الوحدات الصغرى
+│   │   ├── gcc-currency.ts          # أسعار صرف الخليج والتعامل الخاص مع العملات ثلاثية الخانات (KWD, BHD, OMR)
 │   │   ├── password.ts              # تشفير وفحص كلمات المرور عبر Argon2id
-│   │   ├── payment-gateway.ts       # محولات بوابات الدفع الخليجية
+│   │   ├── payment-gateway.ts       # عملاء HTTP منخفضو المستوى لـ Tap و Moyasar
 │   │   ├── prisma.ts                # كائن Prisma Client المفرد (Singleton)
 │   │   ├── rate-limit.ts            # تقييد معدل الطلبات عبر Upstash Redis
 │   │   ├── require-admin.ts         # حماية المسارات الإدارية والتحقق من صلاحية ADMIN
@@ -150,7 +153,16 @@ alzainTea/
 │   │   ├── categories/              # مستودع وخدمة الفئات (category.repository.ts, category.service.ts, category.validators.ts)
 │   │   ├── checkout/                # خدمة ومستودع إتمام الشراء وحجز المخزون (checkout.service.ts, checkout.repository.ts, checkout.validators.ts)
 │   │   ├── coupons/                 # خدمة ومستودع فحص الكوبونات (coupon.service.ts, coupon.repository.ts, coupon.validators.ts)
-│   │   ├── payments/                # طبقة الدفع الموحدة ومزود Stripe (payment.service.ts, payment.types.ts, providers/stripe.provider.ts)
+│   │   ├── payments/                # طبقة الدفع الموحدة ومزودو البوابات
+│   │   │   ├── __tests__/           # اختبارات دورة الدفع، التوجيه، التوقيع، والـ Idempotency
+│   │   │   │   └── payment-cycle.test.ts
+│   │   │   ├── payment.service.ts   # توجيه البوابات وفحص الـ Feature Flag وعمليات الاسترداد
+│   │   │   ├── payment.types.ts     # واجهات المزودين الموحدة (PaymentProvider, WebhookEvent)
+│   │   │   └── providers/           # المزودات المنفذة
+│   │   │       ├── local.provider.ts   # ممر البوابة الخليجية المحلية
+│   │   │       ├── moyasar.provider.ts # مزود ميسر (Moyasar)
+│   │   │       ├── stripe.provider.ts  # مزود سترايب (Stripe)
+│   │   │       └── tap.provider.ts     # مزود تاب (Tap Payments)
 │   │   ├── products/                # مستودع وخدمة المنتجات (product.repository.ts, product.service.ts, product.validators.ts)
 │   │   └── shipping/                # خدمة ومتحققات الشحن (shipping.service.ts, shipping.validators.ts)
 │   ├── services/                    # طبقة استدعاء الـ API من الواجهة الأمامية (products.service.ts, categories.service.ts)
@@ -476,21 +488,22 @@ model WishlistItem {
 
 ---
 
-## 💳 7. تفاصيل إتمام الشراء، الدفع، وحجز المخزون (Week 4 Details)
+## 💳 7. تفاصيل إتمام الشراء، حجز المخزون، والعناوين والكوبونات (Week 4 Details)
 
 ### أ. تدفق إتمام الشراء الخادمي الموحد (`src/modules/checkout/checkout.service.ts`):
-يتم إنشاء الطلب عبر مسار `POST /api/checkout/session` باتباع 7 خطوات صارمة:
+يتم إنشاء الطلب عبر مسار `POST /api/checkout/session` باتباع خطوات صارمة:
 1. **إعادة التحقق من السلة خادمياً (`validateCart`)**: لا يُعتمد أبداً على الأسعار أو الكميات القادمة من المتصفح كـ Source of Truth. إذا وُجد تعارض في السعر أو المخزون، يُرفض الطلب فوراً برمز `409 CART_INVALID`.
 2. **احتساب الشحن (`calculateShipping`)**: التحقق من دعم الدولة وتحديد التكلفة ومدة التوصيل عبر `src/modules/shipping/shipping.service.ts`.
-3. **التحقق من الكوبون (`validateCoupon`)**: فحص شروط الكوبون وتطبيق الخصم (نسبة مئوية أو مبلغ ثابت مع مراعاة السقف الأقصى `maxDiscountAmount`).
-4. **التحقق من عنوان الشحن**: للمستخدم المسجل يتم التحقق الصارم من ملكية العنوان (`assertAddressOwnership`) لمنع التلاعب بمعرفات العناوين. للزائر يتم التحقق من بيانات العنوان والبريد الإلكتروني (`guestAddress`, `guestEmail`).
-5. **احتساب ضريبة القيمة المضافة (VAT)**: تُحسب الضريبة حسب دولة التوصيل (مثلاً 15% للسعودية، 5% للإمارات وعمان، 20% لبريطانيا) على الصافي بعد الخصم `(subtotal - discount)`.
-6. **إنشاء الطلب وحجز المخزون ذرياً (`createOrderWithStockReservation`)**:
+3. **تحديد البوابة والعملة (`resolveGateway`)**: اختيار البوابة الخليجية لدول الخليج مع عملتها الوطنية، أو Stripe بالدولار لبقية العالم.
+4. **التحقق من الكوبون (`validateCoupon`)**: فحص شروط الكوبون وتطبيق الخصم (نسبة مئوية أو مبلغ ثابت مع مراعاة السقف الأقصى `maxDiscountAmount`).
+5. **التحقق من عنوان الشحن**: للمستخدم المسجل يتم التحقق الصارم من ملكية العنوان (`assertAddressOwnership`) لمنع التلاعب بمعرفات العناوين. للزائر يتم التحقق من بيانات العنوان والبريد الإلكتروني (`guestAddress`, `guestEmail`).
+6. **تحويل العملات وحساب الضريبة (VAT)**: تحويل كل بند بالدولار إلى العملة المعتمدة للطلب، ثم احتساب الضريبة (مثلاً 15% للسعودية، 5% للإمارات وعمان، 20% لبريطانيا) على الصافي بعد الخصم `(subtotal - discount)` بدقة تفادياً للتقريب التراكمي.
+7. **إنشاء الطلب وحجز المخزون ذرياً (`createOrderWithStockReservation`)**:
    - تُنفذ العملية بالكامل داخل **معاملة Prisma واحدة (`prisma.$transaction`)**.
    - **المنتجات العادية**: يتم زيادة `reservedStock` بالكمية المطلوبة مع فحص شرط `stock - reservedStock >= quantity`.
    - **المتغيرات (Variants)**: يتم خصم الكمية مباشرة من حقل `stock` في جدول `ProductVariant`.
    - يتم إنشاء سجل الطلب بحالة `PENDING` وحالة دفع `UNPAID` مع إضافة سجل زمني في `OrderStatusLog`.
-7. **إنشاء جلسة الدفع (Payment Session)**: استدعاء مزود الدفع المناسب وتوليد رابط جلسة الدفع `checkoutUrl`.
+8. **إنشاء جلسة الدفع (Payment Session)**: استدعاء مزود الدفع المناسب وتوليد رابط جلسة الدفع `checkoutUrl`.
 
 ### ب. نظام العناوين (`src/modules/addresses/`):
 - يدعم استرجاع عناوين العميل، إضافة عنوان جديد، تعديل، وحذف.
@@ -505,33 +518,89 @@ model WishlistItem {
   - `COUPON_USER_LIMIT_REACHED`: فحص تكرار الاستخدام لنفس المستخدم عبر جدول `CouponUsage`.
   - `COUPON_MIN_ORDER_NOT_MET`: فحص الحد الأدنى لقيمة السلة.
 
-### د. تكامل بوابة Stripe والـ Webhook الآمن (`src/modules/payments/`):
-- واجهة موحدة `PaymentProvider` (`src/modules/payments/payment.types.ts`).
-- مزود Stripe (`providers/stripe.provider.ts`): ينشئ جلسة `checkout.sessions.create` مع حفظ معرف الجلسة في `Order.paymentRef`.
-- **معالج Webhook الموثوق (`POST /api/webhooks/stripe`)**:
-  - التحقق المشفر من ترويسة `stripe-signature` عبر `stripe.webhooks.constructEvent`.
-  - معالجة حدث `checkout.session.completed`.
-  - **تنفيذ Idempotent**: فحص هل الطلب مدفوع مسبقاً قبل المعالجة لتجنب التكرار.
-  - استدعاء `markOrderPaid(orderId)` الذي يقوم بخصم المخزون الحقيقي `stock` وتصفير `reservedStock` المقابلة، وتحديث حالة الدفع إلى `PAID` وحالة الطلب إلى `CONFIRMED`.
+---
+
+## ⚡ 8. نظام الدفع المزدوج والتوجيه الذكي والـ Webhooks (Week 5 Details)
+
+تم إنجاز منظومة الدفع المزدوجة بالكامل لربط السوق الخليجي المحلي بالأسواق العالمية عبر معمارية Adapter/Strategy مرنة وآمنة للغاية:
+
+### أ. التوجيه الذكي للبوابات والـ Feature Flag (`src/modules/payments/payment.service.ts`):
+- **قاعدة التوجيه التلقائي (`resolveGateway(country)`)**:
+  - دول مجلس التعاون الخليجي الست (`SA`, `AE`, `OM`, `KW`, `BH`, `QA`) يتم توجيهها تلقائياً إلى **البوابة المحلية** بالعملة الرسمية للدولة.
+  - كافة الدول الأخرى (مثل `US`, `GB`, `DE` وغيرها) يتم توجيهها إلى **Stripe Checkout** بالدولار الأمريكي (`USD`).
+- **التبديل عبر الـ Feature Flag (`getActiveLocalGateway()`)**:
+  - يدعم المتجر بوابتي **Tap Payments** و **Moyasar** بكود كامل ومختبر.
+  - يتم اختيار البوابة النشطة في أي لحظة عبر متغير البيئة `PAYMENT_PROVIDER` (`tap` أو `moyasar`).
+  - **التبديل الفوري دون تعديل كود**: يمكن للمتجر التبديل من Tap إلى Moyasar أو العكس بمجرد تعديل المتغير في `.env` وإعادة توجيه الـ Webhook في لوحة المزود إلى الرابط الموحد `/api/webhooks/local-gateway`.
+
+### ب. مزود Tap Payments (`src/modules/payments/providers/tap.provider.ts`):
+- **إنشاء الجلسة**: يتم استخدام `source: { id: "src_all" }` لتمكين العميل من اختيار أي طريقة دفع محلية مفعّلة على حساب التاجر (Apple Pay، بطاقات مدى mada، كي نت KNET، بنفت Benefit، بطاقات فيزا وماستركارد).
+- **التحقق المشفر من الـ Webhook**:
+  - قراءة الـ `hashstring` من جسم حدث الـ Webhook.
+  - إعادة احتساب توقيع HMAC-SHA256 باستخدام `LOCAL_GATEWAY_WEBHOOK_SECRET` وفق الصيغة المعتمدة لبيانات المعاملة.
+  - المقارنة الزمنية الثابتة `crypto.timingSafeEqual` لمنع هجمات التوقيت (Timing Attacks).
+- **الاسترداد (Refund)**: تنفيذ استرداد كامل للمدفوعات عبر `refundTapCharge`.
+
+### ج. مزود Moyasar (`src/modules/payments/providers/moyasar.provider.ts`):
+- **إنشاء المعاملة**: دعم الدفع المباشر بالهللات مع تحويل تلقائي عبر HTTP client منخفض المستوى في `src/lib/payment-gateway.ts`.
+- **التحقق الأمني من الـ Webhook**:
+  - التحقق من صحة `secret_token` القادم ضمن جسم الحدث بمقارنته مع `LOCAL_GATEWAY_WEBHOOK_SECRET` باستخدام `crypto.timingSafeEqual`.
+- **الاسترداد (Refund)**: دعم الاسترداد الكلي والجزئي بنفس وحدات العملة الصغرى (`refundMoyasarPayment`).
+
+### د. معالجة عملات الخليج والكسور الثلاثية (`src/lib/gcc-currency.ts`):
+- **العملات ثلاثية الخانات العشرية (3-Decimal Currencies)**:
+  - الدينار الكويتي (`KWD`)، الريال العماني (`OMR`)، والدينار البحريني (`BHD`) تتطلب 3 خانات عشرية (1000 فلس/بيسة).
+  - تم بناء دوال مخصصة `decimalPlacesFor` و `roundForCurrency` و `toMinorUnits` تراعي هذه الخصوصية وتمنع تماماً أخطاء التقريب المالي.
+- **تحويل الأسعار من الدولار إلى العملة المحلية**:
+  - المنتجات تُسعر وتُخزن بالدولار (`USD`) كمصدر حقيقة وحيد.
+  - تُحول كل العناصر (المجموع، الخصم، الشحن، الضريبة) إلى العملة المحلية أولاً ثم يُحسب الإجمالي النهائي لتفادي تراكم الفروقات.
+
+### هـ. معالجات الـ Webhooks المزدوجة وضمان الـ Idempotency وتحرير المخزون:
+1. **مسار البوابة المحلية (`POST /api/webhooks/local-gateway`)**:
+   - يستقبل إشعارات البوابة المفعلة (Tap أو Moyasar) ويتحقق من التوقيع.
+   - **عند نجاح الدفع (`PAID`)**: فحص هل الطلب مدفوع مسبقاً عبر `findOrderByPaymentRef`، ثم استدعاء `markOrderPaid(orderId, gatewayLabel)` الذي يخصم `stock` ويصفر `reservedStock` ويحدّث الحالة إلى `CONFIRMED`.
+   - **عند فشل الدفع (`FAILED`)**: استدعاء `releaseReservedStock` لتحرير المخزون المحجوز فوراً.
+2. **مسار Stripe Webhook (`POST /api/webhooks/stripe`)**:
+   - التحقق المشفر من ترويسة `stripe-signature` عبر SDK.
+   - معالجة `checkout.session.completed` لتأكيد الدفع بشكل Idempotent.
+   - معالجة `checkout.session.expired` لتحرير المخزون المحجوز فوراً دون انتظار تدخل يدوي.
+3. **تحرير المخزون الذري المحمي (`releaseReservedStock`)**:
+   - يعمل داخل `prisma.$transaction`.
+   - للمنتجات العادية: يطرح الكمية من `reservedStock` لتعود متاحة للبيع فوراً.
+   - للمتغيرات (Variants): يضيف الكمية مجدداً إلى `stock`.
+   - يسجل سبب الإلغاء في `OrderStatusLog`، ويمنع تحرير المخزون مرتين لنفس الطلب.
+
+### و. اختبارات دورة الدفع الآلية (`src/modules/payments/__tests__/payment-cycle.test.ts`):
+مجموعة اختبارات شاملة باستخدام Vitest تم فيها محاكاة (Mocking) لكل من Stripe SDK و Tap و Moyasar وقاعدة البيانات:
+1. **اختبار توجيه البوابات**: التأكد من توجيه الدول غير الخليجية لـ Stripe، وتوجيه دول الخليج لـ Tap أو Moyasar وفق متغير البيئة، ورمي استثناء صريح عند وضع قيمة غير مدعومة.
+2. **اختبار توقيع Tap**: التأكد من قبول التوقيع السليم ورفض أي حدث تم التلاعب بقيمته (حتى لو بقي التوقيع القديم).
+3. **اختبار Moyasar secret_token**: التأكد من قبول التوكن المطابق ورفض التوكنات الخاطئة.
+4. **اختبار عدم التكرار (Idempotency)**:
+   - استدعاء `markOrderPaid` مرتين متتاليتين يضمن عدم خصم المخزون مرتين.
+   - استدعاء `releaseReservedStock` مرتين متتاليتين يضمن عدم إعادة المخزون مرتين.
 
 ---
 
-## 🔐 8. الأمان وتحديد المعدل (Security & Rate Limiting)
+## 🔐 9. الأمان وتحديد المعدل (Security & Rate Limiting)
 
 1. **حماية مسارات الإدارة (Defense in Depth)**:
    - **الطبقة الأولى**: `src/middleware.ts` يفحص التوكن والدور ويمنع أي مستخدم ليس `ADMIN` أو `SUPER_ADMIN` مع إرجاع 403 لمسارات API.
    - **الطبقة الثانية**: استدعاء دالة `requireAdmin()` في بداية كل مسار تحكم إداري تحت `/api/admin/*`.
-2. **تشفير كلمات المرور (`src/lib/password.ts`)**:
+2. **أمان الـ Webhooks والتواقيع الرقمية**:
+   - التحقق من ترويسة `stripe-signature` لـ Stripe.
+   - التحقق من توقيع HMAC-SHA256 على الـ `hashstring` لبوابة Tap.
+   - التحقق الثابت التوقيت (Constant-time) عبر `crypto.timingSafeEqual` لـ Tap و Moyasar لمنع هجمات الـ Timing Attacks.
+3. **تشفير كلمات المرور (`src/lib/password.ts`)**:
    - استخدام خوارزمية **Argon2id** بذاكرة ~19MB وتكرار زمني آمن، وهي المعيار الأكثر مناعة ضد هجمات الـ GPU مقارنة بـ bcrypt.
-3. **تقييد معدل الطلبات (Rate Limiting via Upstash Redis)**:
+4. **تقييد معدل الطلبات (Rate Limiting via Upstash Redis)**:
    - `authRateLimit`: 10 طلبات في الدقيقة لكل عنوان IP لمسارات التسجيل والمصادقة.
    - `checkoutRateLimit`: 5 طلبات في الدقيقة لكل IP/مستخدم على مسار `POST /api/checkout/session` لمنع استنزاف المخزون والتلاعب.
-4. **حماية ملكية الموارد (Resource Ownership)**:
+5. **حماية ملكية الموارد (Resource Ownership)**:
    - العناوين لا يمكن تعديلها أو حذفها أو استخدامها في الطلب إلا من قبل المستخدم المالك لها.
 
 ---
 
-## ⚙️ 9. متغيرات البيئة المطلوبة (Environment Variables)
+## ⚙️ 10. متغيرات البيئة المطلوبة (Environment Variables)
 
 ملف `.env` المعتمد:
 
@@ -547,13 +616,13 @@ NEXTAUTH_SECRET="your-super-secret-key-min-32-chars"
 UPSTASH_REDIS_REST_URL="https://your-upstash-redis-url.upstash.io"
 UPSTASH_REDIS_REST_TOKEN="your-upstash-token"
 
-# إعدادات Stripe (الدفع الدولي)
+# إعدادات Stripe (الدفع الدولي بالدولار)
 STRIPE_SECRET_KEY="sk_test_..."
 STRIPE_WEBHOOK_SECRET="whsec_..."
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
 
-# إعدادات بوابة الدفع الخليجية (Tap Payments أو Moyasar - المرحلة القادمة)
-PAYMENT_PROVIDER="tap" # أو "moyasar"
+# إعدادات بوابة الدفع الخليجية (Feature Flag: "tap" أو "moyasar")
+PAYMENT_PROVIDER="tap"
 LOCAL_GATEWAY_API_KEY="sk_test_..."
 LOCAL_GATEWAY_WEBHOOK_SECRET="whsec_..."
 
@@ -565,7 +634,7 @@ WHATSAPP_PHONE_NUMBER_ID="your-phone-id"
 
 ---
 
-## ⚡ 10. أوامر التشغيل وإدارة المشروع (CLI Commands)
+## ⚡ 11. أوامر التشغيل وإدارة المشروع (CLI Commands)
 
 ```bash
 # تثبيت الحزم
@@ -578,6 +647,10 @@ npm run dev
 npm run build
 npm run lint
 
+# تشغيل الاختبارات الآلية (Vitest)
+npx vitest run
+npx vitest run src/modules/payments/__tests__/payment-cycle.test.ts
+
 # أوامر Prisma ORM
 npm run prisma:generate   # توليد Prisma Client
 npm run prisma:push       # مزامنة سريعة لبيئة التطوير
@@ -588,7 +661,7 @@ npm run prisma:studio     # استعراض قاعدة البيانات في وا
 
 ---
 
-## 📅 11. حالة التقدم وخارطة الطريق التنفيذية (9-Week Roadmap)
+## 📅 12. حالة التقدم وخارطة الطريق التنفيذية (9-Week Roadmap)
 
 ### ✅ المراحل المنجزة بالكامل (Completed):
 - [x] **الأسبوع 1: إعداد المخطط الشامل + المصادقة والأدوار**
@@ -616,19 +689,24 @@ npm run prisma:studio     # استعراض قاعدة البيانات في وا
   - [x] ربط بوابة Stripe Checkout (`payment.service.ts` و `stripe.provider.ts`).
   - [x] بناء معالج Webhook الموثوق (`/api/webhooks/stripe`) وتأكيد الدفع وخصم المخزون الفعلي.
   - [x] تطبيق Rate Limiting على جلسات الشراء عبر Upstash Redis.
+- [x] **الأسبوع 5: إتمام بوابات الدفع الخليجية (Tap/Moyasar) + الـ Webhooks المزدوجة وتحرير المخزون**
+  - [x] بناء مزود Tap Payments (`tap.provider.ts`) مع التحقق المشفر من التوقيع (HMAC-SHA256 hashstring) ودعم وسائل الدفع الخليجية و Apple Pay.
+  - [x] بناء مزود Moyasar (`moyasar.provider.ts`) مع التحقق الآمن عبر `secret_token` بمقارنة ثابتة التوقيت (Constant-Time).
+  - [x] إنشاء طبقة البوابة المحلية المشتركة (`local.provider.ts`) مع مفتاح تبديل بيئي (Feature Flag via `PAYMENT_PROVIDER`).
+  - [x] تفعيل التوجيه التلقائي للبوابات حسب دولة العميل في `payment.service.ts` (دول الخليج الست $\to$ البوابة المحلية، وبقية العالم $\to$ Stripe).
+  - [x] بناء معالج الـ Webhook الموحد للبوابة الخليجية (`/api/webhooks/local-gateway`) مع دعم كامل للـ Idempotency.
+  - [x] تطبيق منطق تحرير المخزون المحجوز الذري (`releaseReservedStock`) في `checkout.repository.ts` عند فشل الدفع أو انتهاء الجلسة.
+  - [x] دعم العملات الخليجية وتحويلات العملة والتعامل الخاص مع العملات ثلاثية الخانات العشرية (`KWD`, `BHD`, `OMR`) في `gcc-currency.ts`.
+  - [x] كتابة حزمة اختبارات شاملة بالـ Mocking لدورة الدفع والـ Webhooks وIdempotency في `payment-cycle.test.ts`.
 
 ---
 
 ### ⏳ المراحل القادمة (Upcoming Weeks):
-- [ ] **الأسبوع 5: إتمام بوابات الدفع الخليجية (Tap/Moyasar) + الـ Webhooks المزدوجة**
-  - [ ] بناء مزود البوابة الخليجية (`local.provider.ts`) لدعم Apple Pay و Mada والبطاقات الخليجية.
-  - [ ] استكمال مسار الـ Webhook المحلي `/api/webhooks/local-gateway` بالتحقق من التوقيع الرقمي.
-  - [ ] ربط التوجيه التلقائي للبوابات حسب دولة العميل (دول الخليج $\to$ Local، الدولي $\to$ Stripe).
-  - [ ] اختبار دورة الدفع كاملة في بيئة الاختبار للبوابتين.
-- [ ] **الأسبوع 6: دورة حياة الطلبات (Orders Lifecycle) + إدارة المخزون المتقدمة**
-  - [ ] إدارة انتقالات حالات الطلب وسجل المتابعة (`OrderStatusLog`).
-  - [ ] منطق تحرير المخزون المحجوز (Release reservedStock) تلقائياً عند فشل الدفع أو الإلغاء.
-  - [ ] شاشات إدارة ومتابعة الطلبات وتحديث الشحنات في لوحة المدير (`/admin/orders`).
+- [ ] **الأسبوع 6: دورة حياة الطلبات (Orders Lifecycle) + إدارة الطلبات في لوحة المدير**
+  - [ ] إدارة انتقالات حالات الطلب وسجل المتابعة التدقيقي الكامل (`OrderStatusLog`).
+  - [ ] دعم إلغاء الطلبات وبدء الاسترجاع (Refunds) اليدوي من الإدارة واستدعاء `provider.refund()`.
+  - [ ] شاشات استعراض وإدارة ومتابعة وتحديث حالات الشحن في لوحة المدير (`/admin/orders`).
+  - [ ] صفحات تتبع الطلب وتفاصيله الموجهة للعميل (`/account/orders` و `/account/orders/[id]`).
 - [ ] **الأسبوع 7: المراجعات + المفضلة + إشعارات البريد ولوحة التقارير**
   - [ ] نظام تقييم المنتجات (`Review`) والتحقق من الشراء الفعلي (`verifiedPurchase`).
   - [ ] قائمة الرغبات (`Wishlist`).

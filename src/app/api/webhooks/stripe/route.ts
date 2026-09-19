@@ -1,47 +1,33 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
-import { findOrderByPaymentRef, markOrderPaid } from "@/modules/checkout/checkout.repository";
-
-// هذا تكامل أولي (بداية تنفيذ الدفع عبر Stripe فقط).
-// معالجة أحداث الفشل/الاسترداد وربط Webhook البوابة الخليجية المحلية (Tap/Moyasar)
-// سيُستكملان الأسبوع القادم حسب خارطة الطريق.
+import { verifyProviderWebhook } from "@/modules/payments/payment.service";
+import { findOrderByPaymentRef, markOrderPaid, releaseReservedStock } from "@/modules/checkout/checkout.repository";
 
 export async function POST(req: NextRequest) {
-  const signature = req.headers.get("stripe-signature");
   const rawBody = await req.text();
-
-  if (!signature || !process.env.STRIPE_WEBHOOK_SECRET) {
-    return NextResponse.json(
-      { success: false, error: { code: "MISSING_SIGNATURE", message: "توقيع الحدث مفقود" } },
-      { status: 400 }
-    );
-  }
 
   let event;
   try {
-    event = stripe.webhooks.constructEvent(rawBody, signature, process.env.STRIPE_WEBHOOK_SECRET);
+    event = verifyProviderWebhook("stripe", rawBody, req.headers);
   } catch (err) {
+    console.error("Stripe webhook verification failed", err);
     return NextResponse.json(
-      {
-        success: false,
-        error: { code: "INVALID_SIGNATURE", message: "توقيع غير صالح", detail: (err as Error).message },
-      },
+      { success: false, error: { code: "INVALID_SIGNATURE", message: (err as Error).message } },
       { status: 400 }
     );
   }
 
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object as { id: string; metadata?: { orderId?: string } };
-    const orderId = session.metadata?.orderId;
-
-    if (orderId) {
-      // حماية من المعالجة المكررة (Idempotency) في حال أعاد Stripe إرسال نفس الحدث
-      const existingOrder = await findOrderByPaymentRef(session.id);
-      if (existingOrder && existingOrder.paymentStatus !== "PAID") {
-        await markOrderPaid(orderId);
-      }
+  if (event.type === "PAID" && event.orderId) {
+    // حماية من المعالجة المكررة (Idempotency) في حال أعاد Stripe إرسال نفس الحدث
+    const existingOrder = await findOrderByPaymentRef(event.providerRef);
+    if (existingOrder && existingOrder.paymentStatus !== "PAID") {
+      await markOrderPaid(event.orderId, "Stripe");
     }
+  } else if (event.type === "FAILED" && event.orderId) {
+    // انتهت صلاحية جلسة الدفع دون إتمامها — نُحرر المخزون المحجوز فوراً بدل انتظار مهلة زمنية
+    await releaseReservedStock(event.orderId, "فشلت أو انتهت صلاحية جلسة الدفع عبر Stripe");
   }
+  // أحداث REFUNDED تُدار حالياً عبر مسار إدارة الطلبات اليدوي (provider.refund + markOrderRefunded)؛
+  // يمكن ربطها هنا مستقبلاً إن احتجت تحديث الحالة تلقائياً عند استرداد يبدأ من لوحة Stripe مباشرة.
 
   return NextResponse.json({ success: true, received: true });
 }

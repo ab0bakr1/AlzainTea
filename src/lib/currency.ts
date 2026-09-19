@@ -48,12 +48,21 @@ export function getCurrencySymbol(currency: string): string {
   return symbols[currency] ?? currency
 }
 
-// ─── تحويل للوحدة الأصغر (للـ Stripe والبوابات المحلية) ───────
+// عملات بدون كسور عشرية شائعة (تُخزَّن أصغر وحدتها من 3 خانات عشرية بدل 2)
+const NO_DECIMAL_CURRENCIES = ['KWD', 'BHD', 'OMR']
+
+// ─── تحويل للوحدة الأصغر (لـ Stripe و Moyasar) ─────────────────
 export function toSmallestUnit(amount: number, currency: string): number {
-  // عملات بدون كسور عشرية
-  const noDecimalCurrencies = ['KWD', 'BHD', 'OMR']
-  if (noDecimalCurrencies.includes(currency)) {
+  if (NO_DECIMAL_CURRENCIES.includes(currency.toUpperCase())) {
     return Math.round(amount * 1000)
   }
   return Math.round(amount * 100)
+}
+
+// ─── العكس: من الوحدة الأصغر إلى رقم عشري (Tap يطلب المبلغ كرقم عشري) ───
+export function fromSmallestUnit(amount: number, currency: string): number {
+  if (NO_DECIMAL_CURRENCIES.includes(currency.toUpperCase())) {
+    return amount / 1000
+  }
+  return amount / 100
 }
