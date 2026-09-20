@@ -1,9 +1,20 @@
-﻿import { NextResponse } from 'next/server'
+﻿import type { NextRequest } from "next/server";
+import { fail, ok, validationError } from "@/lib/api-response";
+import { requireUser } from "@/lib/require-user";
+import { getMyOrders } from "@/modules/orders/order.service";
+import { myOrdersQuerySchema, searchParamsToObject } from "@/modules/orders/order.validators";
 
-export async function GET() {
-  return NextResponse.json({ message: 'TODO' })
-}
+// GET /api/orders — طلبات المستخدم الحالي
+export async function GET(req: NextRequest) {
+  try {
+    const user = await requireUser();
 
-export async function POST() {
-  return NextResponse.json({ message: 'TODO' })
+    const parsed = myOrdersQuerySchema.safeParse(searchParamsToObject(req.nextUrl.searchParams));
+    if (!parsed.success) return validationError(parsed.error);
+
+    const { items, meta } = await getMyOrders(user.id, parsed.data);
+    return ok(items, meta);
+  } catch (error) {
+    return fail(error);
+  }
 }

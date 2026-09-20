@@ -17,11 +17,14 @@
 - **تجربة مستخدم راقية وثنائية اللغة (i18n):** دعم كامل للغتين العربية (RTL) والإنجليزية (LTR) مع تبديل فوري عبر `next-intl`.
 - **نظام دفع ذكي متعدد المزودين (Dual Gateway & Strategy Pattern - منجز بالكامل):** طبقة دفع موحدة (`PaymentProvider`) تدعم **Stripe** للعملاء الدوليين (US, GB وبقية العالم) بالدولار الأمريكي، وبوابات الدفع الخليجية المحلية (**Tap Payments** و **Moyasar**) لدعم العملات المحلية، و Apple Pay و Mada والبطاقات الخليجية. يتم التبديل بين مزودي الخليج عبر Feature Flag دون أي تعديل برمجي.
 - **إتمام شراء متكامل وآمن (Checkout & Stock Reservation):** إعادة احتساب كاملة للأسعار، الضرائب (VAT)، الشحن، والخصومات على الخادم، مع حجز فوري للمخزون (`reservedStock`) داخل معاملة Prisma واحدة لمنع البيع الزائد (Overselling)، مع آلية تحرير فوري للمخزون (`releaseReservedStock`) عند فشل الدفع أو إلغائه.
+- **دورة حياة متكاملة للطلبات وآلة حالات صارمة (Orders Lifecycle & State Machine - منجز بالكامل):** نموذج آلة حالات نقي (`order-status.ts`) يتحكم بانتقالات حالات الطلب من `PENDING` حتى `DELIVERED` أو `CANCELLED` أو `REFUNDED`، مع إدارة ذرية للمخزون (`RELEASE_RESERVED` و `RESTOCK`) وسجل تدقيق تفصيلي زمني (`OrderStatusLog`).
+- **إلغاء واسترداد مالي آمن بقفل تزامني (Refund Concurrency Lock & Customer Cancel):** إتاحة إلغاء الطلب للعميل في المراحل المبكرة، وإلغاء واسترداد إداري تلقائي عبر بوابة الدفع الأصلية مع قفل تزامني (`claimRefund`) يمنع ازدواجية العمليات المالية.
+- **جدولة آلية لتحرير المخزون المنتهي (Automated Stock Expiration Cron):** مهمة دورية مجدولة عبر Vercel Cron (`/api/cron/expire-orders`) محروسة بـ `CRON_SECRET` تفحص الطلبات غير المدفوعة التي تجاوزت مهلتها (60 دقيقة) وتحرر المخزون المحجوز فوراً دون تدخل يدوي.
 - **تعدد العملات وحساب الشحن الديناميكي:** دعم كامل لعملات دول الخليج (SAR, AED, OMR, KWD, BHD, QAR) مع معالجة دقيقة للعملات ثلاثية الخانات العشرية (KWD, BHD, OMR)، بالإضافة إلى العملات العالمية (USD, EUR, GBP) مع حساب تكلفة وأيام الشحن المتوقعة حسب الدولة.
 - **سلة مشتريات ذكية ومتزامنة (Cart System):** إدارة السلة عبر Zustand محلياً مع دعم المفاتيح المتعددة (`guest` و `userId`)، ودمج تلقائي عند تسجيل الدخول (`cart-merge.ts`)، وتحقق لحظي من المخزون والأسعار عبر `/api/cart/validate`.
 - **نظام كوبونات وعناوين متطور:** التحقق الصارم من شروط الكوبونات (حد أدنى، حد استخدام عام ولكل مستخدم، تاريخ الصلاحية)، وإدارة العناوين مع حماية الملكية للمستخدم المسجل.
 - **Webhooks موثوقة ومحمية من التكرار (Idempotent Webhooks):** معالجة أحداث الدفع من Stripe و Tap و Moyasar مع التحقق المشفر من التواقيع (HMAC-SHA256 و Timing-Safe Equal)، وضمان عدم تكرار خصم أو تحرير المخزون.
-- **لوحة تحكم إدارية متكاملة (Admin Dashboard):** لإدارة المنتجات، الفئات الهرمية، متابعة الطلبات، وتحديث حالات الشحن والمخزون، مع حماية أمنية متعددة الطبقات (Defense in Depth).
+- **لوحة تحكم إدارية وبوابة عملاء متكاملة (Admin Dashboard & Customer Orders Portal):** لوحة إدارة كاملة للطلبات (`/admin/orders`) تدعم الفلترة والبحث وتحديث الحالات والأثر على المخزون، وبوابة لمتابعة وتتبع طلبات العميل (`/account/orders`) مع خط زمني مرئي (`OrderTimeline`) وشارات ملونة (`OrderStatusBadge`).
 
 ---
 
@@ -37,12 +40,14 @@
 | **Validation** | **Zod 4** | التحقق الصارم من مدخلات الـ API، ونماذج الـ Frontend عبر `@hookform/resolvers` |
 | **State Management** | **Zustand 5** | إدارة حالة السلة واختيار الدولة (`cart-store.ts`, `useCountry.ts`) |
 | **Cart Persistence & Sync** | **Local Storage + Custom Merge** | إدارة السلة محلياً مع دعم دمج سلة الزائر مع حساب المستخدم عند تسجيل الدخول |
-| **Data Fetching & Cache**| **TanStack React Query 5 + Axios** | استعلامات الخادم في الواجهة، كاش ذكي، وإلغاء الاستعلامات التلقائي |
+| **Data Fetching & Cache**| **TanStack React Query 5 + Axios** | استعلامات الخادم في الواجهة، كاش ذكي، وإلغاء الاستعلامات التلقائي للطلبات والمنتجات |
 | **Authentication** | **NextAuth.js (v4 JWT)** | إدارة الجلسات، الأدوار (`CUSTOMER`, `ADMIN`, `SUPER_ADMIN`) وحماية المسارات |
 | **Password Hashing** | **Argon2 (argon2id)** | تشفير فائق الأمان لكلمات المرور وفق معايير OWASP (مع دعم fallback لـ bcrypt) |
 | **Rate Limiting** | **Upstash Redis + @upstash/ratelimit** | حماية مسارات المصادقة والدفع من الهجمات وهجمات التخمين |
 | **Payments** | **Stripe + Tap + Moyasar (مكتمل بالكامل)** | طبقة موحدة (`PaymentProvider`) مع توجيه ذكي للدول الخليجية والدولية، دعم Apple Pay و Mada، تحويل دقيق لعملات الخليج، وتبديل عبر Feature Flag، وWebhooks مؤمنة بـ HMAC وTiming-Safe |
-| **Testing** | **Vitest** | اختبارات وحدة وتكاملية لدورة الدفع، توجيه البوابات، تحويل العملات، وفحص الـ Webhooks والـ Idempotency |
+| **Cron & Background Tasks** | **Vercel Cron (`vercel.json`)** | جدولة مهام آلية كل 15 دقيقة لتحرير المخزون المحجوز للطلبات المنتهية عبر `/api/cron/expire-orders` |
+| **Testing** | **Vitest** | اختبارات وحدة وتكاملية لدورة الدفع والـ Idempotency، واختبارات شاملة لآلة حالات الطلب وتأثيرات المخزون |
+| **Formatting** | **Native Intl APIs** | تنسيق مالي وتاريخي متعدد العملات يدعم العملات الخليجية ثلاثية الخانات (KWD, BHD, OMR) تلقائياً |
 | **Localization (i18n)**| **next-intl** | الترجمة وتعدد اللغات مع ملفات الرسائل في `src/messages/` وتوافق كامل مع اتجاه RTL |
 | **Theme** | **next-themes** | دعم الوضع الداكن والفاتح (Dark / Light Mode) |
 | **Animations** | **GSAP + Lottie** | مؤثرات حركية فاخرة (`@lottiefiles`, `lottie-react`, `gsap`) |
@@ -80,18 +85,23 @@ alzainTea/
 │   │   │   │   ├── cancel/          # صفحة إلغاء الدفع
 │   │   │   │   ├── success/         # صفحة نجاح الدفع وتأكيد الطلب
 │   │   │   │   └── page.tsx         # صفحة Checkout الرئيسية
-│   │   │   └── account/             # الملف الشخصي والطلبات والعناوين
+│   │   │   └── account/             # بوابة العميل
+│   │   │       ├── orders/          # قائمة طلبات العميل
+│   │   │       │   └── [id]/        # تفاصيل وتتبع الطلب للعميل وإلغاؤه
+│   │   │       └── page.tsx         # الملف الشخصي والعناوين
 │   │   ├── admin/                   # شاشات لوحة تحكم الإدارة (محمية بـ ADMIN)
 │   │   │   ├── categories/          # إدارة وتعديل وإنشاء الفئات
 │   │   │   ├── products/            # إدارة المنتجات (قائمة، جديد، وتعديل [id])
-│   │   │   ├── orders/              # إدارة ومتابعة الطلبات وتحديث حالاتها
+│   │   │   ├── orders/              # إدارة ومتابعة الطلبات وتحديث حالاتها واستردادها
 │   │   │   └── page.tsx             # لوحة الإحصائيات العامة
 │   │   ├── api/                     # واجهات الـ HTTP الخلفية (Route Handlers)
 │   │   │   ├── addresses/           # GET (قائمة عناوين المستخدم) و POST (إضافة عنوان)
 │   │   │   │   └── [id]/            # PATCH (تعديل) و DELETE (حذف عنوان)
-│   │   │   ├── admin/               # مسارات إدارية محمية
+│   │   │   ├── admin/               # مسارات إدارية محمية (requireAdmin)
 │   │   │   │   ├── categories/      # GET (قائمة الإدارة) و POST (إنشاء فئة)
 │   │   │   │   │   └── [id]/        # GET, PATCH, DELETE للفئة
+│   │   │   │   ├── orders/          # GET قائمة كل الطلبات بالفلترة والبحث والترقيم
+│   │   │   │   │   └── [id]/        # GET تفاصيل الطلب + PATCH تحديث الحالة والاسترداد والمخزون
 │   │   │   │   └── products/        # GET (قائمة الإدارة كاملة) و POST (إضافة منتج)
 │   │   │   │       └── [id]/        # GET, PATCH, DELETE للمنتج
 │   │   │   ├── auth/
@@ -104,7 +114,11 @@ alzainTea/
 │   │   │   │   └── session/         # POST إنشاء جلسة Checkout وحجز المخزون وربط الدفع
 │   │   │   ├── coupons/
 │   │   │   │   └── validate/        # POST التحقق من شروط الكوبون وحساب قيمة الخصم
-│   │   │   ├── orders/              # إنشاء واسترجاع الطلبات
+│   │   │   ├── cron/
+│   │   │   │   └── expire-orders/   # GET مهمة دورية لإنهاء الطلبات المنتهية وتحرير المخزون المحجوز
+│   │   │   ├── orders/              # GET قائمة طلبات العميل المسجل
+│   │   │   │   └── [id]/            # GET تفاصيل طلب العميل
+│   │   │   │       └── cancel/      # POST إلغاء العميل لطلبه مع تحرير المخزون والاسترداد
 │   │   │   ├── products/            # GET قائمة المنتجات العامة مع البحث والفلترة
 │   │   │   │   ├── [slug]/          # GET تفاصيل منتج معين بالـ slug
 │   │   │   │   └── facets/          # GET حدود الأسعار والفئات المتاحة ديناميكياً
@@ -117,18 +131,19 @@ alzainTea/
 │   │   ├── layout.tsx               # Root Layout
 │   │   └── page.tsx                 # الصفحة الرئيسية (Landing Page)
 │   ├── components/                  # مكونات الواجهة
-│   │   ├── admin/                   # مكونات الإدارة (ProductsTable, ProductForm, CategoriesTable, CategoryForm, OrdersTable)
+│   │   ├── admin/                   # مكونات الإدارة (ProductsTable, ProductForm, CategoriesTable, CategoryForm, OrdersTable, OrderDetail)
 │   │   ├── atoms/                   # أصغر العناصر (Button, Text, Title, Icon, Images)
 │   │   ├── molecules/               # عناصر مركبة (SearchBox, NavItem, FormField)
 │   │   ├── organisms/               # هياكل كاملة (Navbar, Footer)
-│   │   ├── shop/                    # مكونات المتجر (ProductCard, ProductGrid, ProductFilters, ProductSearch, Pagination, CartDrawer, CountrySelector, CurrencySelector)
+│   │   ├── shop/                    # مكونات المتجر (ProductCard, ProductGrid, ProductFilters, ProductSearch, Pagination, CartDrawer, CountrySelector, CurrencySelector, MyOrdersList, MyOrderDetail)
 │   │   ├── checkout/                # مكونات الدفع والشحن (PaymentMethodPicker, ShippingCalculator, VatField)
 │   │   ├── layout/                  # مكونات التخطيط واللغات
-│   │   └── ui/                      # مكونات الأساس المشتركة (Dialog, Dropdown, Skeleton)
+│   │   └── ui/                      # مكونات الأساس المشتركة (Dialog, Dropdown, Skeleton, OrderStatusBadge, OrderTimeline)
 │   ├── hooks/                       # الخطافات المخصصة
 │   │   ├── useCart.ts               # الواجهة البرمجية الموحدة لاستخدام السلة في المكونات
 │   │   ├── useCartAuthSync.ts       # مزامنة السلة تلقائياً ودمجها عند تسجيل الدخول
 │   │   ├── useCountry.ts            # إدارة دولة العميل الحالية
+│   │   ├── useOrders.ts             # خطافات TanStack Query للطلبات (Admin & Customer)
 │   │   ├── useProducts.ts           # جلب المنتجات عبر TanStack Query
 │   │   └── useProductFiltersUrl.ts  # مزامنة فلاتر البحث والترتيب مع عنوان URL
 │   ├── lib/                         # المكتبات المشتركة والأدوات المساعدة
@@ -139,11 +154,13 @@ alzainTea/
 │   │   ├── cn.tsx                   # دمج كلاسات Tailwind
 │   │   ├── currency.ts              # تحويل العملات وتنسيق الوحدات الصغرى
 │   │   ├── gcc-currency.ts          # أسعار صرف الخليج والتعامل الخاص مع العملات ثلاثية الخانات (KWD, BHD, OMR)
+│   │   ├── order-format.ts          # تنسيق العملات والتواريخ عبر Native Intl (يدعم KWD/BHD/OMR)
 │   │   ├── password.ts              # تشفير وفحص كلمات المرور عبر Argon2id
 │   │   ├── payment-gateway.ts       # عملاء HTTP منخفضو المستوى لـ Tap و Moyasar
 │   │   ├── prisma.ts                # كائن Prisma Client المفرد (Singleton)
 │   │   ├── rate-limit.ts            # تقييد معدل الطلبات عبر Upstash Redis
 │   │   ├── require-admin.ts         # حماية المسارات الإدارية والتحقق من صلاحية ADMIN
+│   │   ├── require-user.ts          # التحقق من جلسة العميل واستخراج معرفه
 │   │   ├── shipping-rates.ts        # جدول أسعار الشحن والبلدان المدعومة
 │   │   └── stripe.ts                # تهيئة Stripe SDK
 │   ├── modules/                     # طبقة منطق الأعمال والوصول لقاعدة البيانات (Modular Monolith)
@@ -153,6 +170,14 @@ alzainTea/
 │   │   ├── categories/              # مستودع وخدمة الفئات (category.repository.ts, category.service.ts, category.validators.ts)
 │   │   ├── checkout/                # خدمة ومستودع إتمام الشراء وحجز المخزون (checkout.service.ts, checkout.repository.ts, checkout.validators.ts)
 │   │   ├── coupons/                 # خدمة ومستودع فحص الكوبونات (coupon.service.ts, coupon.repository.ts, coupon.validators.ts)
+│   │   ├── orders/                  # إدارة دورة حياة الطلبات والمخزون والاسترداد
+│   │   │   ├── __tests__/           # اختبارات آلة الحالات وانتقالات المخزون والاسترداد
+│   │   │   │   └── order-status.test.ts
+│   │   │   ├── order-status.ts      # آلة الحالات (State Machine) وخطط الانتقال
+│   │   │   ├── order-refund.adapter.ts # مهايئ الاسترداد المالي عبر بوابة الدفع
+│   │   │   ├── order.repository.ts  # مستودع Prisma والمعاملات الذرية وقفل الاسترداد
+│   │   │   ├── order.service.ts     # منطق الأعمال للطلبات (Admin/Customer/System)
+│   │   │   └── order.validators.ts   # مخططات Zod للطلبات والفلترة والتحديث
 │   │   ├── payments/                # طبقة الدفع الموحدة ومزودو البوابات
 │   │   │   ├── __tests__/           # اختبارات دورة الدفع، التوجيه، التوقيع، والـ Idempotency
 │   │   │   │   └── payment-cycle.test.ts
@@ -165,10 +190,12 @@ alzainTea/
 │   │   │       └── tap.provider.ts     # مزود تاب (Tap Payments)
 │   │   ├── products/                # مستودع وخدمة المنتجات (product.repository.ts, product.service.ts, product.validators.ts)
 │   │   └── shipping/                # خدمة ومتحققات الشحن (shipping.service.ts, shipping.validators.ts)
-│   ├── services/                    # طبقة استدعاء الـ API من الواجهة الأمامية (products.service.ts, categories.service.ts)
+│   ├── services/                    # طبقة استدعاء الـ API من الواجهة الأمامية (products, categories, orders)
 │   ├── store/                       # مخازن الحالة العامة (cart-store.ts)
 │   ├── styles/                      # متغيرات نظام التصميم (variables.css)
 │   └── types/                       # تعريفات TypeScript العامة (cart.d.ts, next-auth.d.ts, global.d.ts)
+├── vercel.json                      # تكوين مهام Cron المجدولة (expire-orders كل 15 دقيقة)
+└── package.json
 ```
 
 ---
@@ -581,26 +608,111 @@ model WishlistItem {
 
 ---
 
-## 🔐 9. الأمان وتحديد المعدل (Security & Rate Limiting)
+## 📦 9. تفاصيل دورة حياة الطلبات، إدارة المخزون، الاسترداد المالي، ولوحة الإدارة (Week 6 Details)
+
+تم إنجاز منظومة دورة حياة الطلبات (Orders Lifecycle) وإدارتها في لوحة التحكم وبوابة العميل بالكامل وفق أعلى معايير الأمان المالي والنزاهة المحاسبية للمخزون:
+
+### أ. آلة حالات الطلب وانتقالات الحالات الصارمة (`src/modules/orders/order-status.ts`):
+- **مصفوفة الانتقالات المسموحة (`ORDER_TRANSITIONS`)**:
+  - `PENDING` $\longrightarrow$ `["CONFIRMED", "CANCELLED", "FAILED"]`
+  - `CONFIRMED` $\longrightarrow$ `["PROCESSING", "CANCELLED"]`
+  - `PROCESSING` $\longrightarrow$ `["SHIPPED", "CANCELLED"]`
+  - `SHIPPED` $\longrightarrow$ `["DELIVERED", "RETURNED"]`
+  - `DELIVERED` $\longrightarrow$ `["RETURNED", "REFUNDED"]`
+  - `RETURNED` $\longrightarrow$ `["REFUNDED"]`
+- **الحالات النهائية (Terminal States)**:
+  - `CANCELLED`, `REFUNDED`, `FAILED` — حالات نهائية محصورة ومغلقة لا تسمح بأي انتقال بعدها منعاً للتلاعب (`isTerminalStatus`).
+- **تحديد الصلاحيات الموجهة (Role-Based State Transitions)**:
+  - **حالات Webhooks و Cron فقط**: `PENDING`, `CONFIRMED`, `FAILED` تُدار آلياً بواسطة إشعارات بوابات الدفع أو مهمة إنهاء الطلبات المنتهية.
+  - **حالات المدير المسموحة (`ADMIN_SETTABLE_STATUSES`)**: `PROCESSING`, `SHIPPED`, `DELIVERED`, `CANCELLED`, `RETURNED`, `REFUNDED`.
+  - **حالات إلغاء العميل (`CUSTOMER_CANCELLABLE_STATUSES`)**: مسموح للعميل إلغاء طلبه فقط إذا كان في حالة `PENDING` (بانتظار الدفع) أو `CONFIRMED` (مدفوع وبانتظار بدء التجهيز)، ويُمنع الإلغاء الذاتي بعد الدخول في `PROCESSING`.
+
+### ب. خطة الانتقال وتأثيرات المخزون الذرية (`planTransition` & `StockEffect`):
+- **أنواع التأثير على المخزون (`StockEffect`)**:
+  1. `NONE`: لا تأثير على المخزون (مثل الانتقال من `CONFIRMED` إلى `PROCESSING` ثم `SHIPPED`).
+  2. `RELEASE_RESERVED`: للطلبات غير المدفوعة الملغاة أو الفاشلة — تحرير الكميات من `reservedStock` للمنتجات العادية، وإعادتها إلى `stock` للمتغيرات (`ProductVariant`).
+  3. `RESTOCK`: للطلبات المدفوعة الملغاة أو المرتجعة التي يقرر إعادتها للمخزون — زيادة رصيد `stock` الفعلي للمنتجات والمتغيرات.
+- **منع حالات الجمود الميت (Deadlock Prevention)**:
+  - فرز بنود الطلب أبجدياً حسب معرف المنتج والمتغير (`productId:variantId`) قبل تنفيذ استعلامات التحديث في قاعدة البيانات، لضمان تسلسل ثابت للأقفال عند معالجة طلبات متزامنة.
+- **التزامن التفاؤلي الصارم (Optimistic Concurrency & Compare-and-Set)**:
+  - يُنفذ الانتقال داخل معاملة ذرية `prisma.$transaction` باستخدام تحديث شرطي:
+    `prisma.order.updateMany({ where: { id: orderId, status: from }, data: { status: to } })`
+  - إذا كان `count === 0`، يرمي النظام خطأ `409 ORDER_STATE_CONFLICT`، مما يمنع حدوث Race Conditions بين نقرات متعددة أو بين المشرف والـ Webhook.
+- **سجل التدقيق الزمني الشامل (`OrderStatusLog`)**:
+  - كل تغيير في الحالة يسجل تلقائياً مع طابع زمني وهوية الفاعل: `[admin:userId]`, `[customer:userId]`, أو `[system]`.
+
+### ج. حماية الاسترداد المالي وقفل التزامن (Refund Concurrency Lock & Adapter):
+- **قفل الاسترداد الذري (`claimRefund` / `revertRefundClaim`)**:
+  - قبل استدعاء بوابة الدفع الخارجية، يقوم النظام بحجز عملية الاسترداد بتحويل `paymentStatus` من `PAID` إلى `PENDING` شرطياً (`updateMany where paymentStatus = "PAID"`).
+  - إذا سبقت عملية أخرى هذا الطلب، يفشل الحجز فوراً برمز `409 REFUND_IN_PROGRESS`، مما يمنع النقر المزدوج واسترداد المبلغ مرتين.
+  - في حال تعثر الاتصال ببوابة الدفع، يُلغى الحجز تلقائياً (`revertRefundClaim`) لتعود الحالة إلى `PAID`.
+- **مهايئ الاسترداد المالي (`src/modules/orders/order-refund.adapter.ts`)**:
+  - عزل منطق الطلبات عن تفاصيل بوابات الدفع؛ حيث يستدعي `refundPayment` الموحدة في موديول الدفع بكامل قيمة الطلب وبالعملة الأصلية.
+
+### د. إلغاء العميل لطلبه وحماية الخصوصية (`POST /api/orders/[id]/cancel`):
+- فحص الجلسة عبر `requireUser()`، والتحقق الصارم من ملكية العميل للطلب (`order.userId === user.id`).
+- إرجاع خطأ `404 ORDER_NOT_FOUND` (بدل 403) إذا لم يكن الطلب للمستخدم، لمنع استكشاف وجود طلبات المستخدمين الآخرين (ID Enumeration).
+- إذا كان الطلب مدفوعاً، يتم بدء الاسترداد المالي آلياً وتحرير المخزون.
+
+### هـ. الجدولة الآلية لإنهاء الطلبات المعلقة وتحرير المخزون (Vercel Cron):
+- **نقطة النهاية المجدولة (`GET /api/cron/expire-orders`)**:
+  - محمية بمطابقة سرية ثابتة التوقيت (`timingSafeEqual`) لترويسة `Authorization: Bearer $CRON_SECRET`.
+  - تستدعي `expireStalePendingOrders(60)` للبحث عن الطلبات في حالة `PENDING` و `UNPAID` التي تجاوز عمرها 60 دقيقة.
+  - تنقل حالتها ذرياً إلى `FAILED`، وتحرر المخزون المحجوز، وتوثق الفاعل كـ `[system]`.
+- **ملف الإعداد (`vercel.json`)**:
+  - جدولة آلية للعمل كل 15 دقيقة (`*/15 * * * *`).
+
+### و. واجهات المستخدم ولوحة تحكم الطلبات (Admin & Customer Portals):
+1. **بوابة العميل (`/account/orders` و `/account/orders/[id]`)**:
+   - استعراض تاريخ طلبات العميل مع الترقيم وحالة الدفع والطلب.
+   - صفحة تفاصيل الطلب (`MyOrderDetail.tsx`): عرض البنود، الأسعار، العناوين، تتبع زمني ديناميكي (`OrderTimeline`) يخفي الملاحظات الإدارية الداخلية، وزر إلغاء الطلب المتاح في الحالات المبكرة.
+2. **لوحة الإدارة (`/admin/orders` و `/admin/orders/[id]`)**:
+   - جدول إدارة الطلبات (`OrdersTable.tsx`): بحث نصي Debounced برقم الطلب أو البريد أو الاسم، فلترة بحالة الطلب، ترقيم، وإشعارات تحديث.
+   - تفاصيل الطلب وتحديث الحالات (`OrderDetail.tsx`):
+     - فحص الحالات التالية المتاحة للمدير تلقائياً وتوليد أزرار الانتقال الصالحة فقط.
+     - مربع تأكيد العمليات الحرجة (الإلغاء والاسترداد) مع تحذير واضح بعدم قابلية التراجع.
+     - حقل ملاحظة إدارية يُسجل في `OrderStatusLog`.
+     - خيار تبديل `restock` لإعادة المنتج إلى المخزون عند تحديد حالة `RETURNED`.
+3. **مكونات الواجهة المشتركة**:
+   - `OrderStatusBadge` و `PaymentStatusBadge`: شارات حالة ملونة تدعم اللغتين العربية والإنجليزية.
+   - `OrderTimeline`: شريط زمني عمودي تفاعلي يعرض دورة حياة الطلب التاريخية.
+   - `src/lib/order-format.ts`: تنسيق المبالغ المالية بدعم تلقائي ومحلي لعملات الخليج والعملات العالمية عبر `Intl.NumberFormat`.
+
+### ز. حزمة اختبارات دورة حياة الطلبات (`src/modules/orders/__tests__/order-status.test.ts`):
+- تغطية شاملة تشمل:
+  1. التحقق من سلامة كافة أهداف الانتقال في مصفوفة الحالات.
+  2. اختبار الحالات النهائية وتأكيد استحالة الخروج منها.
+  3. اختبار رفض القفز بين المراحل غير المسموحة (مثل PENDING مباشرة إلى SHIPPED).
+  4. اختبار قيود الإدارة (منع تعيين PENDING أو CONFIRMED يدوياً).
+  5. اختبار توليد خطة الانتقال (`planTransition`): فحص حالات تحرير المخزون غير المدفوع، إعادة المخزون للطلب المدفوع وتفعيل الاسترداد، وحظر الإلغاء أثناء وجود دفعة قيد المعالجة.
+
+---
+
+## 🔐 10. الأمان وتحديد المعدل (Security & Rate Limiting)
 
 1. **حماية مسارات الإدارة (Defense in Depth)**:
    - **الطبقة الأولى**: `src/middleware.ts` يفحص التوكن والدور ويمنع أي مستخدم ليس `ADMIN` أو `SUPER_ADMIN` مع إرجاع 403 لمسارات API.
    - **الطبقة الثانية**: استدعاء دالة `requireAdmin()` في بداية كل مسار تحكم إداري تحت `/api/admin/*`.
-2. **أمان الـ Webhooks والتواقيع الرقمية**:
+2. **حماية مسارات وبوابة العميل (Customer Access Control & Privacy)**:
+   - استدعاء `requireUser()` في مسارات طلبات العميل (`/api/orders/*`).
+   - إرجاع خطأ 404 بدلاً من 403 عند محاولة الوصول لطلب لا يملكه المستخدم لمنع هجمات الاستكشاف والتعداد (ID Enumeration).
+3. **أمان المهام المجدولة (Cron Secret Security)**:
+   - حماية مسار `/api/cron/expire-orders` بالتحقق من ترويسة التفويض ومقارنة `CRON_SECRET` باستخدام المقارنة الثابتة التوقيت `crypto.timingSafeEqual` لمنع هجمات التوقيت.
+4. **أمان الـ Webhooks والتواقيع الرقمية**:
    - التحقق من ترويسة `stripe-signature` لـ Stripe.
    - التحقق من توقيع HMAC-SHA256 على الـ `hashstring` لبوابة Tap.
    - التحقق الثابت التوقيت (Constant-time) عبر `crypto.timingSafeEqual` لـ Tap و Moyasar لمنع هجمات الـ Timing Attacks.
-3. **تشفير كلمات المرور (`src/lib/password.ts`)**:
+5. **تشفير كلمات المرور (`src/lib/password.ts`)**:
    - استخدام خوارزمية **Argon2id** بذاكرة ~19MB وتكرار زمني آمن، وهي المعيار الأكثر مناعة ضد هجمات الـ GPU مقارنة بـ bcrypt.
-4. **تقييد معدل الطلبات (Rate Limiting via Upstash Redis)**:
+6. **تقييد معدل الطلبات (Rate Limiting via Upstash Redis)**:
    - `authRateLimit`: 10 طلبات في الدقيقة لكل عنوان IP لمسارات التسجيل والمصادقة.
    - `checkoutRateLimit`: 5 طلبات في الدقيقة لكل IP/مستخدم على مسار `POST /api/checkout/session` لمنع استنزاف المخزون والتلاعب.
-5. **حماية ملكية الموارد (Resource Ownership)**:
-   - العناوين لا يمكن تعديلها أو حذفها أو استخدامها في الطلب إلا من قبل المستخدم المالك لها.
+7. **حماية ملكية الموارد (Resource Ownership)**:
+   - العناوين والطلبات لا يمكن تعديلها أو إلغاؤها إلا من قبل المستخدم المالك لها.
 
 ---
 
-## ⚙️ 10. متغيرات البيئة المطلوبة (Environment Variables)
+## ⚙️ 11. متغيرات البيئة المطلوبة (Environment Variables)
 
 ملف `.env` المعتمد:
 
@@ -626,6 +738,9 @@ PAYMENT_PROVIDER="tap"
 LOCAL_GATEWAY_API_KEY="sk_test_..."
 LOCAL_GATEWAY_WEBHOOK_SECRET="whsec_..."
 
+# سر المهام المجدولة (Vercel Cron)
+CRON_SECRET="your-secure-cron-secret"
+
 # البريد الإلكتروني والإشعارات (المراحل القادمة)
 RESEND_API_KEY="re_..."
 WHATSAPP_API_TOKEN="your-whatsapp-token"
@@ -634,7 +749,7 @@ WHATSAPP_PHONE_NUMBER_ID="your-phone-id"
 
 ---
 
-## ⚡ 11. أوامر التشغيل وإدارة المشروع (CLI Commands)
+## ⚡ 12. أوامر التشغيل وإدارة المشروع (CLI Commands)
 
 ```bash
 # تثبيت الحزم
@@ -650,6 +765,7 @@ npm run lint
 # تشغيل الاختبارات الآلية (Vitest)
 npx vitest run
 npx vitest run src/modules/payments/__tests__/payment-cycle.test.ts
+npx vitest run src/modules/orders/__tests__/order-status.test.ts
 
 # أوامر Prisma ORM
 npm run prisma:generate   # توليد Prisma Client
@@ -661,7 +777,7 @@ npm run prisma:studio     # استعراض قاعدة البيانات في وا
 
 ---
 
-## 📅 12. حالة التقدم وخارطة الطريق التنفيذية (9-Week Roadmap)
+## 📅 13. حالة التقدم وخارطة الطريق التنفيذية (9-Week Roadmap)
 
 ### ✅ المراحل المنجزة بالكامل (Completed):
 - [x] **الأسبوع 1: إعداد المخطط الشامل + المصادقة والأدوار**
@@ -698,15 +814,21 @@ npm run prisma:studio     # استعراض قاعدة البيانات في وا
   - [x] تطبيق منطق تحرير المخزون المحجوز الذري (`releaseReservedStock`) في `checkout.repository.ts` عند فشل الدفع أو انتهاء الجلسة.
   - [x] دعم العملات الخليجية وتحويلات العملة والتعامل الخاص مع العملات ثلاثية الخانات العشرية (`KWD`, `BHD`, `OMR`) في `gcc-currency.ts`.
   - [x] كتابة حزمة اختبارات شاملة بالـ Mocking لدورة الدفع والـ Webhooks وIdempotency في `payment-cycle.test.ts`.
+- [x] **الأسبوع 6: دورة حياة الطلبات (Orders Lifecycle) + إدارة الطلبات في لوحة المدير وإدارة المخزون**
+  - [x] بناء آلة حالات الطلبات الصارمة ومصفوفة الانتقالات المقيدة في `order-status.ts`.
+  - [x] تطبيق تأثيرات المخزون الذرية (`StockEffect`: `NONE`, `RELEASE_RESERVED`, `RESTOCK`) مع تفادي الـ Deadlocks.
+  - [x] بناء التزامن التفاؤلي (Compare-and-Set) لمنع حالات التسابق (Race Conditions) وتكرار العمليات.
+  - [x] تفعيل سجل التدقيق الزمني الشامل (`OrderStatusLog`) مع توثيق هوية الفاعل (`admin`, `customer`, `system`).
+  - [x] تطبيق قفل الاسترداد المالي الذري (`claimRefund`) ومهايئ بوابات الدفع (`order-refund.adapter.ts`).
+  - [x] إتاحة إلغاء الطلب للعميل في المراحل المبكرة (`PENDING`, `CONFIRMED`) عبر `POST /api/orders/[id]/cancel`.
+  - [x] جدولة مهمة آلية عبر Vercel Cron (`/api/cron/expire-orders`) محروسة بـ `CRON_SECRET` لإنهاء الطلبات المنتهية وتحرير المخزون.
+  - [x] بناء واجهات لوحة الإدارة للطلبات (`OrdersTable.tsx`, `OrderDetail.tsx`) مع التحديث اللحظي وخيار إعادة المخزون (`restock`).
+  - [x] بناء بوابة طلبات العميل وتتبعها (`MyOrdersList.tsx`, `MyOrderDetail.tsx`, `OrderTimeline.tsx`, `OrderStatusBadge.tsx`).
+  - [x] كتابة حزمة اختبارات وحدة كاملة لآلة الحالات وانتقالات المخزون والاسترداد في `order-status.test.ts`.
 
 ---
 
 ### ⏳ المراحل القادمة (Upcoming Weeks):
-- [ ] **الأسبوع 6: دورة حياة الطلبات (Orders Lifecycle) + إدارة الطلبات في لوحة المدير**
-  - [ ] إدارة انتقالات حالات الطلب وسجل المتابعة التدقيقي الكامل (`OrderStatusLog`).
-  - [ ] دعم إلغاء الطلبات وبدء الاسترجاع (Refunds) اليدوي من الإدارة واستدعاء `provider.refund()`.
-  - [ ] شاشات استعراض وإدارة ومتابعة وتحديث حالات الشحن في لوحة المدير (`/admin/orders`).
-  - [ ] صفحات تتبع الطلب وتفاصيله الموجهة للعميل (`/account/orders` و `/account/orders/[id]`).
 - [ ] **الأسبوع 7: المراجعات + المفضلة + إشعارات البريد ولوحة التقارير**
   - [ ] نظام تقييم المنتجات (`Review`) والتحقق من الشراء الفعلي (`verifiedPurchase`).
   - [ ] قائمة الرغبات (`Wishlist`).
@@ -724,3 +846,4 @@ npm run prisma:studio     # استعراض قاعدة البيانات في وا
 ---
 
 > **ملاحظة للمطورين والوكلاء (AI Agents):** عند بدء أي أسبوع جديد أو إضافة ميزة، يرجى الحفاظ على معمارية Modular Monolith الصارمة (Route Handler -> Zod Validator -> Service -> Repository)، وعدم استدعاء Prisma أو كتابة منطق الأعمال داخل واجهات الـ HTTP مباشرة.
+

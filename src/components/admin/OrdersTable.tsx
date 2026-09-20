@@ -1,75 +1,149 @@
-// src/components/admin/OrdersTable.tsx
-// جدول الطلبات للأدمن
+"use client";
 
-'use client'
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useLocale } from "next-intl";
+import { useAdminOrders } from "@/hooks/useOrders";
+import { OrderStatusBadge, PaymentStatusBadge } from "@/components/ui/OrderStatusBadge";
+import {
+  ORDER_STATUSES,
+  ORDER_STATUS_LABELS,
+  type OrderStatusValue,
+} from "@/modules/orders/order-status";
+import { formatDateTime, formatMoney } from "@/lib/order-format";
 
-type Order = {
-  id: string
-  status: string
-  total: number
-  currency: string
-  country: string
-  createdAt: Date
-  user?: { name?: string | null; email: string } | null
-}
+export default function OrdersTable() {
+  const locale = useLocale();
+  const lang = locale === "ar" ? "ar" : "en";
 
-type OrdersTableProps = {
-  orders: Order[]
-}
+  const [page, setPage] = useState(1);
+  const [status, setStatus] = useState<OrderStatusValue | "">("");
+  const [search, setSearch] = useState("");
+  const [q, setQ] = useState("");
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: 'قيد الانتظار',
-  CONFIRMED: 'مؤكد',
-  PROCESSING: 'قيد المعالجة',
-  SHIPPED: 'تم الشحن',
-  DELIVERED: 'تم التسليم',
-  CANCELLED: 'ملغي',
-  REFUNDED: 'مسترجع',
-}
+  // Debounce للبحث النصي
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setQ(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-800',
-  CONFIRMED: 'bg-blue-100 text-blue-800',
-  PROCESSING: 'bg-purple-100 text-purple-800',
-  SHIPPED: 'bg-indigo-100 text-indigo-800',
-  DELIVERED: 'bg-green-100 text-green-800',
-  CANCELLED: 'bg-red-100 text-red-800',
-  REFUNDED: 'bg-gray-100 text-gray-800',
-}
+  const { data, isLoading, isError, isFetching } = useAdminOrders({ page, status, q, limit: 20 });
 
-export default function OrdersTable({ orders }: OrdersTableProps) {
   return (
-    <div className="overflow-x-auto rounded-xl border">
-      <table className="w-full text-sm">
-        <thead className="bg-muted/50">
-          <tr>
-            <th className="px-4 py-3 text-start font-medium">رقم الطلب</th>
-            <th className="px-4 py-3 text-start font-medium">العميل</th>
-            <th className="px-4 py-3 text-start font-medium">الإجمالي</th>
-            <th className="px-4 py-3 text-start font-medium">الدولة</th>
-            <th className="px-4 py-3 text-start font-medium">الحالة</th>
-            <th className="px-4 py-3 text-start font-medium">التاريخ</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y">
-          {orders.map((order) => (
-            <tr key={order.id} className="hover:bg-muted/30 transition-colors">
-              <td className="px-4 py-3 font-mono text-xs">{order.id.slice(0, 8)}...</td>
-              <td className="px-4 py-3">{order.user?.name ?? order.user?.email ?? 'ضيف'}</td>
-              <td className="px-4 py-3 font-medium">{order.total} {order.currency}</td>
-              <td className="px-4 py-3">{order.country}</td>
-              <td className="px-4 py-3">
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[order.status] ?? ''}`}>
-                  {STATUS_LABELS[order.status] ?? order.status}
-                </span>
-              </td>
-              <td className="px-4 py-3 text-muted-foreground">
-                {new Date(order.createdAt).toLocaleDateString('ar')}
-              </td>
-            </tr>
+    <section className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="ابحث برقم الطلب أو البريد أو الاسم"
+          className="w-full max-w-sm rounded-lg border border-zinc-300 bg-transparent px-3 py-2 text-sm dark:border-zinc-700"
+        />
+        <select
+          value={status}
+          onChange={(e) => {
+            setStatus(e.target.value as OrderStatusValue | "");
+            setPage(1);
+          }}
+          className="rounded-lg border border-zinc-300 bg-transparent px-3 py-2 text-sm dark:border-zinc-700"
+        >
+          <option value="">كل الحالات</option>
+          {ORDER_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {ORDER_STATUS_LABELS[s][lang]}
+            </option>
           ))}
-        </tbody>
-      </table>
-    </div>
-  )
+        </select>
+        {isFetching && <span className="text-xs text-zinc-500">جارٍ التحديث…</span>}
+      </div>
+
+      <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
+        <table className="w-full min-w-[820px] text-sm">
+          <thead className="bg-zinc-50 text-start text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
+            <tr>
+              {["الطلب", "العميل", "الدولة", "الإجمالي", "الدفع", "الحالة", "التاريخ"].map((h) => (
+                <th key={h} className="px-4 py-3 text-start font-medium">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+            {isLoading && (
+              <tr>
+                <td colSpan={7} className="px-4 py-10 text-center text-zinc-500">
+                  جارٍ التحميل…
+                </td>
+              </tr>
+            )}
+            {isError && (
+              <tr>
+                <td colSpan={7} className="px-4 py-10 text-center text-red-600">
+                  تعذّر تحميل الطلبات. حدّث الصفحة وحاول مجدداً.
+                </td>
+              </tr>
+            )}
+            {data?.items.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-4 py-10 text-center text-zinc-500">
+                  لا توجد طلبات مطابقة. جرّب تغيير الفلتر أو كلمة البحث.
+                </td>
+              </tr>
+            )}
+            {data?.items.map((o) => (
+              <tr key={o.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/60">
+                <td className="px-4 py-3">
+                  <Link href={`/admin/orders/${o.id}`} className="font-mono text-xs underline underline-offset-2">
+                    {o.id.slice(-8)}
+                  </Link>
+                  <div className="text-xs text-zinc-500">{o._count.items} منتج</div>
+                </td>
+                <td className="px-4 py-3">
+                  <div>{o.user?.name ?? "زائر"}</div>
+                  <div className="text-xs text-zinc-500">{o.user?.email ?? o.guestEmail}</div>
+                </td>
+                <td className="px-4 py-3">{o.country}</td>
+                <td className="px-4 py-3 whitespace-nowrap">{formatMoney(o.total, o.currency, locale)}</td>
+                <td className="px-4 py-3">
+                  <PaymentStatusBadge status={o.paymentStatus} />
+                </td>
+                <td className="px-4 py-3">
+                  <OrderStatusBadge status={o.status} />
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-zinc-600 dark:text-zinc-400">
+                  {formatDateTime(o.createdAt, locale)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {data && data.meta.totalPages > 1 && (
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-zinc-500">
+            الصفحة {data.meta.page} من {data.meta.totalPages} — {data.meta.total} طلب
+          </span>
+          <div className="flex gap-2">
+            <button
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+              className="rounded-lg border border-zinc-300 px-3 py-1.5 disabled:opacity-40 dark:border-zinc-700"
+            >
+              السابق
+            </button>
+            <button
+              disabled={page >= data.meta.totalPages}
+              onClick={() => setPage((p) => p + 1)}
+              className="rounded-lg border border-zinc-300 px-3 py-1.5 disabled:opacity-40 dark:border-zinc-700"
+            >
+              التالي
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
 }

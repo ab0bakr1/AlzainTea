@@ -1,17 +1,12 @@
-// src/app/(shop)/account/orders/page.tsx
-// صفحة تتبع الطلبات
+import MyOrdersList from "@/components/shop/MyOrdersList";
 
-import type { Metadata } from 'next'
+export const metadata = { title: "طلباتي" };
 
-export const metadata: Metadata = {
-  title: 'طلباتي | الزين للشاي',
-}
-
-export default function OrdersPage() {
+export default function AccountOrdersPage() {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">طلباتي</h1>
-      {/* TODO: جلب طلبات المستخدم الحالي وعرضها مع حالة كل طلب */}
+    <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
+      <h1 className="text-xl font-semibold">طلباتي</h1>
+      <MyOrdersList />
     </div>
-  )
+  );
 }
