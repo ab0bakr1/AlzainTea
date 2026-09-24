@@ -4,7 +4,16 @@
 
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import type { ProductQuery } from "./product.validators";
+import type {
+  ProductQuery,
+  AdminProductsQuery,
+  CreateProductInput,
+  UpdateProductInput,
+} from "./product.validators";
+
+// ============================================================================
+// الواجهة العامة (Public Storefront)
+// ============================================================================
 
 function buildWhere(query: ProductQuery): Prisma.ProductWhereInput {
   const where: Prisma.ProductWhereInput = {
@@ -90,7 +99,7 @@ export async function findManyProducts(query: ProductQuery) {
   return { items, total };
 }
 
-/** لبناء خيارات الفلترة (الفئات/الماركات المتاحة فعليًا ضمن نتائج البحث الحالية) */
+/** لبناء خيارات الفلترة (الفئات/الماركات المتاحة فعليًا ضمن نتائج البحث الحالي) */
 export async function getAvailableFacets(query: ProductQuery) {
   const where = buildWhere({ ...query, category: undefined, brand: undefined });
 
@@ -111,4 +120,79 @@ export async function getAvailableFacets(query: ProductQuery) {
     minPrice: priceRange._min.price ? Number(priceRange._min.price) : 0,
     maxPrice: priceRange._max.price ? Number(priceRange._max.price) : 0,
   };
+}
+
+// ============================================================================
+// تفاصيل المنتج + الإدارة (Product Detail & Admin)
+// ============================================================================
+
+const productInclude = {
+  category: true,
+  brand: true,
+  variants: true,
+} satisfies Prisma.ProductInclude;
+
+export function findProductBySlug(slug: string) {
+  return prisma.product.findUnique({ where: { slug }, include: productInclude });
+}
+
+export function findProductById(id: string) {
+  return prisma.product.findUnique({ where: { id }, include: productInclude });
+}
+
+export async function findManyAdminProducts(query: AdminProductsQuery) {
+  const where: Prisma.ProductWhereInput = {
+    ...(query.status ? { status: query.status } : {}),
+    ...(query.category ? { category: { slug: query.category } } : {}),
+    ...(query.q
+      ? {
+          OR: [
+            { nameAr: { contains: query.q, mode: "insensitive" } },
+            { nameEn: { contains: query.q, mode: "insensitive" } },
+            { sku: { contains: query.q, mode: "insensitive" } },
+          ],
+        }
+      : {}),
+  };
+
+  const [items, total] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      include: { category: true },
+      orderBy: { createdAt: "desc" },
+      skip: (query.page - 1) * query.limit,
+      take: query.limit,
+    }),
+    prisma.product.count({ where }),
+  ]);
+
+  return { items, total };
+}
+
+export function createProductRecord(input: CreateProductInput) {
+  const { variants, ...data } = input;
+  return prisma.product.create({
+    data: {
+      ...data,
+      ...(variants?.length
+        ? { variants: { create: variants.map((v) => ({ ...v, price: v.price ?? null })) } }
+        : {}),
+    },
+    include: productInclude,
+  });
+}
+
+export function updateProductRecord(id: string, input: UpdateProductInput) {
+  return prisma.product.update({ where: { id }, data: input, include: productInclude });
+}
+
+export async function deleteOrArchiveProduct(id: string) {
+  const usedInOrders = await prisma.orderItem.count({ where: { productId: id } });
+  if (usedInOrders > 0) {
+    // منتج مرتبط بطلبات: لا يُحذف حفاظاً على السجل المحاسبي، يُؤرشف بدلاً من ذلك
+    await prisma.product.update({ where: { id }, data: { status: "ARCHIVED" } });
+    return { archived: true };
+  }
+  await prisma.product.delete({ where: { id } });
+  return { archived: false };
 }

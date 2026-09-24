@@ -19,8 +19,8 @@ export async function GET(req: NextRequest) {
       throw validationError(parsed.error.issues[0]?.message ?? "معطيات غير صالحة");
     }
 
-    const { items, meta } = await productService.list(parsed.data, { publicOnly: false });
-    return ok(items, meta);
+    const { data, meta } = await productService.list(parsed.data);
+    return ok(data, meta);
   } catch (error) {
     return fail(error);
   }

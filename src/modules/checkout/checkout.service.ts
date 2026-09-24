@@ -28,8 +28,11 @@ function round2(value: number) {
 
 export async function createCheckout(input: CreateCheckoutSessionInput, userId?: string) {
   // 1) مصدر الحقيقة الوحيد للسعر والمخزون: التحقق الخادمي من السلة (لا نثق بأي سعر قادم من الواجهة)
-  const validatedCart = await validateCart(input.items);
-  if (validatedCart.hasBlockingIssues) {
+  // validateCart تتوقع كائناً { items: [...] } وليس مصفوفة مباشرة
+  const validatedCart = await validateCart({ items: input.items });
+
+  // الخاصية الصحيحة هي "valid" (وليست hasBlockingIssues التي لا وجود لها في CartValidationResult)
+  if (!validatedCart.valid) {
     throw new ApiError("CART_INVALID", "بعض عناصر السلة غير متوفرة أو تغيرت أسعارها، يرجى تحديث السلة", 409);
   }
 
@@ -101,7 +104,9 @@ export async function createCheckout(input: CreateCheckoutSessionInput, userId?:
     shippingAddressId,
     items: validatedCart.items.map((item) => ({
       productId: item.productId,
-      variantId: item.variantId,
+      // CartItem.variantId نوعه string | null، بينما بقية الطبقات (checkoutItemSchema،
+      // createOrderWithStockReservation) تتوقع string | undefined — نحوّله هنا صراحة
+      variantId: item.variantId ?? undefined,
       quantity: item.quantity,
       price: toOrderCurrency(item.price),
     })),

@@ -3,12 +3,14 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { productService } from "@/modules/products/product.service";
 import { ApiError } from "@/lib/api-response";
+import ProductReviews from "@/components/shop/ProductReviews";
+import WishlistButton from "@/components/shop/WishlistButton";
 
 export const revalidate = 60;
 
 async function getProduct(slug: string) {
   try {
-    return await productService.getBySlug(slug, { publicOnly: true });
+    return await productService.getBySlug(slug);
   } catch (error) {
     if (error instanceof ApiError && error.statusCode === 404) return null;
     throw error;
@@ -92,7 +94,7 @@ export default async function ProductDetailsPage({
           </div>
           {product.images.length > 1 && (
             <div className="grid grid-cols-4 gap-2">
-              {product.images.slice(1, 5).map((img) => (
+              {product.images.slice(1, 5).map((img: string) => (
                 <div
                   key={img}
                   className="relative aspect-square overflow-hidden rounded-lg bg-stone-100"
@@ -107,7 +109,7 @@ export default async function ProductDetailsPage({
         <div className="grid gap-4">
           <span className="text-sm text-stone-500">{product.category?.nameAr}</span>
           <h1 className="text-2xl font-semibold text-stone-900">{product.nameAr}</h1>
-
+          <WishlistButton productId={product.id} />
           <div className="flex items-baseline gap-3">
             <span className="text-2xl font-semibold text-stone-900">${price.toFixed(2)}</span>
             {compareAt && compareAt > price && (
@@ -139,6 +141,7 @@ export default async function ProductDetailsPage({
           </button>
         </div>
       </div>
+      <ProductReviews productId={product.id} slug={product.slug} />
     </div>
   );
 }

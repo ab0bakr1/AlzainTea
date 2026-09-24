@@ -1,5 +1,7 @@
 // src/app/admin/page.tsx
 // لوحة التحكم — إحصائيات المبيعات
+import DashboardStats from "@/components/admin/DashboardStats";
+
 
 import type { Metadata } from 'next'
 
@@ -24,6 +26,10 @@ export default async function AdminDashboardPage() {
         <StatCard title="الإيرادات ($)" value={stats.totalRevenue} />
         <StatCard title="طلبات معلقة" value={stats.pendingOrders} />
         <StatCard title="المنتجات" value={stats.totalProducts} />
+      </div>
+      <div className="space-y-6 p-6">
+        <h1 className="text-2xl font-bold">لوحة التحكم</h1>
+        <DashboardStats />
       </div>
     </div>
   )

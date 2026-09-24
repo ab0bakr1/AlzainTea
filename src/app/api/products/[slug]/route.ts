@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const { slug } = await params;
-    const product = await productService.getBySlug(slug, { publicOnly: true });
+    const product = await productService.getBySlug(slug);
     return ok(product);
   } catch (error) {
     return fail(error);

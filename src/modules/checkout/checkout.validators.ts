@@ -18,8 +18,9 @@ const guestAddressSchema = z.object({
 export const createCheckoutSessionSchema = z
   .object({
     items: z.array(checkoutItemSchema).min(1, "السلة فارغة"),
+    // Zod 4: errorMap أُزيل نهائياً من z.enum() — استُبدل بمعامل error الموحّد
     country: z.enum(SUPPORTED_COUNTRIES as [string, ...string[]], {
-      errorMap: () => ({ message: "الدولة المحددة غير مدعومة" }),
+      error: "الدولة المحددة غير مدعومة",
     }),
     addressId: z.string().cuid().optional(),
     guestAddress: guestAddressSchema.optional(),

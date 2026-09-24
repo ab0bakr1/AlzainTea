@@ -11,6 +11,7 @@ interface Params {
 }
 
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const { id } = await params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) throw new ApiError("UNAUTHORIZED", "يجب تسجيل الدخول", 401);
@@ -25,7 +26,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       );
     }
 
-    const address = await editAddress(session.user.id, params.id, parsed.data);
+    const address = await editAddress(session.user.id, id, parsed.data);
     return ok(address);
   } catch (err) {
     return fail(err as ApiError);
@@ -33,11 +34,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
+  const { id } = await params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) throw new ApiError("UNAUTHORIZED", "يجب تسجيل الدخول", 401);
 
-    await removeAddress(session.user.id, params.id);
+    await removeAddress(session.user.id, id);
     return ok({ deleted: true });
   } catch (err) {
     return fail(err as ApiError);

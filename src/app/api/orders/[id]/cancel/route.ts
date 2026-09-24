@@ -9,10 +9,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const user = await requireUser();
     const p = orderIdParamSchema.safeParse(await params);
-    if (!p.success) return validationError(p.error);
+    if (!p.success) return validationError(p.error.message);
 
     const body = cancelOrderSchema.safeParse(await req.json().catch(() => ({})));
-    if (!body.success) return validationError(body.error);
+    if (!body.success) return validationError(body.error.message);
 
     return ok(await cancelMyOrder(user.id, p.data.id, body.data.reason));
   } catch (error) {

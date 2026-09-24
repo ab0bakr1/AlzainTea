@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     const parsed = adminOrdersQuerySchema.safeParse(
       searchParamsToObject(req.nextUrl.searchParams)
     );
-    if (!parsed.success) return validationError(parsed.error);
+    if (!parsed.success) return validationError(parsed.error.message);
 
     const { items, meta } = await getAdminOrders(parsed.data);
     return ok(items, meta);

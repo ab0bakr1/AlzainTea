@@ -46,7 +46,7 @@ export default async function CategoryPage({
   if (!category) notFound();
 
   const filters = listProductsQuerySchema.parse({ ...sp, category: slug });
-  const { items } = await productService.list(filters, { publicOnly: true });
+  const { data: items } = await productService.list(filters);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
@@ -58,7 +58,7 @@ export default async function CategoryPage({
       </div>
 
       <div className="mb-6">
-        <ProductFilters />
+        <ProductFilters categories={[category]} priceBounds={{ min: 0, max: 1000 }} />
       </div>
 
       <ProductGrid products={JSON.parse(JSON.stringify(items))} />

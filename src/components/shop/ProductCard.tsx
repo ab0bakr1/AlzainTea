@@ -1,6 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { ProductListItem } from "@/services/products.service";
+import WishlistButton from "./WishlistButton";
+
 
 export function ProductCard({ product }: { product: ProductListItem }) {
   const price = Number(product.price);
@@ -38,6 +40,7 @@ export function ProductCard({ product }: { product: ProductListItem }) {
       <div className="grid gap-1">
         <span className="text-xs text-stone-500">{product.category?.nameAr}</span>
         <h3 className="line-clamp-1 font-medium text-stone-900">{product.nameAr}</h3>
+        <WishlistButton productId={product.id} className="absolute end-2 top-2 z-10" />
         <div className="flex items-baseline gap-2">
           <span className="font-semibold text-stone-900">${price.toFixed(2)}</span>
           {hasDiscount && (

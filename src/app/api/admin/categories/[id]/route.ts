@@ -3,11 +3,10 @@ import { requireAdmin } from "@/lib/require-admin";
 import { updateCategorySchema } from "@/modules/categories/category.validators";
 import { categoryService } from "@/modules/categories/category.service";
 
+type Params = { params: Promise<{ id: string }> };
+
 // GET /api/admin/categories/[id]
-export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(_req: Request, { params }: Params) {
   try {
     await requireAdmin();
     const { id } = await params;
@@ -19,13 +18,10 @@ export async function GET(
 }
 
 // PATCH /api/admin/categories/[id]
-export async function PATCH(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(req: Request, { params }: Params) {
+  const { id } = await params;
   try {
     await requireAdmin();
-    const { id } = await params;
 
     const body = await req.json();
     const parsed = updateCategorySchema.safeParse(body);
@@ -42,13 +38,10 @@ export async function PATCH(
 }
 
 // DELETE /api/admin/categories/[id]
-export async function DELETE(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_req: Request, { params }: Params) {
+  const { id } = await params;
   try {
     await requireAdmin();
-    const { id } = await params;
     await categoryService.remove(id);
     return ok({ id, deleted: true });
   } catch (error) {

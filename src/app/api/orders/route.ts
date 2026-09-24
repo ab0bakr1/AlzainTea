@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     const user = await requireUser();
 
     const parsed = myOrdersQuerySchema.safeParse(searchParamsToObject(req.nextUrl.searchParams));
-    if (!parsed.success) return validationError(parsed.error);
+    if (!parsed.success) return validationError(parsed.error.message);
 
     const { items, meta } = await getMyOrders(user.id, parsed.data);
     return ok(items, meta);

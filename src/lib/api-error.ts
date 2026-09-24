@@ -15,13 +15,26 @@ export type ApiErrorCode =
   | "RATE_LIMITED"
   | "INTERNAL_ERROR";
 
-export function apiError(
-  code: ApiErrorCode,
-  message: string,
-  status: number
-) {
+/**
+ * الكلاس الموحد للأخطاء المستخدم في كل الـ services و repositories.
+ * code نوعه string ليقبل رموزاً خاصة إضافية (مثل CART_INVALID، ORDER_STATE_CONFLICT،
+ * COUPON_EXPIRED ...) بجانب ApiErrorCode الأساسية.
+ */
+export class ApiError extends Error {
+  code: string;
+  statusCode: number;
+
+  constructor(code: string, message: string, statusCode = 400) {
+    super(message);
+    this.name = "ApiError";
+    this.code = code;
+    this.statusCode = statusCode;
+  }
+}
+
+export function apiError(code: ApiErrorCode, message: string, status: number) {
   return NextResponse.json(
-    { success: false, error: { code, message } },
+    { success: false, error: { code, message, statusCode: status } },
     { status }
   );
 }
@@ -31,11 +44,21 @@ export function apiError(
  * يسجّل تفاصيل الخطأ الكاملة في الخادم (لاحقاً: Sentry) ويرجع رسالة عامة آمنة للعميل.
  */
 export function handleApiError(error: unknown) {
+  if (error instanceof ApiError) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: { code: error.code, message: error.message, statusCode: error.statusCode },
+      },
+      { status: error.statusCode }
+    );
+  }
+
   // TODO: إرسال التفاصيل الكاملة إلى Sentry هنا
   console.error("[API_ERROR]", error);
 
   if (error instanceof ZodError) {
-    return apiError("VALIDATION_ERROR", error.errors[0]?.message ?? "بيانات غير صالحة", 400);
+    return apiError("VALIDATION_ERROR", error.issues[0]?.message ?? "بيانات غير صالحة", 400);
   }
 
   if (error instanceof Prisma.PrismaClientKnownRequestError) {

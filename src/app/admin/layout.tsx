@@ -1,7 +1,7 @@
 // src/app/admin/layout.tsx
 // Layout لوحة التحكم — محمي بصلاحية ADMIN فقط
 
-import type { ReactNode } from 'next'
+import type { ReactNode } from 'react'
 import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
