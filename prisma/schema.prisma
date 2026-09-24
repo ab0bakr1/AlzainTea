@@ -118,7 +118,7 @@ model Product {
   slug           String           @unique
   descAr         String
   descEn         String
-  price          Decimal          @db.Decimal(10, 2) // USD أساسي
+  price          Decimal          @db.Decimal(10, 2)
   compareAtPrice Decimal?         @db.Decimal(10, 2)
   stock          Int              @default(0)
   reservedStock  Int              @default(0)
@@ -139,6 +139,8 @@ model Product {
   @@index([categoryId])
   @@index([status])
   @@index([slug])
+  @@index([status, categoryId])   // جديد: فلترة الكتالوج حسب الفئة
+  @@index([status, createdAt])    // جديد: ترتيب الأحدث
 }
 
 model ProductVariant {
@@ -164,7 +166,7 @@ model Order {
   user              User?            @relation(fields: [userId], references: [id])
   guestEmail        String?
   status            OrderStatus      @default(PENDING)
-  paymentMethod     String // "stripe" | "tap" | "moyasar"
+  paymentMethod     String
   paymentStatus     PaymentStatus    @default(UNPAID)
   paymentRef        String?          @unique
   currency          String
@@ -184,11 +186,13 @@ model Order {
   statusHistory     OrderStatusLog[]
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
-  confirmationEmailSentAt DateTime? // يمنع إرسال بريد التأكيد مرتين
+  confirmationEmailSentAt DateTime?
 
-  @@index([userId])
+  @@index([userId, createdAt])                       // بدل [userId]: قائمة طلبات العميل مرتبة
   @@index([status])
   @@index([paymentStatus])
+  @@index([paymentStatus, createdAt])                // جديد: تقارير المبيعات
+  @@index([status, paymentStatus, createdAt])        // جديد: Cron إنهاء الطلبات المنتهية
 }
 
 model OrderItem {
@@ -276,16 +280,16 @@ model Review {
   product          Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
   userId           String
   user             User         @relation(fields: [userId], references: [id])
-  rating           Int // 1-5
+  rating           Int
   comment          String?
   status           ReviewStatus @default(PENDING)
   verifiedPurchase Boolean      @default(false)
   createdAt        DateTime     @default(now())
 
+  @@unique([productId, userId])
   @@index([status])
   @@index([userId])
-  @@unique([productId, userId])
-  @@index([productId])
+  @@index([productId, status])   // بدل [productId]: تجميع التقييمات المعتمدة
 }
 
 model WishlistItem {
