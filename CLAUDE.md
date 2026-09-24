@@ -25,6 +25,13 @@
 - **إشعارات البريد وتأكيد الطلب التلقائي (Transactional Emails via Resend - منجز بالكامل):** إرسال فوري لرسائل تأكيد الطلب والفواتير باللغتين العربية والإنجليزية، بحجز ذري يمنع إرسال البريد مرتين (`claimConfirmationEmail`)، وتكامل غير معطل عبر Next.js `after()` داخل معالجات الـ Webhook.
 - **لوحة تقارير وتحليلات إدارية شاملة (Admin Analytics & Reports Dashboard - منجز بالكامل):** استعراض حي لمؤشرات الأداء الرئيسية (KPIs)، الإيرادات مفصلة حسب العملات المختلفة، المبيعات حسب الدول، المنتجات الأكثر مبيعاً، وسلسلة زمنية يومية للطلبات، مع محرك تنبيهات المخزون المنخفض.
 - **إصلاحات معمارية شاملة وتوافق Next.js 16 و Prisma 7 (System-wide Fixes & Hardening):** توافق كامل مع معايير Next.js الحديثة لبارامترات المسارات غير التزامنية (`await params`)، توحيد كلي لمعالجة الأخطاء (`handleApiError` و `fail`)، وترقية مشغل Prisma إلى Driver Adapter الحديث (`@prisma/adapter-pg` و `PrismaPg`) مع ملف التكوين `prisma.config.ts`.
+- **التدقيق الأمني الآلي والتحصين الشامل (Security Hardening & Automated API Audit - منجز بالكامل):** جناح تدقيق معماري آلي عبر `src/__tests__/security/api-audit.test.ts` يفحص عدم وصول الـ Route Handlers لـ Prisma مباشرة، وإلزامية `requireAdmin()` لمسارات الإدارة، و `requireUser()` لمسارات المستخدم، والتحقق عبر Zod لجميع عمليات الكتابة (POST/PUT/PATCH)، والتعامل الموحد مع الأخطاء عبر `fail()` و `handleApiError()`، وانتظار المعاملات الديناميكية غير التزامنية (`await params`)، وحظر الـ Raw SQL غير الآمن وحصر `dangerouslySetInnerHTML` على وسوم الـ JSON-LD فقط، والتأكد من عدم تسريب أي أسرار عبر متغيرات `NEXT_PUBLIC_*`.
+- **ترويسات أمان متقدمة ودفاع بالعمق (Enterprise Security Headers & CSP - منجز بالكامل):** ترويسات أمنية مشددة في `next.config.ts` تشمل سياسة أمان المحتوى (Content Security Policy مع وضع التقرير المبدئي Report-Only وقابلية الإنفاذ عبر `CSP_ENFORCE="true"`، وتضمين مصادر Stripe و Vercel Scripts و Google Fonts)، Strict-Transport-Security (HSTS)، X-Frame-Options: DENY لمنع هجمات Clickjacking، X-Content-Type-Options: nosniff لمنع استنتاج MIME، Referrer-Policy، Permissions-Policy، وحجب ترويسة كشف التقنية `x-powered-by`.
+- **تحديد معدل متقدم متعدد الطبقات (Multi-Tier Edge & Route Rate Limiting - منجز بالكامل):** منظومة تقييد معدل الطلبات عبر Upstash Redis تعمل على مستوى الـ Edge Middleware وعلى مستوى الـ Route Handlers بنافذة منزلقة (Sliding Window): تحديد مسارات المصادقة والتسجيل (10 في الدقيقة، و 40 في الساعة)، تحديد عمليات الكتابة الحساسة كالكوبونات والمراجعات والطلبات (30 في الدقيقة)، تحديد عام للـ API (120 في الدقيقة)، وتحديد مسارات الإدارة (300 في الدقيقة)، مع آلية Fail-Open ذكية تضمن استمرار عمل المتجر في حال تعثر خدمة Redis.
+- **محرك تحسين محركات البحث والبيانات المهيكلة المتقدمة (SEO Engine, JSON-LD & Dynamic Sitemap - منجز بالكامل):** موديول متكامل `src/modules/seo/` يدعم كاش سريع (`unstable_cache`)، وتوليد بيانات وصفية ديناميكية للمنتجات والفئات باللغتين العربية والإنجليزية (`generateMetadata`)، وتوليد خريطة موقع ديناميكية `sitemap.ts` مع إعادة التحقق كل ساعة (`revalidate = 3600`)، وملف `robots.ts` ذكي يحجب مسارات الإدارة والـ API والفلاتر المكررة، وحقن بيانات مهيكلة غنية `JSON-LD` (`Product` متضمنة الأسعار بالدولار، التوافر، التقييمات، والـ SKU، بالإضافة إلى شجرة الروابط `BreadcrumbList`).
+- **فهارس مركبة عالية الأداء لقاعدة البيانات (High-Performance Composite Database Indexes - منجز بالكامل):** إضافة فهارس علائقية مركبة في Prisma Schema (`[status, categoryId]`, `[status, createdAt]`, `[userId, createdAt]`, `[paymentStatus, createdAt]`, `[status, paymentStatus, createdAt]`, `[productId, status]`) لتسريع استعلامات تصفح الكتالوج، التقارير والإحصائيات، الكرون التلقائي، وتجميع التقييمات المعتمدة.
+- **حزمة اختبارات E2E شاملة مع Playwright (End-to-End Testing Suite - منجز بالكامل):** تغطية آلية لرحلة الشراء الكاملة للزائر (تصفح الكتالوج $\to$ صفحة المنتج $\to$ الإضافة للسلة $\to$ مراجعة السلة $\to$ الانتقال لإتمام الشراء بدون إجبار على تسجيل الدخول)، واختبار حراس المسارات (Auth Guards) وحظر الوصول غير المصرح، والتحقق من صحة ترويسات الأمان ومحركات البحث (robots, sitemap, JSON-LD) ورفض الـ JSON التالف بصيغة أخطاء موحدة.
+- **خط أنابيب التكامل المستمر (GitHub Actions CI/CD Pipeline - منجز بالكامل):** سير عمل آلي `.github/workflows/ci.yml` يعمل عند كل Push و Pull Request على فروع `main` و `develop` لتشغيل توليد Prisma Client، الفحص اللغوي (lint)، اختبارات الوحدة والتدقيق الأمني (Vitest + API Audit)، فحص الثغرات في الاعتماديات (`audit:deps`)، وبناء حزمة الإنتاج (`npm run build`).
 - **تعدد العملات وحساب الشحن الديناميكي:** دعم كامل لعملات دول الخليج (SAR, AED, OMR, KWD, BHD, QAR) مع معالجة دقيقة للعملات ثلاثية الخانات العشرية (KWD, BHD, OMR)، بالإضافة إلى العملات العالمية (USD, EUR, GBP) مع حساب تكلفة وأيام الشحن المتوقعة حسب الدولة.
 - **سلة مشتريات ذكية ومتزامنة (Cart System):** إدارة السلة عبر Zustand محلياً مع دعم المفاتيح المتعددة (`guest` و `userId`)، ودمج تلقائي عند تسجيل الدخول (`cart-merge.ts`)، وتحقق لحظي من المخزون والأسعار عبر `/api/cart/validate`.
 - **نظام كوبونات وعناوين متطور:** التحقق الصارم من شروط الكوبونات (حد أدنى، حد استخدام عام ولكل مستخدم، تاريخ الصلاحية)، وإدارة العناوين مع حماية الملكية للمستخدم المسجل.
@@ -41,18 +48,22 @@
 | **Language** | **TypeScript 5** | فحص صارم للأنواع ومشاركة واجهات البيانات بين الـ Backend والـ Frontend |
 | **UI Library** | **React 19.2.3** | أحدث إصدار مع دعم React Actions والـ Hooks المتقدمة |
 | **Styling** | **Tailwind CSS v4 + PostCSS** | تنسيق سريع وحديث مع متغيرات التصميم في `src/styles/variables.css` |
-| **Database & ORM** | **PostgreSQL (Neon) + Prisma 7** | قاعدة بيانات علائقية متقدمة مع Prisma Client ومشغل `@prisma/adapter-pg` (`PrismaPg`) وتكوين `prisma.config.ts` |
+| **Database & ORM** | **PostgreSQL (Neon) + Prisma 7** | قاعدة بيانات علائقية متقدمة مع Prisma Client ومشغل `@prisma/adapter-pg` (`PrismaPg`) وفهارس مركبة عالية الأداء وتكوين `prisma.config.ts` |
 | **Validation** | **Zod 4** | التحقق الصارم من مدخلات الـ API، ونماذج الـ Frontend عبر `@hookform/resolvers` |
 | **State Management** | **Zustand 5** | إدارة حالة السلة واختيار الدولة (`cart-store.ts`, `useCountry.ts`) |
 | **Cart Persistence & Sync** | **Local Storage + Custom Merge** | إدارة السلة محلياً مع دعم دمج سلة الزائر مع حساب المستخدم عند تسجيل الدخول |
 | **Data Fetching & Cache**| **TanStack React Query 5 + Axios** | استعلامات الخادم في الواجهة، كاش ذكي، وإلغاء الاستعلامات التلقائي للطلبات والمنتجات والمراجعات والتقارير |
 | **Authentication** | **NextAuth.js (v4 JWT)** | إدارة الجلسات، الأدوار (`CUSTOMER`, `ADMIN`, `SUPER_ADMIN`) وحماية المسارات |
 | **Password Hashing** | **Argon2 (argon2id)** | تشفير فائق الأمان لكلمات المرور وفق معايير OWASP (مع دعم fallback لـ bcrypt) |
-| **Rate Limiting** | **Upstash Redis + @upstash/ratelimit** | حماية مسارات المصادقة والدفع من الهجمات وهجمات التخمين |
+| **Rate Limiting** | **Upstash Redis + @upstash/ratelimit** | تحديد معدل متقدم متعدد الطبقات (Edge Middleware + Route Handlers) مع Sliding Window و Fail-Open |
+| **Security Headers & CSP** | **Enterprise HTTP Headers** | سياسة أمان المحتوى (CSP Report-Only/Enforce)، HSTS، X-Frame-Options DENY، X-Content-Type-Options، و Permissions-Policy |
+| **SEO & Structured Data** | **Next Metadata + JSON-LD** | توليد ديناميكي لـ Metadata و OpenGraph و Twitter Cards، مع خريطة موقع ديناميكية `sitemap.ts`، `robots.ts`، ومخططات `Product` و `BreadcrumbList` |
 | **Payments** | **Stripe + Tap + Moyasar (مكتمل بالكامل)** | طبقة موحدة (`PaymentProvider`) مع توجيه ذكي للدول الخليجية والدولية، دعم Apple Pay و Mada، تحويل دقيق لعملات الخليج، وتبديل عبر Feature Flag، وWebhooks مؤمنة بـ HMAC وTiming-Safe |
 | **Transactional Email** | **Resend (v6)** | إرسال بريد تأكيد الطلبات والفواتير مع قوالب HTML/Text غنية، وحجز ذري يمنع التكرار وتكامل غير معطل عبر `after()` |
 | **Cron & Background Tasks** | **Vercel Cron (`vercel.json`)** | جدولة مهام آلية كل 15 دقيقة لتحرير المخزون المحجوز للطلبات المنتهية عبر `/api/cron/expire-orders` |
-| **Testing** | **Vitest** | اختبارات وحدة وتكاملية لدورة الدفع والـ Idempotency، واختبارات شاملة لآلة حالات الطلب وتأثيرات المخزون، واختبارات لخدمة إشعارات البريد |
+| **Testing (Unit & Audit)** | **Vitest** | اختبارات وحدة وتكاملية لدورة الدفع والـ Idempotency، واختبارات آلة حالات الطلب، واختبارات خدمة البريد، وتدقيق معماري أمني آلي للمسارات (`api-audit.test.ts`) |
+| **Testing (E2E)** | **Playwright (@playwright/test)** | حزمة اختبارات E2E شاملة لرحلة الشراء، حراس المسارات (Guards)، ترويسات الأمان، الـ SEO، وفحص عقود الـ API |
+| **CI / CD Pipeline** | **GitHub Actions** | سير عمل جودة وأمان آلي (`.github/workflows/ci.yml`) يشمل Lint, Vitest, Security Audit, Dependency Audit, و Build |
 | **Formatting** | **Native Intl APIs** | تنسيق مالي وتاريخي متعدد العملات يدعم العملات الخليجية ثلاثية الخانات (KWD, BHD, OMR) تلقائياً |
 | **Localization (i18n)**| **next-intl** | الترجمة وتعدد اللغات مع ملفات الرسائل في `src/messages/` وتوافق كامل مع اتجاه RTL |
 | **Theme** | **next-themes** | دعم الوضع الداكن والفاتح (Dark / Light Mode) |
@@ -67,15 +78,26 @@
 
 ```text
 alzainTea/
+├── .github/
+│   └── workflows/
+│       └── ci.yml                   # خط أنابيب CI الآلي (lint, vitest, security audit, audit:deps, build)
+├── e2e/                             # حزمة اختبارات E2E الشاملة عبر Playwright
+│   ├── guards-and-api.e2e.ts        # اختبار حراس المسارات (Auth Guards) وصيغة الـ API وعقود الأخطاء
+│   ├── security-and-seo.e2e.ts      # اختبار ترويسات الأمان ومحركات البحث (robots, sitemap, JSON-LD) والـ Rate Limit
+│   └── shopping-journey.e2e.ts      # اختبار رحلة الشراء الكاملة للزائر (كتالوج ← منتج ← سلة ← Checkout)
+├── playwright.config.ts             # إعدادات Playwright وتكامل خادم الويب
 ├── prisma.config.ts                 # تكوين Prisma 7 ومحددات الهجرة وبذر البيانات
 ├── prisma/
-│   ├── migrations/                  # سجل هجرات قاعدة البيانات
-│   ├── schema.prisma                # المخطط الكامل (11 نموذجاً و 6 Enums)
+│   ├── migrations/                  # سجل هجرات قاعدة البيانات (يشمل فهارس الأسبوع 8 المركبة)
+│   ├── schema.prisma                # المخطط الكامل (11 نموذجاً، 6 Enums، وفهارس مركبة عالية الأداء)
 │   └── seed.ts                      # بذر البيانات الأولية (أصناف، منتجات، متغيرات، مستخدمين)
 ├── public/
 │   ├── assets/                      # أصول الوسائط (صور وأيقونات وملفات Lottie)
 │   └── favicon.ico
 ├── src/
+│   ├── __tests__/                   # اختبارات الأمان والتدقيق المعماري
+│   │   └── security/
+│   │       └── api-audit.test.ts    # تدقيق أمني ومعماري آلي لكافة مسارات الـ API والكود
 │   ├── animations/                  # خطافات وحركات GSAP
 │   ├── app/                         # App Router الخاص بـ Next.js
 │   │   ├── (auth)/                  # مسارات المصادقة
@@ -85,8 +107,14 @@ alzainTea/
 │   │   ├── (public)/                # صفحات عامة ثابتة (about, faqs, pricing)
 │   │   ├── (shop)/                  # صفحات المتجر الموجهة للعميل
 │   │   │   ├── layout.tsx           # تخطيط المتجر الرئيسي (Header + Footer + CartDrawer)
-│   │   │   ├── products/            # دليل المنتجات والبحث والفلترة ([slug] للتفاصيل والمراجعات)
+│   │   │   ├── products/            # دليل المنتجات والبحث والفلترة
+│   │   │   │   └── [slug]/
+│   │   │   │       ├── layout.tsx   # توليد ديناميكي لـ Metadata وحقن Product & Breadcrumbs JSON-LD
+│   │   │   │       └── page.tsx     # صفحة تفاصيل المنتج والمراجعات
 │   │   │   ├── category/            # تصفح المنتجات حسب الفئة
+│   │   │   │   └── [slug]/
+│   │   │   │       ├── layout.tsx   # توليد ديناميكي لـ Metadata وحقن Category Breadcrumbs JSON-LD
+│   │   │   │       └── page.tsx     # عرض منتجات الفئة
 │   │   │   ├── cart/                # صفحة مراجعة سلة المشتريات
 │   │   │   ├── checkout/            # مسار الدفع والشحن
 │   │   │   │   ├── cancel/          # صفحة إلغاء الدفع
@@ -151,48 +179,21 @@ alzainTea/
 │   │   ├── globals.css              # ملف التنسيق العام و Tailwind
 │   │   ├── layout.tsx               # Root Layout
 │   │   ├── providers.tsx            # مزودي الواجهة وحاوية TanStack Query Client
+│   │   ├── robots.ts                # توليد robots.txt ديناميكياً مع حظر المسارات الحساسة
+│   │   ├── sitemap.ts               # توليد sitemap.xml ديناميكياً مع روابط المنتجات والأصناف
 │   │   └── page.tsx                 # الصفحة الرئيسية (Landing Page)
 │   ├── components/                  # مكونات الواجهة
-│   │   ├── admin/                   # مكونات الإدارة
-│   │   │   ├── CategoriesTable.tsx  # جدول الفئات الإداري
-│   │   │   ├── CategoryForm.tsx     # نموذج الفئات
-│   │   │   ├── DashboardStats.tsx   # بطاقات الـ KPIs ومخططات المبيعات وتنبيهات المخزون
-│   │   │   ├── OrderDetail.tsx      # تفاصيل الطلب الإدارية وتحديث الحالات والاسترداد
-│   │   │   ├── OrdersTable.tsx      # جدول الطلبات الإداري
-│   │   │   ├── ProductForm.tsx      # نموذج المنتجات
-│   │   │   ├── ProductsTable.tsx    # جدول المنتجات الإداري
-│   │   │   └── ReviewsTable.tsx     # جدول المراجعات الإداري للاعتماد والرفض
+│   │   ├── admin/                   # مكونات الإدارة (CategoriesTable, CategoryForm, DashboardStats, OrderDetail, OrdersTable, ProductForm, ProductsTable, ReviewsTable)
 │   │   ├── atoms/                   # أصغر العناصر (Button, Text, Title, Icon, Images)
 │   │   ├── molecules/               # عناصر مركبة (SearchBox, NavItem, FormField)
 │   │   ├── organisms/               # هياكل كاملة (Navbar, Footer)
-│   │   ├── shop/                    # مكونات المتجر
-│   │   │   ├── CartDrawer.tsx       # درج السلة الجانبي
-│   │   │   ├── CountrySelector.tsx  # محدد الدولة
-│   │   │   ├── CurrencySelector.tsx # محدد العملة
-│   │   │   ├── MyOrderDetail.tsx    # تفاصيل وتتبع طلب العميل
-│   │   │   ├── MyOrdersList.tsx     # قائمة طلبات العميل
-│   │   │   ├── MyWishlist.tsx       # واجهة قائمة الرغبات للعميل
-│   │   │   ├── Pagination.tsx       # مكون الترقيم المتجاوب
-│   │   │   ├── ProductCard.tsx      # بطاقة المنتج (مدمج معها زر المفضلة والتقييم)
-│   │   │   ├── ProductFilters.tsx   # فلاتر التصنيف والسعر والتوفر
-│   │   │   ├── ProductGrid.tsx      # شبكة عرض المنتجات
-│   │   │   ├── ProductReviews.tsx   # عرض مراجعات المنتج وملخص النجوم ونموذج الإضافة
-│   │   │   ├── ProductSearch.tsx    # بحث نصي بتأخير زمني
-│   │   │   ├── StarRating.tsx       # مكون النجوم التفاعلي
-│   │   │   └── WishlistButton.tsx   # زر إضافة/حذف المفضلة بشكل لحظي
+│   │   ├── seo/                     # مكونات محركات البحث
+│   │   │   └── JsonLd.tsx           # حقن بيانات Schema.org بأمان وسرعة
+│   │   ├── shop/                    # مكونات المتجر (CartDrawer, CountrySelector, CurrencySelector, ProductCard, ProductReviews, WishlistButton...)
 │   │   ├── checkout/                # مكونات الدفع والشحن (PaymentMethodPicker, ShippingCalculator, VatField)
 │   │   ├── layout/                  # مكونات التخطيط واللغات
 │   │   └── ui/                      # مكونات الأساس المشتركة (Dialog, Dropdown, Skeleton, OrderStatusBadge, OrderTimeline)
-│   ├── hooks/                       # الخطافات المخصصة
-│   │   ├── useAdminReports.ts       # خطاف جلب تقارير الإدارة والمبيعات
-│   │   ├── useCart.ts               # الواجهة البرمجية الموحدة لاستخدام السلة في المكونات
-│   │   ├── useCartAuthSync.ts       # مزامنة السلة تلقائياً ودمجها عند تسجيل الدخول
-│   │   ├── useCountry.ts            # إدارة دولة العميل الحالية
-│   │   ├── useOrders.ts             # خطافات TanStack Query للطلبات (Admin & Customer)
-│   │   ├── useProducts.ts           # جلب المنتجات عبر TanStack Query
-│   │   ├── useProductFiltersUrl.ts  # مزامنة فلاتر البحث والترتيب مع عنوان URL
-│   │   ├── useReviews.ts            # جلب وإضافة المراجعات واعتدالها
-│   │   └── useWishlist.ts           # إدارة قائمة الرغبات والاستعلام عن المعرفات
+│   ├── hooks/                       # الخطافات المخصصة (useAdminReports, useCart, useCartAuthSync, useCountry, useOrders, useProducts, useProductFiltersUrl, useReviews, useWishlist)
 │   ├── lib/                         # المكتبات المشتركة والأدوات المساعدة
 │   │   ├── api-error.ts             # فئات أخطاء الـ API الموحدة ودالة handleApiError
 │   │   ├── api-response.ts          # دوال التنسيق القياسي للاستجابات (ok, fail, validationError)
@@ -207,10 +208,11 @@ alzainTea/
 │   │   ├── password.ts              # تشفير وفحص كلمات المرور عبر Argon2id
 │   │   ├── payment-gateway.ts       # عملاء HTTP منخفضو المستوى لـ Tap و Moyasar
 │   │   ├── prisma.ts                # Prisma Client Singleton مع مشغل PrismaPg Driver Adapter
-│   │   ├── rate-limit.ts            # تقييد معدل الطلبات عبر Upstash Redis
+│   │   ├── rate-limit.ts            # تقييد معدل الطلبات متعدد الطبقات عبر Upstash Redis (Edge & Route Limiters)
 │   │   ├── require-admin.ts         # حماية المسارات الإدارية والتحقق من صلاحية ADMIN
 │   │   ├── require-user.ts          # التحقق من جلسة العميل واستخراج معرفه
 │   │   ├── shipping-rates.ts        # جدول أسعار الشحن والبلدان المدعومة
+│   │   ├── site.ts                  # ثوابت الموقع وتوليد الروابط المطلقة للـ SEO
 │   │   └── stripe.ts                # تهيئة Stripe SDK
 │   ├── modules/                     # طبقة منطق الأعمال والوصول لقاعدة البيانات (Modular Monolith)
 │   │   ├── addresses/               # مستودع وخدمة العناوين (address.repository.ts, address.service.ts, address.validators.ts)
@@ -219,40 +221,24 @@ alzainTea/
 │   │   ├── categories/              # مستودع وخدمة الفئات (category.repository.ts, category.service.ts, category.validators.ts)
 │   │   ├── checkout/                # خدمة ومستودع إتمام الشراء وحجز المخزون (checkout.service.ts, checkout.repository.ts, checkout.validators.ts)
 │   │   ├── coupons/                 # خدمة ومستودع فحص الكوبونات (coupon.service.ts, coupon.repository.ts, coupon.validators.ts)
-│   │   ├── notifications/           # خدمة إشعارات البريد وتأكيد الطلبات
-│   │   │   ├── __tests__/           # اختبارات وحدة لخدمة البريد والـ Idempotency
-│   │   │   │   └── notification.service.test.ts
-│   │   │   ├── email-templates.ts   # قوالب بريد تأكيد الطلب والفاتورة (HTML + Plain Text)
-│   │   │   ├── notification.repository.ts # حجز ذري لإرسال البريد ومنع التكرار
-│   │   │   └── notification.service.ts    # منطق إرسال بريد التأكيد غير المعطل
-│   │   ├── orders/                  # إدارة دورة حياة الطلبات والمخزون والاسترداد
-│   │   │   ├── __tests__/           # اختبارات آلة الحالات وانتقالات المخزون والاسترداد
-│   │   │   │   └── order-status.test.ts
-│   │   │   ├── order-status.ts      # آلة الحالات (State Machine) وخطط الانتقال
-│   │   │   ├── order-refund.adapter.ts # مهايئ الاسترداد المالي عبر بوابة الدفع
-│   │   │   ├── order.repository.ts  # مستودع Prisma والمعاملات الذرية وقفل الاسترداد
-│   │   │   ├── order.service.ts     # منطق الأعمال للطلبات (Admin/Customer/System)
-│   │   │   └── order.validators.ts   # مخططات Zod للطلبات والفلترة والتحديث
-│   │   ├── payments/                # طبقة الدفع الموحدة ومزودو البوابات
-│   │   │   ├── __tests__/           # اختبارات دورة الدفع، التوجيه، التوقيع، والـ Idempotency
-│   │   │   │   └── payment-cycle.test.ts
-│   │   │   ├── payment.service.ts   # توجيه البوابات وفحص الـ Feature Flag وعمليات الاسترداد
-│   │   │   ├── payment.types.ts     # واجهات المزودين الموحدة (PaymentProvider, WebhookEvent)
-│   │   │   └── providers/           # المزودات المنفذة
-│   │   │       ├── local.provider.ts   # ممر البوابة الخليجية المحلية
-│   │   │       ├── moyasar.provider.ts # مزود ميسر (Moyasar)
-│   │   │       ├── stripe.provider.ts  # مزود سترايب (Stripe)
-│   │   │       └── tap.provider.ts     # مزود تاب (Tap Payments)
+│   │   ├── notifications/           # خدمة إشعارات البريد وتأكيد الطلبات (repository, service, templates, tests)
+│   │   ├── orders/                  # إدارة دورة حياة الطلبات والمخزون والاسترداد (state machine, adapter, repository, service, validators, tests)
+│   │   ├── payments/                # طبقة الدفع الموحدة ومزودو البوابات (Stripe, Tap, Moyasar, Local Provider, tests)
 │   │   ├── products/                # مستودع وخدمة المنتجات (product.repository.ts, product.service.ts, product.validators.ts)
 │   │   ├── reports/                 # خدمة ومستودع تقارير الإدارة والمبيعات (report.repository.ts, report.service.ts, report.validators.ts)
 │   │   ├── reviews/                 # خدمة ومستودع تقييمات المنتجات والاعتدال (review.repository.ts, review.service.ts, review.validators.ts)
+│   │   ├── seo/                     # خدمة ومستودع محركات البحث والبيانات المهيكلة
+│   │   │   ├── seo.repository.ts    # استعلامات Prisma لكاش الـ SEO و Sitemap
+│   │   │   └── seo.service.ts       # بناء الـ Metadata و JSON-LD للمنتجات والفئات
 │   │   ├── shipping/                # خدمة ومتحققات الشحن (shipping.service.ts, shipping.validators.ts)
 │   │   └── wishlist/                # خدمة ومستودع قائمة الرغبات (wishlist.repository.ts, wishlist.service.ts, wishlist.validators.ts)
+│   ├── middleware.ts                # طبقة الحماية المتكاملة (Rate Limiting + Admin/Customer Guards)
 │   ├── providers/                   # مزودي التطبيق (AppProviders.tsx)
 │   ├── services/                    # طبقة استدعاء الـ API من الواجهة الأمامية (products, categories, orders, reviews, wishlist, reports)
 │   ├── store/                       # مخازن الحالة العامة (cart-store.ts)
 │   ├── styles/                      # متغيرات نظام التصميم (variables.css)
 │   └── types/                       # تعريفات TypeScript العامة (cart.d.ts, next-auth.d.ts, global.d.ts)
+├── next.config.ts                   # إعدادات Next.js وترويسات الأمان الصارمة (CSP, HSTS, X-Frame-Options...)
 ├── vercel.json                      # تكوين مهام Cron المجدولة (expire-orders كل 15 دقيقة)
 └── package.json
 ```
@@ -349,6 +335,8 @@ model Product {
   @@index([categoryId])
   @@index([status])
   @@index([slug])
+  @@index([status, categoryId])   // فلترة الكتالوج حسب الفئة
+  @@index([status, createdAt])    // ترتيب الأحدث
 }
 
 model ProductVariant {
@@ -392,9 +380,11 @@ model Order {
   updatedAt         DateTime         @updatedAt
   confirmationEmailSentAt DateTime?  // حجز ذري يمنع إرسال بريد تأكيد الطلب مرتين
 
-  @@index([userId])
+  @@index([userId, createdAt])                       // استعراض طلبات العميل مرتبة بالأحدث
   @@index([status])
   @@index([paymentStatus])
+  @@index([paymentStatus, createdAt])                // تقارير وتحليلات المبيعات الزمنية
+  @@index([status, paymentStatus, createdAt])        // مهمة Cron لإنهاء الطلبات المنتهية دورياً
 }
 
 model OrderItem {
@@ -483,7 +473,7 @@ model Review {
   @@unique([productId, userId])
   @@index([status])
   @@index([userId])
-  @@index([productId])
+  @@index([productId, status])   // تجميع التقييمات المعتمدة للمنتج
 }
 
 model WishlistItem {
@@ -854,13 +844,115 @@ model WishlistItem {
 
 ---
 
-## 🔐 11. الأمان وتحديد المعدل (Security & Rate Limiting)
+## 🛡️ 11. تفاصيل الأمان المتقدم، محرك الـ SEO، اختبارات E2E، وتحسين الأداء وخط التكامل المستمر (Week 8 Details)
+
+تم إنجاز الأسبوع الثامن بالكامل لتتويج المتجر بأعلى معايير الحماية المؤسسية، محرك SEO ثنائي اللغة متكامل، تغطية اختبارات شاملة مع Playwright، فهارس قاعدة بيانات مركبة عالية السرعة، وسير عمل آلي في GitHub Actions:
+
+### أ. التدقيق الأمني الآلي الصارم (`src/__tests__/security/api-audit.test.ts`):
+جناح اختبارات استباقي ومؤتمت يعمل مع Vitest يفحص كود المشروع ومسارات الـ API بالكامل للتأكد من انضباط المعايير المعمارية والأمنية:
+1. **عزل طبقة البيانات (No Direct Prisma in Routes)**: التحقق من عدم قيام أي Route Handler باستيراد `@/lib/prisma` أو `@prisma/client` أو استدعاء `prisma` مباشرة، لفرض تدفق `Route -> Service -> Repository` إجبارياً.
+2. **حراسة مسارات الإدارة (`requireAdmin`)**: فحص كافة مسارات `/api/admin/*` والتأكد من احتوائها على استدعاء صريح لدالة `requireAdmin()`.
+3. **حراسة مسارات العميل والخصوصية (`requireUser`)**: فحص مسارات الطلبات والمراجعات والمفضلة والعناوين والتأكد من التحقق الإلزامي من جلسة المستخدم وهويته.
+4. **التحقق الإلزامي من المدخلات عبر Zod**: فحص كافة مسارات التعديل والكتابة (`POST`, `PUT`, `PATCH`) والتأكد من تطبيق `safeParse` أو `parse` عبر مخططات Zod (مع استثناء الـ Webhooks والـ Cron المعزولة أمنياً).
+5. **معالجة الأخطاء الموحدة**: التأكد من عدم استخدام استجابات أخطاء عشوائية والتزام كافة المسارات بدوال `fail()` أو `handleApiError()`.
+6. **انتظار البارامترات غير التزامنية (`Async Params`)**: التأكد من انتظار كائن `context.params` بأسلوب `await` في كافة المسارات الديناميكية المتوافقة مع Next.js 15/16.
+7. **منع هجمات الحقن والـ XSS**: التأكد من خلو المشروع تماماً من أي استعلامات SQL غير آمنة (`$queryRawUnsafe` / `$executeRawUnsafe`)، وحصر استخدام `dangerouslySetInnerHTML` حصرياً على وسوم البيانات المهيكلة داخل `JsonLd.tsx`.
+8. **منع تسريب الأسرار**: التحقق من عدم وجود أي مفاتيح خاصة أو كلمات مرور أو توكنات سرية مُعرّضة عبر بادئة `NEXT_PUBLIC_*`.
+
+### ب. ترويسات الأمان المتقدمة وسياسة أمان المحتوى (`next.config.ts` & CSP):
+- **سياسة أمان المحتوى (Content Security Policy - CSP)**:
+  - ضبط شامل للمصادر الموثوقة: نصوص برمجية من النطاق نفسه و Stripe (`https://js.stripe.com`) و Vercel Scripts، خطوط من Google Fonts، صور من التخزين السحابي (`blob:`, `data:`, HTTPS)، واتصالات آمنة لـ Stripe API و Vercel Insights.
+  - حظر الإطارات الخارجية (`frame-ancestors 'none'`) وحظر كائنات الوسائط غير الآمنة (`object-src 'none'`).
+  - وضع التقرير المبدئي: افتراضياً تُرسل الترويسة كـ `Content-Security-Policy-Report-Only` لمراقبة سجلات الكونسول دون إعاقة واجهات المستخدم، مع إمكانية التبديل للإنفاذ الصارم الفوري عبر المتغير البيئي `CSP_ENFORCE="true"`.
+- **الترويسات الأمنية المؤسسية**:
+  - `Strict-Transport-Security` (HSTS): فرض الاتصال المشفر لمدة عامين مع تضمين النطاقات الفرعية والقائمة المسبقة (`preload`).
+  - `X-Frame-Options: DENY`: منع تضمين صفحات المتجر في iframe لحمايته تماماً من هجمات Clickjacking.
+  - `X-Content-Type-Options: nosniff`: منع المتصفح من استنتاج نوع المحتوى خلافاً لترويسة MIME لتفادي هجمات رفع الملفات الخبيثة.
+  - `Referrer-Policy: strict-origin-when-cross-origin`: حماية خصوصية العميل عند الانتقال لروابط خارجية.
+  - `Permissions-Policy`: حجب الوصول للكاميرا والميكروفون والموقع الجغرافي وقصر إذن الدفع على المتجر و Stripe.
+  - `Cross-Origin-Opener-Policy: same-origin-allow-popups`: عزل سياق التصفح مع السماح بنوافذ الدفع المنبثقة.
+  - `poweredByHeader: false`: إخفاء ترويسة `X-Powered-By: Next.js` لمنع كشف بيئة التشغيل.
+
+### ج. طبقات تحديد المعدل المتقدمة (Edge & Route Limiters via Upstash):
+توسيع نظام الـ Rate Limiting في `src/lib/rate-limit.ts` ودمجه بالـ Edge Middleware (`src/middleware.ts`):
+1. **مستويات التحديد المتخصصة**:
+   - `edgeAuthRateLimit`: 10 محاولات في الدقيقة لمسارات التسجيل والمصادقة واستعادة كلمة المرور لمنع هجمات القوة الغاشمة (Brute-force).
+   - `edgeAuthHourlyRateLimit`: 40 محاولة في الساعة لكل IP كطبقة حماية ثانية طويلة المدى ضد التخمين الموزع.
+   - `sensitiveWriteRateLimit`: 30 طلباً في الدقيقة لعمليات الكتابة الحساسة (الكوبونات، المراجعات، المفضلة، العناوين، الطلبات) لمنع إغراق الخادم بالبيانات.
+   - `apiRateLimit`: 120 طلباً في الدقيقة للمسارات العامة.
+   - `adminRateLimit`: 300 طلب في الدقيقة لمسارات الإدارة.
+   - `checkoutRateLimit`: 5 طلبات في الدقيقة لجلسات إتمام الشراء لمنع استنزاف المخزون والطلبات الوهمية.
+2. **استثناء المسارات الموثوقة**: استثناء إشعارات الـ Webhooks الموقعة رقمياً لـ Stripe و Tap و Moyasar، ومهمة الـ Cron المجدولة المحمية بـ `CRON_SECRET`.
+3. **آلية المرونة واستمرارية المتجر (Fail-Open Architecture)**: في حال انقطاع الاتصال بخادم Upstash Redis، يلتقط النظام الاستثناء ويعيد `PASS` لتفادي تعطيل عمليات البيع الحقيقية مع تسجيل تحذير في سجلات الخادم.
+4. **ترويسات المعايير العالمية**: إرجاع ترويسات `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` مع ترويسة `Retry-After` عند تجاوز الحد الأقصى (رمز `429 Too Many Requests`).
+
+### د. محرك الـ SEO والبيانات المهيكلة المتقدمة (`src/modules/seo/`):
+- **بنية الموديول الخادمية المعزولة**:
+  - `seo.repository.ts`: استعلامات Prisma خفيفة ومحددة الحقول تجلب فقط بيانات العنوان والوصف والـ SKU والصور والتقييمات المعتمدة، واستعلامات توليد روابط الـ Sitemap.
+  - `seo.service.ts`: بناء الـ Metadata ووسوم OpenGraph و Twitter Cards ثنائية اللغة، مع دمج الـ Cache عبر `unstable_cache` بمهلة إعادة تحقق 5 دقائق (`revalidate: 300`) لمنع تكرار استعلامات قاعدة البيانات بين الـ Layout والصفحة.
+- **التوليد الديناميكي لبيانات الصفحات (`layout.tsx`)**:
+  - `src/app/(shop)/products/[slug]/layout.tsx`: توليد ديناميكي لعنوان المنتج والوصف العربي/الإنجليزي والرابط الأصلي (Canonical URL)، وحقن وسوم Schema.org.
+  - `src/app/(shop)/category/[slug]/layout.tsx`: توليد ديناميكي لبيانات الفئات وتدرج روابط شجرة التصنيف.
+- **البيانات المهيكلة الغنية (JSON-LD via Schema.org)**:
+  - مخطط `Product`: يشمل اسم المنتج، الوصف، الـ SKU، مصفوفة الصور، العلامة التجارية، الفئة، وعرض السعر بالدولار `Offer` مع العملة وحالة التوفر اللحظية (`InStock` أو `OutOfStock` بناءً على المخزون الحي `stock - reservedStock`)، ومخطط التقييم الإجمالي `AggregateRating` (المتوسط وعدد المراجعات المعتمدة).
+  - مخطط `BreadcrumbList`: شجرة تنقل هرمية تُرشد محركات البحث لتسلسل الصفحات (الرئيسية ← المنتجات ← الفئة ← المنتج).
+- **خريطة الموقع الذكية (`src/app/sitemap.ts`)**:
+  - توليد تلقائي للروابط بمهلة كاش ساعة واحدة (`revalidate = 3600`).
+  - تشمل الصفحات الثابتة (`/`, `/products`, `/about`, `/faqs`, `/pricing`)، صفحات الفئات الديناميكية مع أولوية 0.7 وتحديث أسبوعي، وصفحات المنتجات النشطة مع أولوية 0.8، مع حماية ضد توقف الخادم عند تعذر قاعدة البيانات (`fallback to static`).
+- **قواعد محركات البحث (`src/app/robots.ts`)**:
+  - السماح لكافة محركات البحث بالزحف إلى صفحات المتجر العامة والمنتجات.
+  - حجب صارم لمسارات الإدارة (`/admin`), واجهات البرمجة (`/api/`), حساب العميل (`/account`), والدفع والسلة والمصادقة.
+  - حظر زحف روابط الفلاتر والاستعلامات المكررة (`/*?*q=`, `/*?*sort=`, `/*?*minPrice=`, `/*?*maxPrice=`, `/*?*inStock=`) لمنع عقوبات المحتوى المكرر (Duplicate Content) في محرك بحث Google.
+  - الإشارة الصريحة للرابط المطلق لخريطة الموقع `sitemap.xml`.
+
+### هـ. فهارس قاعدة البيانات المركبة وتحسين الأداء (Composite Indexes):
+تمت إضافة وتطبيق هجرة رسمية عبر Prisma لقاعدة بيانات PostgreSQL تضمنت 6 فهارس مركبة عالية الأداء:
+1. `Product: @@index([status, categoryId])`: تسريع فلترة المنتجات النشطة ضمن فئة معينة في صفحات الكتالوج.
+2. `Product: @@index([status, createdAt])`: تسريع استعلامات ترتيب المنتجات الأحدث مبيعاً وعرضها في الصفحة الرئيسية.
+3. `Order: @@index([userId, createdAt])`: استبدال الفهرس المفرد القديم بفهرس مركب يرتب طلبات المستخدم زمنياً دون استهلاك موارد الذاكرة.
+4. `Order: @@index([paymentStatus, createdAt])`: تسريع استعلامات تجميع الإيرادات والمبيعات في لوحة التقارير الإدارية.
+5. `Order: @@index([status, paymentStatus, createdAt])`: تسريع مهمة Vercel Cron التي تبحث كل 15 دقيقة عن الطلبات المنتهية (`PENDING` و `UNPAID`).
+6. `Review: @@index([productId, status])`: تسريع حساب متوسط التقييمات وتوزيع النجوم وجلب المراجعات المعتمدة (`APPROVED`) لصفحة تفاصيل المنتج.
+
+### و. حزمة اختبارات E2E الشاملة عبر Playwright (`e2e/`):
+تم إعداد وتجهيز بيئة الاختبارات الشاملة بملف `playwright.config.ts`، مع ثلاثة ملفات اختبار متخصصة:
+1. **اختبارات حراس المسارات وصيغ الـ API (`guards-and-api.e2e.ts`)**:
+   - التحقق من نجاح وصيغة بيانات `/api/products` و `/api/categories` و `/api/products/facets`.
+   - التحقق من رفض الطلبات ذات الأجسام الفارغة برمز 400 وصيغة الخطأ الموحدة.
+   - اختبار إرسال JSON تالف والتأكد من رفضه بأمان دون حدوث 500 أو تسريب تفاصيل داخلية.
+   - التحقق من حظر الوصول غير المصادق لمسارات الإدارة والعميل وإرجاع 401/403.
+   - التحقق من إعادة توجيه المستخدم غير المسجل إلى صفحة الدخول عند زيارة `/admin` أو `/account/orders`.
+   - التحقق من حماية الـ Cron ومسارات الـ Webhooks ضد الطلبات غير الموقعة.
+2. **اختبارات ترويسات الأمان والـ SEO (`security-and-seo.e2e.ts`)**:
+   - فحص وجود ترويسات `x-content-type-options`, `x-frame-options`, `referrer-policy`, `strict-transport-security`, و `content-security-policy`.
+   - فحص محتوى `robots.txt` وحجب المسارات الحساسة وربط الـ sitemap.
+   - فحص استجابة `sitemap.xml` واحتوائه على بنية XML سليمة وروابط منتجات حية.
+   - زيارة صفحة المنتج وفحص وجود الوسوم الوصفية وعنوان الصفحة ورابط الـ Canonical ومخططات JSON-LD (`Product` بالدولار وحالة التوفر، و `BreadcrumbList`).
+   - اختبار اختياري لتقييد المعدل والتحقق من إرجاع رمز 429 عند تجاوز الحد المسموح.
+3. **اختبار رحلة الشراء الكاملة للزائر (`shopping-journey.e2e.ts`)**:
+   - محاكاة متصفح حقيقي يتصفح الكتالوج `/products`، يختار أول منتج، ويضيفه للسلة.
+   - التحقق من تخزين السلة في `localStorage` بمفتاح الزائر `alzain-cart-storage:guest`.
+   - الانتقال إلى صفحة السلة `/cart` ومتابعة الشراء نحو صفحة الدفع `/checkout`.
+   - التأكد التام من قدرة الزائر على إتمام الشراء دون إجباره على تسجيل الدخول المسبق.
+   - التحقق من مرونة صفحة السلة الفارغة وعدم حدوث أي انهيار برمجي.
+
+### ز. خط أنابيب التكامل المستمر (GitHub Actions CI Workflow - `.github/workflows/ci.yml`):
+سير عمل آلي محكم يعمل على خوادم Ubuntu مع Node 22 وبيئة كاش لـ npm:
+- تشغيل `prisma:generate` لبناء العميل بالأنواع المحدثة.
+- تشغيل الفحص اللغوي والتنسيقي `npm run lint`.
+- تشغيل اختبارات Vitest بالكامل بما فيها التدقيق المعماري والأمني `src/__tests__/security/api-audit.test.ts`.
+- فحص ثغرات الاعتماديات في حزم npm عبر `npm run audit:deps` للتحقق من عدم وجود ثغرات بدرجة خطورة عالية أو حرجة.
+- بناء نسخة الإنتاج النهائية للمتجر عبر `npm run build` للتأكد التام من خلو كافة الصفحات والمسارات من أخطاء الـ Typescript أو مشاكل الـ Bundling.
+
+---
+
+## 🔐 12. معايير الأمان وسياسات الحماية (Security Standards & Defense in Depth)
 
 1. **حماية مسارات الإدارة (Defense in Depth)**:
    - **الطبقة الأولى**: `src/middleware.ts` يفحص التوكن والدور ويمنع أي مستخدم ليس `ADMIN` أو `SUPER_ADMIN` مع إرجاع 403 لمسارات API.
    - **الطبقة الثانية**: استدعاء دالة `requireAdmin()` في بداية كل مسار تحكم إداري تحت `/api/admin/*`.
 2. **حماية مسارات وبوابة العميل (Customer Access Control & Privacy)**:
-   - استدعاء `requireUser()` في مسارات طلبات العميل ومراجعاته وقائمة رغباته (`/api/orders/*`, `/api/reviews`, `/api/wishlist`).
+   - استدعاء `requireUser()` في مسارات طلبات العميل ومراجعاته وقائمة رغباته وعناوينه (`/api/orders/*`, `/api/reviews`, `/api/wishlist`, `/api/addresses`).
    - إرجاع خطأ 404 بدلاً من 403 عند محاولة الوصول لطلب لا يملكه المستخدم لمنع هجمات الاستكشاف والتعداد (ID Enumeration).
 3. **أمان المهام المجدولة (Cron Secret Security)**:
    - حماية مسار `/api/cron/expire-orders` بالتحقق من ترويسة التفويض ومقارنة `CRON_SECRET` باستخدام المقارنة الثابتة التوقيت `crypto.timingSafeEqual` لمنع هجمات التوقيت.
@@ -870,21 +962,31 @@ model WishlistItem {
    - التحقق الثابت التوقيت (Constant-time) عبر `crypto.timingSafeEqual` لـ Tap و Moyasar لمنع هجمات الـ Timing Attacks.
 5. **تشفير كلمات المرور (`src/lib/password.ts`)**:
    - استخدام خوارزمية **Argon2id** بذاكرة ~19MB وتكرار زمني آمن، وهي المعيار الأكثر مناعة ضد هجمات الـ GPU مقارنة بـ bcrypt.
-6. **تقييد معدل الطلبات (Rate Limiting via Upstash Redis)**:
-   - `authRateLimit`: 10 طلبات في الدقيقة لكل عنوان IP لمسارات التسجيل والمصادقة.
-   - `checkoutRateLimit`: 5 طلبات في الدقيقة لكل IP/مستخدم على مسار `POST /api/checkout/session` لمنع استنزاف المخزون والتلاعب.
-7. **حماية ملكية الموارد (Resource Ownership)**:
+6. **تقييد معدل الطلبات متعدد الطبقات (Multi-tier Rate Limiting via Upstash Redis)**:
+   - مسارات المصادقة والتسجيل: 10 طلبات في الدقيقة و 40 في الساعة لكل IP.
+   - عمليات الكتابة الحساسة: 30 طلباً في الدقيقة.
+   - مسارات الـ API العامة: 120 طلباً في الدقيقة.
+   - مسارات الإدارة: 300 طلب في الدقيقة.
+   - جلسات إتمام الشراء `/api/checkout/session`: 5 طلبات في الدقيقة.
+7. **ترويسات الأمان الصارمة وسياسة المحتوى (CSP & Enterprise Headers)**:
+   - فرض CSP، HSTS، X-Frame-Options DENY، X-Content-Type-Options nosniff، Permissions-Policy، وحجب ترويسات كشف الإصدار.
+8. **حماية ملكية الموارد (Resource Ownership)**:
    - العناوين والطلبات والمراجعات وقائمة الرغبات لا يمكن تعديلها أو حذفها إلا من قبل المستخدم المالك لها.
+9. **تدقيق الكود المعماري الآلي المستمر (`api-audit.test.ts`)**:
+   - ضمان عدم وجود أي تسريب لقاعدة البيانات خارج الـ Repository، وخلو المشروع من أي استعلامات SQL غير آمنة أو استخدام غير منضبط لـ `dangerouslySetInnerHTML`.
 
 ---
 
-## ⚙️ 12. متغيرات البيئة المطلوبة (Environment Variables)
+## ⚙️ 13. متغيرات البيئة المطلوبة (Environment Variables)
 
 ملف `.env` المعتمد:
 
 ```env
 # قاعدة البيانات (PostgreSQL - Neon / Supabase)
 DATABASE_URL="postgresql://username:password@ep-xyz.neon.tech/alzaintea?sslmode=require"
+
+# رابط الموقع الأساسي للـ SEO والروابط المطلقة
+NEXT_PUBLIC_SITE_URL="https://alzaintea.com"
 
 # مصادقة NextAuth
 NEXTAUTH_URL="http://localhost:3000"
@@ -893,6 +995,9 @@ NEXTAUTH_SECRET="your-super-secret-key-min-32-chars"
 # تقييد المعدل عبر Upstash Redis
 UPSTASH_REDIS_REST_URL="https://your-upstash-redis-url.upstash.io"
 UPSTASH_REDIS_REST_TOKEN="your-upstash-token"
+
+# تفعيل فرض سياسة أمان المحتوى الصارمة (افتراضياً Report-Only إذا لم تُضبط)
+CSP_ENFORCE="false"
 
 # إعدادات Stripe (الدفع الدولي بالدولار)
 STRIPE_SECRET_KEY="sk_test_..."
@@ -914,11 +1019,14 @@ EMAIL_FROM="Alzain Tea <onboarding@resend.dev>"
 # إشعارات WhatsApp (البنية التحتية جاهزة - V2)
 WHATSAPP_API_TOKEN="your-whatsapp-token"
 WHATSAPP_PHONE_NUMBER_ID="your-phone-id"
+
+# تفعيل اختبارات تحديد المعدل في بيئة E2E (اختياري)
+E2E_RATE_LIMIT="0"
 ```
 
 ---
 
-## ⚡ 13. أوامر التشغيل وإدارة المشروع (CLI Commands)
+## ⚡ 14. أوامر التشغيل وإدارة المشروع (CLI Commands)
 
 ```bash
 # تثبيت الحزم
@@ -931,11 +1039,20 @@ npm run dev
 npm run build
 npm run lint
 
-# تشغيل الاختبارات الآلية (Vitest)
-npx vitest run
+# تشغيل اختبارات الوحدة والتدقيق الأمني (Vitest)
+npm run test
+npm run test:audit                                             # التدقيق الأمني المعماري الآلي فقط
 npx vitest run src/modules/payments/__tests__/payment-cycle.test.ts
 npx vitest run src/modules/orders/__tests__/order-status.test.ts
 npx vitest run src/modules/notifications/__tests__/notification.service.test.ts
+
+# تشغيل اختبارات E2E الشاملة (Playwright)
+npm run test:e2e                                               # تشغيل كافة اختبارات E2E بدون واجهة
+npm run test:e2e:ui                                            # تشغيل اختبارات E2E مع واجهة Playwright التفاعلية
+npm run e2e:install                                            # تثبيت متصفح Chromium المخصص للاختبارات
+
+# فحص الثغرات الأمنية في الحزم والاعتماديات
+npm run audit:deps
 
 # أوامر Prisma ORM (مع Prisma 7 Driver Adapter و prisma.config.ts)
 npm run prisma:generate   # توليد Prisma Client
@@ -947,7 +1064,7 @@ npm run prisma:studio     # استعراض قاعدة البيانات في وا
 
 ---
 
-## 📅 14. حالة التقدم وخارطة الطريق التنفيذية (9-Week Roadmap)
+## 📅 15. حالة التقدم وخارطة الطريق التنفيذية (9-Week Roadmap)
 
 ### ✅ المراحل المنجزة بالكامل (Completed):
 - [x] **الأسبوع 1: إعداد المخطط الشامل + المصادقة والأدوار**
@@ -1005,14 +1122,20 @@ npm run prisma:studio     # استعراض قاعدة البيانات في وا
   - [x] إصلاحات معمارية شاملة: ترقية مشغل Prisma إلى Driver Adapter (`@prisma/adapter-pg` / `PrismaPg`) مع `prisma.config.ts`.
   - [x] توافق كامل مع Next.js 15/16 لمسارات الـ API ذات البارامترات غير التزامنية (`await context.params`).
   - [x] توحيد معالجة الأخطاء عبر `handleApiError` و `fail(error)` لتنسيق أخطاء Zod و Prisma Client و ApiError بأمان.
+- [x] **الأسبوع 8: الفحص الأمني الشامل + اختبارات E2E + تحسين SEO والأداء (منجز بالكامل)**
+  - [x] تدقيق معماري أمني آلي للمشروع ومسارات الـ API بالكامل (`src/__tests__/security/api-audit.test.ts`).
+  - [x] ترويسات أمان مؤسسية مشددة وسياسة أمان محتوى متطورة (`next.config.ts`: CSP Report-Only/Enforce, HSTS, X-Frame-Options DENY, Permissions-Policy).
+  - [x] تحديد معدل متقدم متعدد الطبقات (Edge Middleware + Route Handlers) مع Sliding Window و Fail-Open لحماية استمرارية المتجر.
+  - [x] محرك SEO متكامل (`src/modules/seo/`) مع كاش خفيف، وتوليد ديناميكي للـ Metadata والـ Canonical URLs باللغتين العربية والإنجليزية.
+  - [x] خريطة موقع ديناميكية `sitemap.ts` مع إعادة التحقق كل ساعة، وملف `robots.ts` يحظر المسارات الحساسة وفلاتر التكرار.
+  - [x] حقن بيانات مهيكلة غنية Schema.org (`Product` متضمنة الأسعار والمخزون الحي والتقييمات، و `BreadcrumbList`).
+  - [x] 6 فهارس قاعدة بيانات علائقية مركبة في Prisma (`[status, categoryId]`, `[status, createdAt]`, `[userId, createdAt]`, `[paymentStatus, createdAt]`, `[status, paymentStatus, createdAt]`, `[productId, status]`).
+  - [x] حزمة اختبارات E2E شاملة مع Playwright تغطي رحلة الشراء للزائر، حراس المسارات، ترويسات الأمان، ومحركات البحث.
+  - [x] خط أنابيب التكامل المستمر (GitHub Actions CI Workflow) لفحص الجودة والاختبارات وبناء الإنتاج آلياً.
 
 ---
 
 ### ⏳ المراحل القادمة (Upcoming Weeks):
-- [ ] **الأسبوع 8: الفحص الأمني الشامل + اختبارات E2E + تحسين SEO والأداء**
-  - [ ] تدقيق أمني ومراجعة معايير الحماية ومعدلات الطلبات (Security Hardening).
-  - [ ] إضافة بيانات المنتجات المهيكلة (JSON-LD) و sitemap ديناميكي وتحسين محركات البحث.
-  - [ ] كتابة اختبارات تكاملية و E2E لرحلة الشراء الكاملة (Vitest + Playwright).
 - [ ] **الأسبوع 9: بيئة الاختبار (Staging) + اختبارات القبول (UAT) + الإطلاق الرسمي**
   - [ ] تجربة النظام بالكامل على بيئة Staging حقيقية.
   - [ ] مراجعة سرعة التحميل وتجربة المستخدم على مختلف الشاشات.

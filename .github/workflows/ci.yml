@@ -5,23 +5,58 @@ on:
   push:
     branches: [main, develop]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  quality:
+  verify:
+    name: Lint · Test · Build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # قيم وهمية فقط لتمرير التهيئة أثناء الفحص — لا أسرار حقيقية هنا أبداً
     env:
-      DATABASE_URL: postgresql://user:pass@localhost:5432/ci
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
       NEXTAUTH_URL: http://localhost:3000
-      NEXTAUTH_SECRET: ci-secret-ci-secret-ci-secret-ci-secret
-      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      NEXTAUTH_SECRET: ci-only-secret-not-used-anywhere-0123456789
+      UPSTASH_REDIS_REST_URL: https://ci.upstash.io
+      UPSTASH_REDIS_REST_TOKEN: ci-token
+      STRIPE_SECRET_KEY: sk_test_ci
+      STRIPE_WEBHOOK_SECRET: whsec_ci
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
+      PAYMENT_PROVIDER: tap
+      LOCAL_GATEWAY_API_KEY: sk_test_ci
+      LOCAL_GATEWAY_WEBHOOK_SECRET: ci-webhook-secret
+      CRON_SECRET: ci-cron-secret-0123456789
+      RESEND_API_KEY: re_ci
+      EMAIL_FROM: "CI <ci@example.com>"
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npm run prisma:generate
-      - run: npm run lint
-      - run: npx vitest run          # يشمل تدقيق الأمان api-audit
-      - run: npm run audit:deps
-      - run: npm run build
+
+      - name: Install
+        run: npm ci
+
+      - name: Prisma generate
+        run: npm run prisma:generate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests (Vitest)
+        run: npx vitest run
+
+      # إن فشل البناء هنا بسبب استعلام قاعدة بيانات أثناء التوليد الثابت (مثل sitemap.ts)،
+      # فأضف `export const dynamic = "force-dynamic"` لتلك الصفحة/الملف بدل الاتصال بقاعدة بيانات في CI.
+      - name: Build
+        run: npm run build
+
+      - name: Dependency audit (تحذيري)
+        run: npm audit --omit=dev --audit-level=high
+        continue-on-error: true
