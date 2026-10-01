@@ -1135,13 +1135,327 @@ npm run prisma:studio     # استعراض قاعدة البيانات في وا
 
 ---
 
-### ⏳ المراحل القادمة (Upcoming Weeks):
-- [ ] **الأسبوع 9: بيئة الاختبار (Staging) + اختبارات القبول (UAT) + الإطلاق الرسمي**
-  - [ ] تجربة النظام بالكامل على بيئة Staging حقيقية.
-  - [ ] مراجعة سرعة التحميل وتجربة المستخدم على مختلف الشاشات.
-  - [ ] النشر النهائي للإنتاج (Vercel + Neon Production DB) وإطلاق المتجر.
+- [x] **الأسبوع 9: بيئة الاختبار (Staging) + اختبارات القبول (UAT) + الإصلاحات + الإطلاق الرسمي (منجز بالكامل)**
+  - [x] تجربة النظام بالكامل على بيئة Staging حقيقية.
+  - [x] مراجعة سرعة التحميل وتجربة المستخدم على مختلف الشاشات.
+  - [x] إصلاح جميع الأخطاء المكتشفة أثناء جلسات UAT.
+  - [x] النشر النهائي للإنتاج (Vercel + Neon Production DB) وإطلاق المتجر.
+
+> 🎉 **تم إنجاز خارطة الطريق التسعة أسابيع بالكامل. المشروع منشور ومُطلق.**
 
 ---
 
 > **ملاحظة للمطورين والوكلاء (AI Agents):** عند بدء أي أسبوع جديد أو إضافة ميزة، يرجى الحفاظ على معمارية Modular Monolith الصارمة (Route Handler -> Zod Validator -> Service -> Repository)، وعدم استدعاء Prisma أو كتابة منطق الأعمال داخل واجهات الـ HTTP مباشرة.
+
+---
+
+## 🗺️ 16. خريطة Backend لكل صفحة Frontend (Page-to-API Map)
+
+> هذا القسم يوثق **كل نقطة API مرتبطة بكل صفحة** في الواجهة الأمامية، بما يشمل: الـ Endpoints، الأدوات (Hooks/Services)، إدارة الحالة (Zustand/React Query)، ومتطلبات المصادقة.
+
+---
+
+### 📄 الصفحة الرئيسية — `src/app/page.tsx`
+
+| الغرض | الـ Endpoint | الطريقة | Auth | Hook/Service |
+|---|---|---|---|---|
+| جلب المنتجات المميزة | `GET /api/products?status=ACTIVE&sort=newest&limit=8` | GET | عام | `useProducts` |
+| جلب الفئات الرئيسية | `GET /api/categories` | GET | عام | `categoryService.getCategories()` |
+| جلب أفضل المبيعات | `GET /api/products?sort=bestselling&limit=8` | GET | عام | `useProducts` |
+
+- تُعرض كـ **Server Component** مع ISR لأفضل أداء SEO.
+- JSON-LD لـ `WebSite` و `Organization` يُحقن هنا عبر `<JsonLd>`.
+
+---
+
+### 📦 صفحة كتالوج المنتجات — `src/app/(shop)/products/page.tsx`
+
+| الغرض | الـ Endpoint | الطريقة | Auth | Hook/Service |
+|---|---|---|---|---|
+| قائمة المنتجات مع فلترة وترقيم | `GET /api/products?category=&brand=&minPrice=&maxPrice=&sort=&page=&limit=&q=&inStock=` | GET | عام | `useProducts` |
+| حدود الفلاتر الديناميكية | `GET /api/products/facets` | GET | عام | `productService.getProductFacets()` |
+
+**Query Params المدعومة:** `category`, `brand`, `minPrice`, `maxPrice`, `sort` (newest/price_asc/price_desc/bestselling), `page`, `limit`, `q`, `inStock=true`.
+
+- إدارة الفلاتر في URL عبر `useProductFiltersUrl` Hook.
+- Facets تُحمَّل مرة واحدة وتُكيِّف خيارات الفلاتر ديناميكياً.
+
+---
+
+### 🛍️ صفحة تفاصيل المنتج — `src/app/(shop)/products/[slug]/page.tsx`
+
+| الغرض | الـ Endpoint | الطريقة | Auth | Hook/Service |
+|---|---|---|---|---|
+| تفاصيل المنتج | `GET /api/products/[slug]` | GET | عام | `productService.getProductBySlug(slug)` |
+| مراجعات المنتج | `GET /api/products/[slug]/reviews?page=&limit=` | GET | عام | `useReviews` |
+| حالة المفضلة (للأيقونة) | `GET /api/wishlist?idsOnly=true` | GET | مسجل | `useWishlist` |
+| إضافة للسلة | **Zustand محلي — لا API** | — | — | `useCart().addItem()` |
+| إضافة/حذف من المفضلة | `POST /api/wishlist` أو `DELETE /api/wishlist?productId=` | POST/DELETE | مسجل | `useWishlist` |
+| إضافة مراجعة جديدة | `POST /api/reviews` | POST | مسجل | `reviewService.createReview()` |
+
+**Layout** `products/[slug]/layout.tsx`:
+- `generateMetadata()` → `seoService.getProductMetadata(slug)` لتوليد Title, Description, OG, Canonical.
+- يحقن `<JsonLd>` لمخططي `Product` و `BreadcrumbList`.
+
+Body مراجعة: `{ "productId": "...", "rating": 5, "comment": "ممتاز!" }`
+
+---
+
+### 🗂️ صفحة الفئة — `src/app/(shop)/category/[slug]/page.tsx`
+
+| الغرض | الـ Endpoint | الطريقة | Auth |
+|---|---|---|---|
+| منتجات الفئة | `GET /api/products?category=<slug>&page=&sort=` | GET | عام |
+| معلومات الفئة | `GET /api/categories/[slug]` | GET | عام |
+
+**Layout** `category/[slug]/layout.tsx`:
+- `generateMetadata()` → `seoService.getCategoryMetadata(slug)`.
+- يحقن `<JsonLd>` لـ `BreadcrumbList`.
+
+---
+
+### 🛒 صفحة السلة — `src/app/(shop)/cart/page.tsx`
+
+| الغرض | الـ Endpoint | الطريقة | Auth |
+|---|---|---|---|
+| قراءة السلة | **Zustand محلي** | — | — |
+| التحقق من المخزون والأسعار | `POST /api/cart/validate` | POST | عام |
+| حساب الشحن المبدئي | `GET /api/shipping/calculate?country=<code>` | GET | عام |
+
+Body التحقق: `{ "items": [{ "productId": "...", "variantId": "...", "quantity": 2 }] }`
+
+---
+
+### 💳 صفحة إتمام الشراء — `src/app/(shop)/checkout/page.tsx`
+
+صفحة متعددة الخطوات: **العنوان → الشحن → الكوبون → الدفع → المراجعة**.
+
+| الغرض | الـ Endpoint | الطريقة | Auth |
+|---|---|---|---|
+| جلب عناوين المستخدم | `GET /api/addresses` | GET | مسجل |
+| إضافة عنوان جديد | `POST /api/addresses` | POST | مسجل |
+| حساب رسوم الشحن | `GET /api/shipping/calculate?country=<code>` | GET | عام |
+| فحص كوبون الخصم | `POST /api/coupons/validate` | POST | عام/مسجل |
+| إنشاء جلسة الدفع | `POST /api/checkout/session` | POST | عام (زائر مسموح) |
+
+Body جلسة الدفع:
+```json
+{
+  "items": [{ "productId": "...", "variantId": "...", "quantity": 1 }],
+  "addressId": "...",
+  "couponCode": "SAVE10",
+  "country": "SA",
+  "paymentMethod": "tap"
+}
+```
+
+Body فحص الكوبون: `{ "code": "SAVE10", "subtotal": 150.00, "userId": "..." }`
+
+**أخطاء محتملة:** `400 OUT_OF_STOCK`, `422 COUPON_INVALID`, `429 TOO_MANY_REQUESTS`.
+
+---
+
+### ✅ صفحة نجاح الدفع — `src/app/(shop)/checkout/success/page.tsx`
+
+| الغرض | الـ Endpoint | الطريقة | Auth |
+|---|---|---|---|
+| تفاصيل الطلب | `GET /api/orders/[id]` | GET | صاحب الطلب |
+
+- تُفرّغ الـ Zustand cart بعد التأكيد عبر `useCart().clearCart()`.
+- **لا تعتمد على هذه الصفحة لتحديث حالة الطلب** — التحديث يتم حصراً عبر Webhook.
+
+---
+
+### ❌ صفحة إلغاء الدفع — `src/app/(shop)/checkout/cancel/page.tsx`
+
+- صفحة ثابتة، لا تستدعي أي API.
+- المخزون يُحرَّر تلقائياً عبر Webhook أو Cron Job.
+
+---
+
+### 👤 صفحة الملف الشخصي — `src/app/(shop)/account/page.tsx`
+
+| الغرض | الـ Endpoint | الطريقة | Auth |
+|---|---|---|---|
+| بيانات المستخدم | `useSession()` (NextAuth) | — | مسجل |
+| جلب العناوين | `GET /api/addresses` | GET | مسجل |
+| إضافة عنوان | `POST /api/addresses` | POST | مسجل |
+| تعديل عنوان | `PATCH /api/addresses/[id]` | PATCH | مسجل (المالك) |
+| حذف عنوان | `DELETE /api/addresses/[id]` | DELETE | مسجل (المالك) |
+
+Body عنوان: `{ "fullName": "...", "phone": "...", "country": "SA", "city": "...", "street": "...", "postalCode": "...", "isDefault": true }`
+
+---
+
+### 📋 صفحة طلبات العميل — `src/app/(shop)/account/orders/page.tsx`
+
+| الغرض | الـ Endpoint | الطريقة | Auth |
+|---|---|---|---|
+| قائمة طلبات العميل | `GET /api/orders?page=&limit=` | GET | مسجل |
+
+---
+
+### 🔍 تفاصيل الطلب — `src/app/(shop)/account/orders/[id]/page.tsx`
+
+| الغرض | الـ Endpoint | الطريقة | Auth |
+|---|---|---|---|
+| تفاصيل الطلب | `GET /api/orders/[id]` | GET | صاحب الطلب |
+| إلغاء الطلب | `POST /api/orders/[id]/cancel` | POST | صاحب الطلب |
+
+شروط الإلغاء: حالة `PENDING` أو `CONFIRMED` فقط.
+
+---
+
+### ❤️ صفحة المفضلة — `src/app/(shop)/account/wishlist/page.tsx`
+
+| الغرض | الـ Endpoint | الطريقة | Auth |
+|---|---|---|---|
+| جلب المفضلة الكاملة | `GET /api/wishlist` | GET | مسجل |
+| حذف من المفضلة | `DELETE /api/wishlist?productId=<id>` | DELETE | مسجل |
+| حالة المفضلة (أيقونات) | `GET /api/wishlist?idsOnly=true` | GET | مسجل |
+
+---
+
+### 🔑 تسجيل الدخول — `src/app/(auth)/login/page.tsx`
+
+- `signIn('credentials', { email, password, redirect: false })` من NextAuth.
+- عند النجاح: دمج سلة الزائر عبر `cart-merge.ts`.
+
+---
+
+### 📝 التسجيل — `src/app/(auth)/register/page.tsx`
+
+- `POST /api/auth/register`
+- Body: `{ "name": "...", "email": "...", "password": "..." }`
+- نجاح: `201 Created`. خطأ: `409 EMAIL_TAKEN`.
+
+---
+
+### 🔐 نسيان كلمة المرور — `src/app/(auth)/forgot-password/page.tsx`
+
+| الغرض | الـ Endpoint | الطريقة |
+|---|---|---|
+| إرسال رابط الاستعادة | `POST /api/auth/forgot-password` | POST |
+| تعيين كلمة مرور جديدة | `POST /api/auth/reset-password` | POST |
+
+---
+
+### 🏛️ لوحة تحكم الإدارة — `src/app/admin/page.tsx`
+
+| الغرض | الـ Endpoint | الطريقة | Auth |
+|---|---|---|---|
+| KPIs والإيرادات والمبيعات | `GET /api/admin/reports/overview?from=&to=` | GET | ADMIN |
+| تنبيهات المخزون المنخفض | `GET /api/admin/reports/low-stock?threshold=5` | GET | ADMIN |
+
+---
+
+### 📦 إدارة المنتجات — `src/app/admin/products/`
+
+| الغرض | الـ Endpoint | الطريقة | Auth |
+|---|---|---|---|
+| قائمة المنتجات (admin) | `GET /api/admin/products?page=&q=&status=` | GET | ADMIN |
+| جلب منتج للتعديل | `GET /api/admin/products/[id]` | GET | ADMIN |
+| إنشاء منتج | `POST /api/admin/products` | POST | ADMIN |
+| تعديل منتج | `PATCH /api/admin/products/[id]` | PATCH | ADMIN |
+| حذف منتج | `DELETE /api/admin/products/[id]` | DELETE | ADMIN |
+| الفئات (للـ Select) | `GET /api/categories` | GET | ADMIN |
+
+Body منتج: `{ "nameAr": "...", "nameEn": "...", "slug": "...", "price": 29.99, "stock": 100, "sku": "...", "categoryId": "...", "status": "ACTIVE", "images": ["..."] }`
+
+---
+
+### 🗂️ إدارة الفئات — `src/app/admin/categories/page.tsx`
+
+| الغرض | الـ Endpoint | الطريقة |
+|---|---|---|
+| جميع الفئات | `GET /api/admin/categories` | GET |
+| إنشاء فئة | `POST /api/admin/categories` | POST |
+| تعديل فئة | `PATCH /api/admin/categories/[id]` | PATCH |
+| حذف فئة | `DELETE /api/admin/categories/[id]` | DELETE |
+
+---
+
+### 📋 إدارة الطلبات — `src/app/admin/orders/`
+
+| الغرض | الـ Endpoint | الطريقة |
+|---|---|---|
+| جميع الطلبات | `GET /api/admin/orders?page=&status=&q=&from=&to=` | GET |
+| تفاصيل طلب | `GET /api/admin/orders/[id]` | GET |
+| تحديث الحالة | `PATCH /api/admin/orders/[id]` | PATCH |
+
+Body تحديث: `{ "status": "SHIPPED", "note": "...", "restock": false }`
+
+**انتقالات الحالة (State Machine):**
+
+| من | إلى المسموح به |
+|---|---|
+| `PENDING` | `CONFIRMED`, `CANCELLED`, `FAILED` |
+| `CONFIRMED` | `PROCESSING`, `CANCELLED` |
+| `PROCESSING` | `SHIPPED`, `CANCELLED` |
+| `SHIPPED` | `DELIVERED`, `RETURNED` |
+| `DELIVERED` | `RETURNED` |
+| `RETURNED` | `REFUNDED` |
+| `CANCELLED` / `REFUNDED` / `FAILED` | — (نهائية) |
+
+---
+
+### ⭐ إدارة المراجعات — `src/app/admin/reviews/page.tsx`
+
+| الغرض | الـ Endpoint | الطريقة |
+|---|---|---|
+| جلب المراجعات | `GET /api/admin/reviews?status=PENDING&page=` | GET |
+| اعتماد/رفض | `PATCH /api/admin/reviews/[id]` | PATCH |
+| حذف | `DELETE /api/admin/reviews/[id]` | DELETE |
+
+Body: `{ "status": "APPROVED" }` أو `{ "status": "REJECTED" }`
+
+---
+
+### 🔗 Webhooks — `src/app/api/webhooks/`
+
+| الـ Endpoint | المزود | يتحقق من | يُحدِّث |
+|---|---|---|---|
+| `POST /api/webhooks/stripe` | Stripe | `stripe-signature` header | Order.paymentStatus + stock |
+| `POST /api/webhooks/local-gateway` | Tap / Moyasar | HMAC-SHA256 | Order.paymentStatus + stock + بريد التأكيد |
+
+**تدفق Webhook الناجح:**
+1. استقبال الحدث → التحقق من التوقيع (Timing-Safe Equal).
+2. فحص Idempotency → إرجاع 200 مباشرة إن محدَّث مسبقاً.
+3. Prisma Transaction: تحديث الحالة + خصم المخزون + تسجيل Log.
+4. إرجاع `200 OK` → إرسال بريد التأكيد عبر `after()`.
+
+---
+
+### ⏰ Cron Job — `src/app/api/cron/expire-orders/route.ts`
+
+- **الجدول:** كل 15 دقيقة (Vercel Cron).
+- **Auth:** `CRON_SECRET` عبر Authorization header (Timing-Safe Equal).
+- **المنطق:** بحث عن طلبات `PENDING + UNPAID` تجاوزت 60 دقيقة → تحرير `reservedStock` → تحديث الحالة إلى `FAILED` → تسجيل في `OrderStatusLog`.
+
+---
+
+### 📡 تنسيق الاستجابات الموحد
+
+**نجاح:** `{ "success": true, "data": {}, "meta": { "page": 1, "totalPages": 5, "total": 100 } }`
+
+**فشل:** `{ "success": false, "error": { "code": "OUT_OF_STOCK", "message": "...", "statusCode": 400 } }`
+
+**أكواد الخطأ الشائعة:**
+
+| Code | HTTP | المعنى |
+|---|---|---|
+| `VALIDATION_ERROR` | 400 | خطأ في التحقق (Zod) |
+| `OUT_OF_STOCK` | 400 | نقص في المخزون |
+| `UNAUTHORIZED` | 401 | غير مصادَق |
+| `FORBIDDEN` | 403 | غير مصرَّح |
+| `NOT_FOUND` | 404 | المورد غير موجود |
+| `EMAIL_TAKEN` | 409 | البريد مستخدم مسبقاً |
+| `COUPON_INVALID` | 422 | كوبون غير صالح |
+| `TOO_MANY_REQUESTS` | 429 | تجاوز حد الطلبات |
+| `PAYMENT_ERROR` | 400 | خطأ في بوابة الدفع |
+| `INTERNAL_ERROR` | 500 | خطأ داخلي في الخادم |
+
+---
+
+> **ملاحظة للمطورين والوكلاء (AI Agents):** عند بدء أي صفحة في الفرونت، ارجع لهذا القسم أولاً لمعرفة الـ Endpoints المطلوبة، وتأكد من الحفاظ على معمارية Modular Monolith الصارمة (Route Handler -> Zod Validator -> Service -> Repository) في أي تعديل على الـ Backend.
 

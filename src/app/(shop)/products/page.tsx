@@ -1,98 +1,54 @@
-// src/app/(shop)/products/page.tsx
-"use client";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import ProductsCatalog, {
+  CatalogSkeleton,
+} from "@/components/shop/ProductsCatalog";
 
-import { useTranslations } from "next-intl";
-import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
-import { useProducts } from "@/hooks/useProducts";
-import { useProductFiltersUrl } from "@/hooks/useProductFiltersUrl";
-import { ProductSearch } from "@/components/shop/ProductSearch";
-import { ProductFilters } from "@/components/shop/ProductFilters";
-import { Pagination } from "@/components/shop/Pagination";
-import { ProductGrid } from "@/components/shop/ProductGrid"; // موجود مسبقًا حسب CLAUDE.md
+type SearchParams = Record<string, string | string[] | undefined>;
 
-interface FacetsResponse {
-  success: true;
-  data: {
-    categories: { slug: string; nameAr: string; nameEn: string; _count: { products: number } }[];
-    minPrice: number;
-    maxPrice: number;
+const FILTER_KEYS = [
+  "q",
+  "category",
+  "brand",
+  "minPrice",
+  "maxPrice",
+  "inStock",
+  "sort",
+  "page",
+];
+
+/**
+ * صفحة /products الأساسية فقط هي التي تُفهرس.
+ * أي رابط يحتوي فلتر/بحث/ترتيب/ترقيم يُعلَّم noindex ويشير canonical إلى /products
+ * (منسجم مع robots.ts الذي يحجب روابط الفلاتر) لتفادي المحتوى المكرر.
+ */
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}): Promise<Metadata> {
+  const sp = await searchParams;
+  const isFiltered = FILTER_KEYS.some((key) => sp[key] !== undefined);
+
+  return {
+    title: "المنتجات | Products — متجر الزين للشاي",
+    description:
+      "تسوّق أجود أنواع الشاي الفاخر وملحقاته مع شحن إلى دول الخليج والعالم. Shop premium teas and accessories with delivery across the GCC and worldwide.",
+    alternates: { canonical: "/products" },
+    robots: isFiltered ? { index: false, follow: true } : undefined,
+    openGraph: {
+      title: "المنتجات — متجر الزين للشاي",
+      type: "website",
+      url: "/products",
+    },
   };
 }
 
-async function fetchFacets(params: URLSearchParams) {
-  const { data } = await axios.get<FacetsResponse>(`/api/products/facets?${params.toString()}`);
-  return data.data;
-}
-
 export default function ProductsPage() {
-  const t = useTranslations("products");
-  const { filters } = useProductFiltersUrl();
-  const { data, isLoading, isError } = useProducts(filters);
-
-  // الفلاتر المتاحة (الفئات وحدود السعر) — تُبنى من نفس الاستعلام الحالي بدون category/brand
-  const facetsParams = new URLSearchParams();
-  if (filters.q) facetsParams.set("q", filters.q);
-  if (filters.minPrice) facetsParams.set("minPrice", String(filters.minPrice));
-  if (filters.maxPrice) facetsParams.set("maxPrice", String(filters.maxPrice));
-
-  const { data: facets } = useQuery({
-    queryKey: ["product-facets", filters.q, filters.minPrice, filters.maxPrice],
-    queryFn: () => fetchFacets(facetsParams),
-    staleTime: 60_000,
-  });
-
+  // useSearchParams داخل المكوّن العميل يتطلب Suspense boundary
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="mb-6 text-2xl font-semibold">{t("title", { default: "منتجاتنا" })}</h1>
-
-      <div className="mb-6">
-        <ProductSearch />
-      </div>
-
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-[240px_1fr]">
-        <ProductFilters
-          categories={facets?.categories ?? []}
-          priceBounds={{ min: facets?.minPrice ?? 0, max: facets?.maxPrice ?? 0 }}
-        />
-
-        <div>
-          {isLoading && (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="h-64 animate-pulse rounded-xl bg-muted" />
-              ))}
-            </div>
-          )}
-
-          {isError && (
-            <p className="py-12 text-center text-sm text-destructive">
-              {t("loadError", { default: "تعذّر تحميل المنتجات، حاول مرة أخرى" })}
-            </p>
-          )}
-
-          {!isLoading && !isError && data && (
-            <>
-              {data.data.length === 0 ? (
-                <p className="py-12 text-center text-sm text-muted-foreground">
-                  {t("noResults", { default: "لا توجد منتجات مطابقة لبحثك" })}
-                </p>
-              ) : (
-                <ProductGrid products={data.data} />
-              )}
-
-              <div className="mt-8">
-                <Pagination
-                  currentPage={data.meta.page}
-                  totalPages={data.meta.totalPages}
-                  hasNextPage={data.meta.hasNextPage}
-                  hasPrevPage={data.meta.hasPrevPage}
-                />
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
+    <Suspense fallback={<CatalogSkeleton />}>
+      <ProductsCatalog />
+    </Suspense>
   );
 }

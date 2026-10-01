@@ -1,147 +1,130 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import Image from "next/image";
-import type { Metadata } from "next";
+import { getLocale } from "next-intl/server";
 import { productService } from "@/modules/products/product.service";
-import { ApiError } from "@/lib/api-response";
+import { ApiError } from "@/lib/api-error";
+import ProductGallery from "@/components/shop/ProductGallery";
+import ProductPurchasePanel, { type PanelVariant } from "@/components/shop/ProductPurchasePanel";
 import ProductReviews from "@/components/shop/ProductReviews";
 import WishlistButton from "@/components/shop/WishlistButton";
 
-export const revalidate = 60;
+// ملاحظة: الـ Metadata وبيانات JSON-LD (Product + BreadcrumbList) تُولَّد حصراً
+// في layout.tsx المجاور عبر seo.service — لا تكررها هنا.
+
+type Props = { params: Promise<{ slug: string }> };
+
+const T = {
+  ar: { home: "الرئيسية", products: "المنتجات", sku: "رمز المنتج", brand: "العلامة التجارية", desc: "وصف المنتج" },
+  en: { home: "Home", products: "Products", sku: "SKU", brand: "Brand", desc: "Description" },
+};
 
 async function getProduct(slug: string) {
   try {
-    return await productService.getBySlug(slug);
+    const product = await productService.getBySlug(slug);
+    // منتجات المسودة/المؤرشفة لا تظهر للعامة
+    if (product.status === "DRAFT" || product.status === "ARCHIVED") return null;
+    return product;
   } catch (error) {
     if (error instanceof ApiError && error.statusCode === 404) return null;
     throw error;
   }
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
+export default async function ProductDetailsPage({ params }: Props) {
   const { slug } = await params;
-  const product = await getProduct(slug);
-
-  if (!product) return { title: "المنتج غير موجود" };
-
-  return {
-    title: `${product.nameAr} | متجر الزين للشاي`,
-    description: product.descAr.slice(0, 160),
-    openGraph: {
-      title: product.nameAr,
-      description: product.descAr.slice(0, 160),
-      images: product.images[0] ? [{ url: product.images[0] }] : [],
-    },
-  };
-}
-
-export default async function ProductDetailsPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = await params;
-  const product = await getProduct(slug);
-
+  const [product, rawLocale] = await Promise.all([getProduct(slug), getLocale().catch(() => "ar")]);
   if (!product) notFound();
 
-  const price = Number(product.price);
-  const compareAt = product.compareAtPrice ? Number(product.compareAtPrice) : null;
-  const available = product.stock - product.reservedStock > 0;
+  const locale: "ar" | "en" = rawLocale === "en" ? "en" : "ar";
+  const t = T[locale];
+  const pick = (ar?: string | null, en?: string | null) => (locale === "en" ? en || ar : ar || en) ?? "";
 
-  // Structured Data - Product Schema
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: product.nameEn,
-    description: product.descEn,
-    image: product.images,
-    sku: product.sku,
-    offers: {
-      "@type": "Offer",
-      priceCurrency: "USD",
-      price,
-      availability: available
-        ? "https://schema.org/InStock"
-        : "https://schema.org/OutOfStock",
-    },
-  };
+  const name = pick(product.nameAr, product.nameEn);
+  const description = pick(product.descAr, product.descEn);
+  const categoryName = pick(product.category?.nameAr, product.category?.nameEn);
+  const brandName = pick(product.brand?.nameAr, product.brand?.nameEn);
+
+  const variants: PanelVariant[] = (product.variants ?? []).map(
+    (v: { id: string; name: string; price: unknown; stock: number }) => ({
+      id: v.id,
+      name: v.name,
+      price: v.price != null ? Number(v.price) : null,
+      stock: v.stock,
+    }),
+  );
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
-      {/* eslint-disable-next-line react/no-danger */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
+      <nav aria-label="breadcrumb" className="mb-6 text-sm text-stone-500">
+        <ol className="flex flex-wrap items-center gap-2">
+          <li>
+            <Link href="/" className="hover:text-stone-800">{t.home}</Link>
+          </li>
+          <li aria-hidden>/</li>
+          <li>
+            <Link href="/products" className="hover:text-stone-800">{t.products}</Link>
+          </li>
+          {product.category?.slug && (
+            <>
+              <li aria-hidden>/</li>
+              <li>
+                <Link href={`/category/${product.category.slug}`} className="hover:text-stone-800">
+                  {categoryName}
+                </Link>
+              </li>
+            </>
+          )}
+          <li aria-hidden>/</li>
+          <li aria-current="page" className="text-stone-800">{name}</li>
+        </ol>
+      </nav>
 
       <div className="grid gap-10 md:grid-cols-2">
-        <div className="grid gap-3">
-          <div className="relative aspect-square overflow-hidden rounded-xl bg-stone-100">
-            {product.images[0] && (
-              <Image
-                src={product.images[0]}
-                alt={product.nameAr}
-                fill
-                sizes="(min-width: 768px) 50vw, 100vw"
-                className="object-cover"
-                priority
-              />
-            )}
-          </div>
-          {product.images.length > 1 && (
-            <div className="grid grid-cols-4 gap-2">
-              {product.images.slice(1, 5).map((img: string) => (
-                <div
-                  key={img}
-                  className="relative aspect-square overflow-hidden rounded-lg bg-stone-100"
-                >
-                  <Image src={img} alt={product.nameAr} fill className="object-cover" />
-                </div>
-              ))}
+        <ProductGallery images={product.images} alt={name} />
+
+        <div className="grid content-start gap-5">
+          <div className="grid gap-2">
+            {categoryName && <span className="text-sm text-stone-500">{categoryName}</span>}
+            <div className="flex items-start justify-between gap-3">
+              <h1 className="text-2xl font-semibold leading-snug text-stone-900 sm:text-3xl">{name}</h1>
+              <WishlistButton productId={product.id} />
             </div>
-          )}
-        </div>
-
-        <div className="grid gap-4">
-          <span className="text-sm text-stone-500">{product.category?.nameAr}</span>
-          <h1 className="text-2xl font-semibold text-stone-900">{product.nameAr}</h1>
-          <WishlistButton productId={product.id} />
-          <div className="flex items-baseline gap-3">
-            <span className="text-2xl font-semibold text-stone-900">${price.toFixed(2)}</span>
-            {compareAt && compareAt > price && (
-              <span className="text-lg text-stone-400 line-through">
-                ${compareAt.toFixed(2)}
-              </span>
-            )}
           </div>
 
-          <p className="leading-relaxed text-stone-600">{product.descAr}</p>
+          <ProductPurchasePanel
+            productId={product.id}
+            slug={product.slug}
+            nameAr={product.nameAr}
+            nameEn={product.nameEn}
+            image={product.images[0]}
+            basePrice={Number(product.price)}
+            compareAtPrice={product.compareAtPrice ? Number(product.compareAtPrice) : null}
+            available={Math.max(0, product.stock - product.reservedStock)}
+            variants={variants}
+            locale={locale}
+          />
 
-          <div>
-            {available ? (
-              <span className="inline-block rounded-full bg-emerald-100 px-3 py-1 text-sm text-emerald-700">
-                متوفر في المخزون
-              </span>
-            ) : (
-              <span className="inline-block rounded-full bg-red-100 px-3 py-1 text-sm text-red-700">
-                نفدت الكمية حاليًا
-              </span>
+          <section aria-labelledby="desc-title" className="border-t border-stone-200 pt-5">
+            <h2 id="desc-title" className="mb-2 font-medium text-stone-900">{t.desc}</h2>
+            <p className="whitespace-pre-line leading-relaxed text-stone-600">{description}</p>
+          </section>
+
+          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm text-stone-500">
+            <dt>{t.sku}</dt>
+            <dd className="text-stone-700">{product.sku}</dd>
+            {brandName && (
+              <>
+                <dt>{t.brand}</dt>
+                <dd className="text-stone-700">{brandName}</dd>
+              </>
             )}
-          </div>
-
-          <button
-            disabled={!available}
-            className="mt-2 w-full rounded-md bg-emerald-700 px-5 py-3 text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-fit"
-          >
-            أضف إلى السلة
-          </button>
+          </dl>
         </div>
       </div>
-      <ProductReviews productId={product.id} slug={product.slug} />
+
+      <div className="mt-14 border-t border-stone-200 pt-10">
+        <ProductReviews productId={product.id} slug={product.slug} />
+      </div>
     </div>
   );
 }
