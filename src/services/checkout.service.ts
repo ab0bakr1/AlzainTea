@@ -69,6 +69,12 @@ export interface ParsedApiError {
   message: string;
 }
 
+export interface CheckoutSessionResult {
+  checkoutUrl: string;
+  orderId: string | null;
+  trackingToken?: string;
+}
+
 // ---------------------------------------------------------------------------
 // الأخطاء
 // ---------------------------------------------------------------------------
@@ -141,6 +147,7 @@ export async function createCheckoutSession(
   const d = data.data ?? {};
   return {
     checkoutUrl: d.checkoutUrl ?? d.url ?? d.paymentUrl ?? "",
-    orderId: d.orderId ?? d.order?.id ?? null,
+  orderId: d.orderId ?? d.order?.id ?? null,
+  trackingToken: d.trackingToken,
   };
 }

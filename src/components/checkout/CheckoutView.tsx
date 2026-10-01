@@ -32,6 +32,7 @@ import OrderSummary from "@/components/checkout/OrderSummary";
 import PaymentMethodPicker from "@/components/checkout/PaymentMethodPicker";
 import ShippingCalculator from "@/components/checkout/ShippingCalculator";
 import VatField from "@/components/checkout/VatField";
+import { saveTrackingToken } from "@/services/order-result.service";
 
 const STEPS = ["العنوان", "الشحن والخصم", "الدفع", "المراجعة"] as const;
 
@@ -223,7 +224,11 @@ export default function CheckoutView() {
     try {
       const result = await createCheckoutSession(body);
       if (!result.checkoutUrl) throw new Error("تعذّر إنشاء رابط الدفع، حاول مرة أخرى.");
-      // لا نُفرغ السلة هنا: تُفرَّغ في صفحة النجاح، وحالة الطلب تُحدَّث عبر الـ Webhook فقط.
+      // نحفظ رمز التتبع قبل مغادرة الصفحة: روابط العودة من البوابات لا تحمله
+      if (result.orderId && result.trackingToken) {
+        saveTrackingToken(result.orderId, result.trackingToken);
+      }
+      // لا نُفرغ السلة هنا: ...
       window.location.assign(result.checkoutUrl);
       return; // يبقى القفل مفعلاً أثناء الانتقال
     } catch (e) {

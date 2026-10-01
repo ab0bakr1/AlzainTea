@@ -8,6 +8,8 @@ import { assertAddressOwnership } from "@/modules/addresses/address.service";
 import { createOrderWithStockReservation } from "./checkout.repository";
 import { CreateCheckoutSessionInput } from "./checkout.validators";
 import { createPaymentSession, resolveGateway } from "@/modules/payments/payment.service";
+import { signTrackingToken } from "./order-tracking";
+
 
 // نسب ضريبة القيمة المضافة الأساسية حسب الدولة.
 // TODO: نقلها لاحقاً إلى إعدادات قابلة للتعديل من لوحة تحكم الإدارة بدل تثبيتها في الكود.
@@ -121,5 +123,9 @@ export async function createCheckout(input: CreateCheckoutSessionInput, userId?:
     customerEmail: input.guestEmail,
   });
 
-  return { orderId: order.id, checkoutUrl: paymentSession.url };
+  return {
+    orderId: order.id,
+    checkoutUrl: paymentSession.url,
+    trackingToken: signTrackingToken(order.id),
+  };
 }

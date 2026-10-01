@@ -1,23 +1,25 @@
 // src/app/(shop)/checkout/success/page.tsx
-// صفحة نجاح الدفع
+// نتيجة الدفع. الواجهة التفاعلية في CheckoutResult (تحتاج Suspense بسبب useSearchParams).
 
-import type { Metadata } from 'next'
-import Link from 'next/link'
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import CheckoutResult from "@/components/checkout/CheckoutResult";
 
 export const metadata: Metadata = {
-  title: 'تم الدفع بنجاح | الزين للشاي',
-}
+  title: "نتيجة الدفع | الزين للشاي",
+  robots: { index: false, follow: false },
+};
 
 export default function CheckoutSuccessPage() {
   return (
-    <div className="container mx-auto px-4 py-16 text-center">
-      <h1 className="text-4xl font-bold text-green-600 mb-4">✓ تم الدفع بنجاح!</h1>
-      <p className="text-muted-foreground mb-8">
-        شكراً لطلبك. ستصلك رسالة تأكيد على بريدك الإلكتروني.
-      </p>
-      <Link href="/products" className="btn-primary">
-        متابعة التسوق
-      </Link>
-    </div>
-  )
+    <Suspense
+      fallback={
+        <div className="container mx-auto px-4 py-16 max-w-2xl" aria-busy="true">
+          <div className="h-24 rounded-xl bg-muted animate-pulse" />
+        </div>
+      }
+    >
+      <CheckoutResult />
+    </Suspense>
+  );
 }
