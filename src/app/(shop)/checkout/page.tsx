@@ -1,23 +1,15 @@
 // src/app/(shop)/checkout/page.tsx
-// صفحة الدفع — تحدد الدولة وتختار البوابة المناسبة
+// صفحة إتمام الشراء — Server Component للـ metadata، والواجهة التفاعلية في CheckoutView.
+// (نفس نمط cart/page.tsx)
 
 import type { Metadata } from 'next'
+import CheckoutView from '@/components/checkout/CheckoutView'
 
 export const metadata: Metadata = {
   title: 'الدفع | الزين للشاي',
+  robots: { index: false, follow: false },
 }
 
 export default function CheckoutPage() {
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">إتمام الشراء</h1>
-      {/* 
-        TODO:
-        1. CountrySelector → يحدد isGulf
-        2. ShippingCalculator
-        3. PaymentMethodPicker (Stripe أو بوابة محلية حسب الدولة)
-        4. VatField (اختياري للشركات)
-      */}
-    </div>
-  )
+  return <CheckoutView />
 }

@@ -1,66 +1,41 @@
 // src/components/checkout/PaymentMethodPicker.tsx
-// يعرض Stripe أو البوابة المحلية حسب الدولة المختارة
-
-'use client'
-
-import { useCountry } from '@/hooks/useCountry'
+// يعرض وسيلة الدفع التي سيستخدمها الخادم فعلياً.
+// التوجيه خادمي بالكامل (resolveGateway): دول الخليج → البوابة المحلية بعملة الدولة، وغيرها → Stripe بالدولار.
+// لذلك لا يوجد اختيار هنا: عرض خيار لا يحترمه الخادم يضلّل العميل.
 
 type PaymentMethodPickerProps = {
-  selected: 'stripe' | 'local'
-  onChange: (method: 'stripe' | 'local') => void
-}
+  isGulf: boolean;
+  currency: string;
+};
 
-export default function PaymentMethodPicker({ selected, onChange }: PaymentMethodPickerProps) {
-  const { isGulf, country } = useCountry()
-
+export default function PaymentMethodPicker({ isGulf, currency }: PaymentMethodPickerProps) {
   return (
-    <div className="space-y-3">
-      <h3 className="font-semibold text-lg">طريقة الدفع</h3>
+    <section className="space-y-3" aria-labelledby="payment-heading">
+      <h3 id="payment-heading" className="font-semibold text-lg">
+        طريقة الدفع
+      </h3>
 
-      {/* بوابة الدفع المحلية (للخليج) */}
-      {isGulf && (
-        <label className="flex items-center gap-3 p-4 rounded-xl border cursor-pointer hover:bg-muted/50 transition-colors">
-          <input
-            type="radio"
-            name="payment"
-            value="local"
-            checked={selected === 'local'}
-            onChange={() => onChange('local')}
-            className="accent-primary"
-          />
-          <div>
-            <p className="font-medium">بطاقة محلية</p>
-            <p className="text-sm text-muted-foreground">
-              Tap / Moyasar — {country?.currency}
-            </p>
-          </div>
-          <div className="ms-auto flex gap-1">
-            {/* TODO: شعارات Apple Pay + mada + Visa */}
-            <span className="text-xs bg-muted px-2 py-1 rounded">Apple Pay</span>
-            <span className="text-xs bg-muted px-2 py-1 rounded">mada</span>
-          </div>
-        </label>
-      )}
-
-      {/* Stripe — دولي */}
-      <label className="flex items-center gap-3 p-4 rounded-xl border cursor-pointer hover:bg-muted/50 transition-colors">
-        <input
-          type="radio"
-          name="payment"
-          value="stripe"
-          checked={selected === 'stripe'}
-          onChange={() => onChange('stripe')}
-          className="accent-primary"
-        />
+      <div className="flex items-center gap-3 p-4 rounded-xl border border-primary bg-muted/30">
         <div>
-          <p className="font-medium">بطاقة ائتمان دولية</p>
-          <p className="text-sm text-muted-foreground">Visa / Mastercard — USD</p>
+          <p className="font-medium">{isGulf ? "الدفع المحلي الآمن" : "بطاقة ائتمان دولية"}</p>
+          <p className="text-sm text-muted-foreground">
+            {isGulf
+              ? `Apple Pay، mada، وبطاقات Visa / Mastercard — الدفع بعملة ${currency}`
+              : "Visa / Mastercard — الدفع بالدولار الأمريكي (USD)"}
+          </p>
         </div>
-        <div className="ms-auto flex gap-1">
-          <span className="text-xs bg-muted px-2 py-1 rounded">Visa</span>
-          <span className="text-xs bg-muted px-2 py-1 rounded">Mastercard</span>
+        <div className="ms-auto flex gap-1 shrink-0">
+          {(isGulf ? ["Apple Pay", "mada", "Visa"] : ["Visa", "Mastercard"]).map((label) => (
+            <span key={label} className="text-xs bg-muted px-2 py-1 rounded">
+              {label}
+            </span>
+          ))}
         </div>
-      </label>
-    </div>
-  )
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        ستنتقل إلى صفحة دفع آمنة لإدخال بيانات البطاقة؛ لا نخزّن بيانات بطاقتك على متجرنا.
+      </p>
+    </section>
+  );
 }

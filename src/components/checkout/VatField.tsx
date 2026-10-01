@@ -1,5 +1,6 @@
 // src/components/checkout/VatField.tsx
-// حقل الرقم الضريبي (اختياري للعملاء التجاريين)
+// حقل الرقم الضريبي (اختياري للعملاء التجاريين).
+// تعديل: عند إلغاء التحديد يُفرَّغ الحقل، حتى لا يُرسَل رقم مخفي مع الطلب دون علم العميل.
 
 'use client'
 
@@ -11,7 +12,7 @@ type VatFieldProps = {
 }
 
 export default function VatField({ value, onChange }: VatFieldProps) {
-  const [show, setShow] = useState(false)
+  const [show, setShow] = useState(value.length > 0)
 
   return (
     <div className="space-y-2">
@@ -19,7 +20,10 @@ export default function VatField({ value, onChange }: VatFieldProps) {
         <input
           type="checkbox"
           checked={show}
-          onChange={(e) => setShow(e.target.checked)}
+          onChange={(e) => {
+            setShow(e.target.checked)
+            if (!e.target.checked) onChange('')
+          }}
           className="accent-primary"
         />
         <span className="text-sm text-muted-foreground">
@@ -33,6 +37,7 @@ export default function VatField({ value, onChange }: VatFieldProps) {
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="الرقم الضريبي / VAT Number"
+          aria-label="الرقم الضريبي"
           className="w-full px-4 py-2 rounded-xl border bg-background text-sm"
           dir="ltr"
         />
