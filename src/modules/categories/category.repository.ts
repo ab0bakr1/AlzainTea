@@ -43,7 +43,10 @@ export const categoryRepository = {
   async findBySlug(slug: string) {
     return prisma.category.findUnique({
       where: { slug },
-      include: { children: true },
+      include: {
+        parent: { select: { nameAr: true, nameEn: true, slug: true } },
+        children: { orderBy: { nameEn: "asc" } },
+      },
     });
   },
 

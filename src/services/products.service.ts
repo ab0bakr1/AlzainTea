@@ -20,7 +20,7 @@ export interface ProductFilters {
   minPrice?: number;
   maxPrice?: number;
   status?: string;
-  sort?: "newest" | "price_asc" | "price_desc" | "name_asc";
+  sort?: "newest" | "price_asc" | "price_desc" | "name_asc" | "popular";
   page?: number;
   limit?: number;
 }

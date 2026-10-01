@@ -1,67 +1,108 @@
+import { Suspense } from "react";
+import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
-import type { Metadata } from "next";
+import { getLocale } from "next-intl/server";
 import { categoryService } from "@/modules/categories/category.service";
-import { productService } from "@/modules/products/product.service";
-import { listProductsQuerySchema } from "@/modules/products/product.validators";
-import { ProductGrid } from "@/components/shop/ProductGrid";
-import { ProductFilters } from "@/components/shop/ProductFilters";
-import { ApiError } from "@/lib/api-response";
+import CategoryProducts from "@/components/shop/CategoryProducts";
 
-export const revalidate = 60;
+type Props = { params: Promise<{ slug: string }> };
 
-async function getCategory(slug: string) {
+async function loadCategory(slug: string) {
   try {
     return await categoryService.getBySlug(slug);
   } catch (error) {
-    if (error instanceof ApiError && error.statusCode === 404) return null;
-    throw error;
+    const e = error as { statusCode?: number; status?: number };
+    if ((e.statusCode ?? e.status) === 404) notFound();
+    throw error; // أي خطأ آخر يذهب لـ error boundary بدل إخفائه كـ 404
   }
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
+const COPY = {
+  ar: { home: "الرئيسية", products: "المنتجات", subcats: "الأقسام الفرعية" },
+  en: { home: "Home", products: "Products", subcats: "Subcategories" },
+} as const;
+
+export default async function CategoryPage({ params }: Props) {
   const { slug } = await params;
-  const category = await getCategory(slug);
-  if (!category) return { title: "الفئة غير موجودة" };
-  return {
-    title: `${category.nameAr} | متجر الزين للشاي`,
-    description: category.description ?? undefined,
-  };
-}
+  const [category, locale] = await Promise.all([loadCategory(slug), getLocale()]);
 
-export default async function CategoryPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ slug: string }>;
-  searchParams: Promise<Record<string, string | undefined>>;
-}) {
-  const { slug } = await params;
-  const sp = await searchParams;
-
-  const category = await getCategory(slug);
-  if (!category) notFound();
-
-  const filters = listProductsQuerySchema.parse({ ...sp, category: slug });
-  const { data: items } = await productService.list(filters);
+  const isAr = locale !== "en";
+  const t = isAr ? COPY.ar : COPY.en;
+  const pick = (c: { nameAr: string; nameEn: string }) => (isAr ? c.nameAr : c.nameEn);
+  const name = pick(category);
+  const crumbLink =
+    "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors";
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-stone-900">{category.nameAr}</h1>
-        {category.description && (
-          <p className="mt-1 max-w-2xl text-stone-500">{category.description}</p>
+    <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <nav aria-label="breadcrumb" className="mb-6 text-sm">
+        <ol className="flex flex-wrap items-center gap-2 text-[var(--color-text-secondary)]">
+          <li>
+            <Link href="/" className={crumbLink}>
+              {t.home}
+            </Link>
+          </li>
+          <li aria-hidden>/</li>
+          <li>
+            <Link href="/products" className={crumbLink}>
+              {t.products}
+            </Link>
+          </li>
+          {category.parent && (
+            <>
+              <li aria-hidden>/</li>
+              <li>
+                <Link href={`/category/${category.parent.slug}`} className={crumbLink}>
+                  {pick(category.parent)}
+                </Link>
+              </li>
+            </>
+          )}
+          <li aria-hidden>/</li>
+          <li aria-current="page" className="font-medium text-[var(--color-text-primary)]">
+            {name}
+          </li>
+        </ol>
+      </nav>
+
+      <header className="mb-8 flex items-start justify-between gap-6">
+        <div className="max-w-2xl">
+          <h1 className="font-[family-name:var(--font-heading)] text-3xl font-bold leading-tight text-[var(--color-text-primary)] sm:text-4xl">
+            {name}
+          </h1>
+          {category.description && (
+            <p className="mt-3 leading-relaxed text-[var(--color-text-secondary)]">
+              {category.description}
+            </p>
+          )}
+        </div>
+
+        {category.image && (
+          <div className="relative hidden h-28 w-28 shrink-0 overflow-hidden rounded-[var(--radius-xl)] bg-[var(--color-form)] md:block">
+            <Image src={category.image} alt={name} fill sizes="112px" className="object-cover" />
+          </div>
         )}
-      </div>
+      </header>
 
-      <div className="mb-6">
-        <ProductFilters categories={[category]} priceBounds={{ min: 0, max: 1000 }} />
-      </div>
+      {category.children.length > 0 && (
+        <section aria-label={t.subcats} className="mb-8 flex flex-wrap gap-2">
+          {category.children.map((child) => (
+            <Link
+              key={child.id}
+              href={`/category/${child.slug}`}
+              className="rounded-full border border-[var(--color-form)] bg-[var(--color-bg-alt)] px-4 py-1.5 text-sm text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring-color)]"
+            >
+              {pick(child)}
+            </Link>
+          ))}
+        </section>
+      )}
 
-      <ProductGrid products={JSON.parse(JSON.stringify(items))} />
-    </div>
+      {/* useSearchParams داخل المكوّن يتطلب Suspense أثناء البناء */}
+      <Suspense fallback={null}>
+        <CategoryProducts slug={slug} />
+      </Suspense>
+    </main>
   );
 }
