@@ -6,7 +6,11 @@ import type {
   PaymentStatusValue,
   StockEffect,
 } from "./order-status";
-import type { AdminOrdersQuery } from "./order.validators";
+import {
+  MY_ORDER_GROUP_STATUSES,
+  type AdminOrdersQuery,
+  type MyOrderGroup,
+} from "./order.validators";
 
 /** الطبقة الوحيدة المسموح لها باستدعاء Prisma في موديول الطلبات */
 
@@ -22,6 +26,31 @@ const listSelect = {
   createdAt: true,
   user: { select: { id: true, name: true, email: true } },
   _count: { select: { items: true } },
+} satisfies Prisma.OrderSelect;
+
+/** قائمة طلبات العميل: نفس الحقول + معاينة أول 3 بنود (اسم وصورة) لعرضها في البطاقة */
+const myListSelect = {
+  id: true,
+  status: true,
+  paymentStatus: true,
+  paymentMethod: true,
+  currency: true,
+  total: true,
+  country: true,
+  guestEmail: true,
+  createdAt: true,
+  user: { select: { id: true, name: true, email: true } },
+  _count: { select: { items: true } },
+  items: {
+    take: 3,
+    orderBy: { id: "asc" },
+    select: {
+      id: true,
+      quantity: true,
+      product: { select: { nameAr: true, nameEn: true, images: true } },
+      variant: { select: { name: true } },
+    },
+  },
 } satisfies Prisma.OrderSelect;
 
 const detailInclude = {
@@ -95,12 +124,20 @@ export function findUserOrderDetail(userId: string, id: string) {
   return prisma.order.findFirst({ where: { id, userId }, include: detailInclude });
 }
 
-export async function findUserOrders(userId: string, page: number, limit: number) {
-  const where: Prisma.OrderWhereInput = { userId };
+export async function findUserOrders(
+  userId: string,
+  page: number,
+  limit: number,
+  group?: MyOrderGroup
+) {
+  const where: Prisma.OrderWhereInput = {
+    userId,
+    ...(group && { status: { in: MY_ORDER_GROUP_STATUSES[group] } }),
+  };
   const [items, total] = await prisma.$transaction([
     prisma.order.findMany({
       where,
-      select: listSelect,
+      select: myListSelect,
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * limit,
       take: limit,

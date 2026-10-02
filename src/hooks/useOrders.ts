@@ -8,7 +8,7 @@ export const orderKeys = {
   all: ["orders"] as const,
   admin: (p: api.AdminOrdersParams) => ["orders", "admin", p] as const,
   adminOne: (id: string) => ["orders", "admin", "one", id] as const,
-  mine: (page: number) => ["orders", "mine", page] as const,
+  mine: (p: api.MyOrdersParams) => ["orders", "mine", p] as const,
   mineOne: (id: string) => ["orders", "mine", "one", id] as const,
 };
 
@@ -37,11 +37,12 @@ export function useUpdateOrderStatus(id: string) {
   });
 }
 
-export function useMyOrders(page: number) {
+export function useMyOrders(params: api.MyOrdersParams) {
   return useQuery({
-    queryKey: orderKeys.mine(page),
-    queryFn: () => api.fetchMyOrders(page),
+    queryKey: orderKeys.mine(params),
+    queryFn: () => api.fetchMyOrders(params),
     placeholderData: keepPreviousData,
+    staleTime: 15_000,
   });
 }
 
@@ -54,6 +55,18 @@ export function useCancelMyOrder(id: string) {
   return useMutation({
     mutationFn: (reason?: string) => api.cancelMyOrder(id, reason),
     onSuccess: (order) => {
+      qc.setQueryData(orderKeys.mineOne(id), order);
+      qc.invalidateQueries({ queryKey: orderKeys.all });
+    },
+  });
+}
+
+/** إلغاء طلب من القائمة (المعرّف يُمرَّر عند التنفيذ لأن القائمة تحوي عدة طلبات) */
+export function useCancelMyOrderFromList() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) => api.cancelMyOrder(id, reason),
+    onSuccess: (order, { id }) => {
       qc.setQueryData(orderKeys.mineOne(id), order);
       qc.invalidateQueries({ queryKey: orderKeys.all });
     },

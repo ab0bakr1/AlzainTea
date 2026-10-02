@@ -1,5 +1,6 @@
 import axios from "axios";
 import type { OrderStatusValue, PaymentStatusValue } from "@/modules/orders/order-status";
+import type { MyOrderGroup } from "@/modules/orders/order.validators";
 
 const api = axios.create({ baseURL: "/api" });
 
@@ -18,6 +19,21 @@ export interface OrderListItem {
   createdAt: string;
   user: { id: string; name: string; email: string } | null;
   _count: { items: number };
+}
+
+/** عنصر قائمة طلبات العميل: يضيف معاينة أول البنود */
+export interface MyOrderListItem extends OrderListItem {
+  items: {
+    id: string;
+    quantity: number;
+    product: { nameAr: string; nameEn: string; images: string[] };
+    variant: { name: string } | null;
+  }[];
+}
+
+export interface MyOrdersParams {
+  page?: number;
+  group?: MyOrderGroup | "";
 }
 
 export interface OrderDetail extends Omit<OrderListItem, "_count"> {
@@ -98,14 +114,19 @@ export async function updateAdminOrderStatus(
 // ---------------------------------------------------------------------------
 // العميل
 // ---------------------------------------------------------------------------
-export async function fetchMyOrders(page = 1): Promise<Paginated<OrderListItem>> {
-  const { data } = await api.get("/orders", { params: { page } });
+export async function fetchMyOrders(params: MyOrdersParams = {}): Promise<Paginated<MyOrderListItem>> {
+  const { data } = await api.get("/orders", { params: clean({ page: 1, ...params }) });
   return { items: data.data, meta: data.meta };
 }
 
 export async function fetchMyOrder(id: string): Promise<OrderDetail> {
   const { data } = await api.get(`/orders/${id}`);
   return data.data;
+}
+
+/** يُستخدم لتمييز خطأ "غير مسجّل" (401) عن بقية الأخطاء */
+export function getApiErrorStatus(err: unknown): number | null {
+  return axios.isAxiosError(err) ? (err.response?.status ?? null) : null;
 }
 
 export async function cancelMyOrder(id: string, reason?: string): Promise<OrderDetail> {

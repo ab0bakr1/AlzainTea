@@ -53,7 +53,7 @@ export async function getAdminOrder(id: string) {
 }
 
 export async function getMyOrders(userId: string, query: MyOrdersQuery) {
-  const { items, total } = await findUserOrders(userId, query.page, query.limit);
+  const { items, total } = await findUserOrders(userId, query.page, query.limit, query.group);
   return {
     items,
     meta: { page: query.page, total, totalPages: Math.max(1, Math.ceil(total / query.limit)) },

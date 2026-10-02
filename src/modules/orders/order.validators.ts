@@ -3,6 +3,7 @@ import {
   ADMIN_SETTABLE_STATUSES,
   ORDER_STATUSES,
   PAYMENT_STATUSES,
+  type OrderStatusValue,
 } from "./order-status";
 
 /** يحوّل URLSearchParams إلى كائن ويحذف القيم الفارغة */
@@ -30,9 +31,21 @@ export const adminOrdersQuerySchema = z.object({
 });
 export type AdminOrdersQuery = z.infer<typeof adminOrdersQuerySchema>;
 
+/** مجموعات حالات الطلب لفلترة قائمة العميل (تُترجم إلى قائمة OrderStatus في الـ Repository) */
+export const MY_ORDER_GROUPS = ["awaiting_payment", "in_progress", "completed", "closed"] as const;
+export type MyOrderGroup = (typeof MY_ORDER_GROUPS)[number];
+
+export const MY_ORDER_GROUP_STATUSES: Record<MyOrderGroup, OrderStatusValue[]> = {
+  awaiting_payment: ["PENDING"],
+  in_progress: ["CONFIRMED", "PROCESSING", "SHIPPED"],
+  completed: ["DELIVERED"],
+  closed: ["CANCELLED", "RETURNED", "REFUNDED", "FAILED"],
+};
+
 export const myOrdersQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(10),
+  group: z.enum(MY_ORDER_GROUPS, { error: "فلتر الطلبات غير صالح" }).optional(),
 });
 export type MyOrdersQuery = z.infer<typeof myOrdersQuerySchema>;
 
