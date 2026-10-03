@@ -1,5 +1,5 @@
 // src/hooks/useCartAuthSync.ts
-// يُستخدم مرة واحدة داخل AppProviders (src/providers/AppProviders.tsx) لضمان
+// يُستخدم مرة واحدة عبر <CartAuthSync /> داخل AppProviders لضمان
 // أن السلة تُدمج تلقائيًا فور تغيّر حالة جلسة next-auth (تسجيل دخول/خروج).
 
 "use client";
@@ -7,7 +7,12 @@
 import { useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useCartStore, cartStorageKey } from "@/store/cart-store";
-import { mergeGuestCartIntoUser, switchToGuestCart, readCartFromKey } from "@/lib/cart-merge";
+import {
+  mergeGuestCartIntoUser,
+  switchToGuestCart,
+  readCartFromKey,
+  writeCartToKey, // كان مفقوداً من الاستيراد
+} from "@/lib/cart-merge";
 
 export function useCartAuthSync() {
   const { data: session, status } = useSession();

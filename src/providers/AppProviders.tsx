@@ -1,3 +1,4 @@
+// src/providers/AppProviders.tsx
 "use client";
 
 import { useState } from "react";
@@ -5,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SessionProvider } from "next-auth/react";
 import { NextIntlClientProvider, type AbstractIntlMessages } from "next-intl";
 import ThemeProvider from "./ThemeProvider";
+import CartAuthSync from "./CartAuthSync";
 
 interface Props {
   children: React.ReactNode;
@@ -29,6 +31,7 @@ export default function AppProviders({ children, locale, messages }: Props) {
 
   return (
     <SessionProvider>
+      <CartAuthSync />
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <NextIntlClientProvider locale={locale} messages={messages}>
