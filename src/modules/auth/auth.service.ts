@@ -12,25 +12,23 @@ export class EmailAlreadyUsedError extends Error {
  * تسجيل مستخدم جديد. يتحقق من عدم تكرار البريد ثم يشفّر كلمة المرور قبل الحفظ.
  * لا تُخزَّن أي كلمة مرور نصية أبدًا.
  */
+// استبدل دالة registerUser في src/modules/auth/auth.service.ts بهذه النسخة
+// (الجديد: تحويل تعارض P2002 عند التسجيل المتزامن بنفس البريد إلى EmailAlreadyUsedError)
 export async function registerUser(input: RegisterInput) {
   const existing = await prisma.user.findUnique({ where: { email: input.email } });
-  if (existing) {
-    throw new EmailAlreadyUsedError();
-  }
+  if (existing) throw new EmailAlreadyUsedError();
 
   const passwordHash = await hashPassword(input.password);
 
-  const user = await prisma.user.create({
-    data: {
-      name: input.name,
-      email: input.email,
-      password: passwordHash,
-      role: "CUSTOMER",
-    },
-    select: { id: true, name: true, email: true, role: true, createdAt: true },
-  });
-
-  return user;
+  try {
+    return await prisma.user.create({
+      data: { name: input.name, email: input.email, password: passwordHash, role: "CUSTOMER" },
+      select: { id: true, name: true, email: true, role: true, createdAt: true },
+    });
+  } catch (err) {
+    if ((err as { code?: string }).code === "P2002") throw new EmailAlreadyUsedError();
+    throw err;
+  }
 }
 
 /**

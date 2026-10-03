@@ -1,18 +1,23 @@
 // src/app/(auth)/register/page.tsx
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { getTranslations } from "next-intl/server";
+import RegisterForm from "@/components/auth/RegisterForm";
 
-import type { Metadata } from 'next'
-
-export const metadata: Metadata = {
-  title: 'إنشاء حساب | الزين للشاي',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("auth.register");
+  return {
+    title: t("metaTitle"),
+    description: t("metaDescription"),
+    robots: { index: false, follow: false },
+  };
 }
 
 export default function RegisterPage() {
+  // useSearchParams داخل RegisterForm يتطلب Suspense
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="w-full max-w-md p-8">
-        <h1 className="text-3xl font-bold mb-6 text-center">إنشاء حساب جديد</h1>
-        {/* TODO: نموذج التسجيل */}
-      </div>
-    </div>
-  )
+    <Suspense fallback={null}>
+      <RegisterForm />
+    </Suspense>
+  );
 }
