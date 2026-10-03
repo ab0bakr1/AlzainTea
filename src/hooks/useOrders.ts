@@ -47,7 +47,16 @@ export function useMyOrders(params: api.MyOrdersParams) {
 }
 
 export function useMyOrder(id: string) {
-  return useQuery({ queryKey: orderKeys.mineOne(id), queryFn: () => api.fetchMyOrder(id) });
+  return useQuery({
+    queryKey: orderKeys.mineOne(id),
+    queryFn: () => api.fetchMyOrder(id),
+    // الطلب بانتظار تأكيد الدفع عبر Webhook: نحدّث تلقائياً حتى تتغير الحالة
+    // (يتوقف التحديث عند CONFIRMED أو عند FAILED بعد انتهاء المهلة عبر الـ Cron)
+    refetchInterval: (q) => {
+      const o = q.state.data;
+      return o && o.status === "PENDING" ? 15_000 : false;
+    },
+  });
 }
 
 export function useCancelMyOrder(id: string) {
