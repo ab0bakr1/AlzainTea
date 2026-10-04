@@ -59,6 +59,9 @@ export const sensitiveWriteRateLimit = createLimiter("sensitive", 30, "1 m");
 export const apiRateLimit = createLimiter("api", 120, "1 m");
 export const adminRateLimit = createLimiter("admin", 300, "1 m");
 
+// حد لكل بريد إلكتروني (يمنع إغراق صندوق ضحية برسائل الاستعادة)
+export const passwordResetEmailRateLimit = createLimiter("pwd-reset-email", 3, "1 h");
+
 // ── أدوات مساعدة ──
 export function getClientIp(headers: Headers): string {
   const forwarded = headers.get("x-forwarded-for");

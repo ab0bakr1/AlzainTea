@@ -60,3 +60,35 @@ export const loginSchema = z.object({
   password: z.string().min(1, "كلمة المرور مطلوبة"),
 });
 export type LoginInput = z.infer<typeof loginSchema>;
+
+// ── استعادة كلمة المرور ──
+export function makeForgotPasswordSchema(m: RegisterMessages = defaultRegisterMessages) {
+  return z.object({ email: z.string().trim().toLowerCase().email(m.emailInvalid) });
+}
+export const forgotPasswordSchema = makeForgotPasswordSchema();
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+
+export function makeResetPasswordSchema(m: RegisterMessages = defaultRegisterMessages) {
+  return z.object({
+    token: z.string().min(1).max(256),
+    // نفس قواعد كلمة المرور في التسجيل (مصدر حقيقة واحد)
+    password: makeRegisterSchema(m).shape.password,
+  });
+}
+export const resetPasswordSchema = makeResetPasswordSchema();
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
+/** مخطط نموذج الواجهة: كلمة المرور + التأكيد (الرمز يأتي من الرابط ولا يُدخله المستخدم) */
+export function makeResetPasswordFormSchema(m: RegisterMessages = defaultRegisterMessages) {
+  return z
+    .object({
+      password: makeRegisterSchema(m).shape.password,
+      confirmPassword: z.string().min(1, m.confirmRequired),
+    })
+    .refine((d) => d.password === d.confirmPassword, {
+      path: ["confirmPassword"],
+      message: m.passwordMismatch,
+    });
+}
+export type ResetPasswordFormInput = z.input<ReturnType<typeof makeResetPasswordFormSchema>>;
+export type ResetPasswordFormOutput = z.output<ReturnType<typeof makeResetPasswordFormSchema>>;

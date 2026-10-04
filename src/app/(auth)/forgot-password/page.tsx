@@ -1,18 +1,17 @@
 // src/app/(auth)/forgot-password/page.tsx
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
+import ForgotPasswordForm from "@/components/auth/ForgotPasswordForm";
 
-import type { Metadata } from 'next'
-
-export const metadata: Metadata = {
-  title: 'استعادة كلمة المرور | الزين للشاي',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("auth.forgotPassword");
+  return {
+    title: t("metaTitle"),
+    description: t("metaDescription"),
+    robots: { index: false, follow: false },
+  };
 }
 
 export default function ForgotPasswordPage() {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="w-full max-w-md p-8">
-        <h1 className="text-3xl font-bold mb-6 text-center">استعادة كلمة المرور</h1>
-        {/* TODO: نموذج إرسال رابط الاستعادة */}
-      </div>
-    </div>
-  )
+  return <ForgotPasswordForm />;
 }
