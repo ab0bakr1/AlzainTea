@@ -1,56 +1,46 @@
-import { ok, fail, validationError } from "@/lib/api-response";
+// src/app/api/admin/products/[id]/route.ts
+// GET    /api/admin/products/[id]
+// PATCH  /api/admin/products/[id]   (تعديل جزئي: أرسل الحقول المتغيّرة فقط)
+// DELETE /api/admin/products/[id]   (حذف، أو أرشفة إن كان المنتج مرتبطاً بطلبات)
+
 import { requireAdmin } from "@/lib/require-admin";
+import { fail, ok, validationError } from "@/lib/api-response";
 import { updateProductSchema } from "@/modules/products/product.validators";
 import { productService } from "@/modules/products/product.service";
 
-// GET /api/admin/products/[id]
-export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+type RouteContext = { params: Promise<{ id: string }> };
+
+export async function GET(_req: Request, { params }: RouteContext) {
   try {
     await requireAdmin();
     const { id } = await params;
-    const product = await productService.getById(id);
-    return ok(product);
+    return ok(await productService.getById(id));
   } catch (error) {
     return fail(error);
   }
 }
 
-// PATCH /api/admin/products/[id]
-export async function PATCH(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(req: Request, { params }: RouteContext) {
   try {
     await requireAdmin();
     const { id } = await params;
 
-    const body = await req.json();
-    const parsed = updateProductSchema.safeParse(body);
+    const body = await req.json().catch(() => {
+      throw validationError("صيغة JSON غير صالحة");
+    });
+    const input = updateProductSchema.parse(body);
 
-    if (!parsed.success) {
-      throw validationError(parsed.error.issues[0]?.message ?? "معطيات غير صالحة");
-    }
-
-    const product = await productService.update(id, parsed.data);
-    return ok(product);
+    return ok(await productService.update(id, input));
   } catch (error) {
     return fail(error);
   }
 }
 
-// DELETE /api/admin/products/[id]
-export async function DELETE(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_req: Request, { params }: RouteContext) {
   try {
     await requireAdmin();
     const { id } = await params;
-    await productService.remove(id);
-    return ok({ id, deleted: true });
+    return ok(await productService.remove(id));
   } catch (error) {
     return fail(error);
   }
