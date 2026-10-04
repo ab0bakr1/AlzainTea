@@ -8,7 +8,9 @@ export interface CategoryItem {
   description?: string | null;
   image?: string | null;
   parentId?: string | null;
-  _count?: { products: number };
+  parent?: { id: string; nameAr: string; nameEn: string } | null;
+  createdAt?: string;
+  _count?: { products: number; children?: number };
 }
 
 interface ApiListResponse<T> {
@@ -20,6 +22,64 @@ interface ApiListResponse<T> {
 interface ApiItemResponse<T> {
   success: boolean;
   data: T;
+}
+
+// ---------------------------------------------------------------------------
+// أنواع لوحة الإدارة
+// ---------------------------------------------------------------------------
+
+export type AdminCategorySort =
+  | "newest"
+  | "oldest"
+  | "name_asc"
+  | "products_desc"
+  | "products_asc";
+
+export type CategoryScope = "root" | "child";
+
+export interface AdminCategoriesQuery {
+  q?: string;
+  scope?: CategoryScope;
+  sort?: AdminCategorySort;
+  page?: number;
+  limit?: number;
+}
+
+export interface AdminCategoryListItem extends CategoryItem {
+  createdAt: string;
+  parent: { id: string; nameAr: string; nameEn: string } | null;
+  _count: { products: number; children: number };
+}
+
+export interface AdminCategoriesMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  counts: { ALL: number; ROOT: number; CHILD: number };
+}
+
+export interface AdminCategoriesResponse {
+  success: boolean;
+  data: AdminCategoryListItem[];
+  meta: AdminCategoriesMeta;
+}
+
+export interface CategoryOption {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  slug: string;
+  parentId: string | null;
+}
+
+export interface CategoryPayload {
+  nameAr: string;
+  nameEn: string;
+  slug: string;
+  description: string | null;
+  image: string | null;
+  parentId: string | null;
 }
 
 const PUBLIC_BASE = "/api/categories";
@@ -36,9 +96,14 @@ export const categoriesService = {
     return data.data;
   },
 
-  async adminList(params: { q?: string; page?: number; limit?: number } = {}) {
-    const { data } = await axios.get<ApiListResponse<CategoryItem>>(ADMIN_BASE, { params });
+  async adminList(params: AdminCategoriesQuery = {}) {
+    const { data } = await axios.get<AdminCategoriesResponse>(ADMIN_BASE, { params });
     return data;
+  },
+
+  async adminOptions() {
+    const { data } = await axios.get<ApiItemResponse<CategoryOption[]>>(`${ADMIN_BASE}/options`);
+    return data.data;
   },
 
   async adminGetById(id: string) {
@@ -46,22 +111,22 @@ export const categoriesService = {
     return data.data;
   },
 
-  async create(payload: Record<string, unknown>) {
+  async create(payload: CategoryPayload) {
     const { data } = await axios.post<ApiItemResponse<CategoryItem>>(ADMIN_BASE, payload);
     return data.data;
   },
 
-  async update(id: string, payload: Record<string, unknown>) {
+  async update(id: string, payload: Partial<CategoryPayload>) {
     const { data } = await axios.patch<ApiItemResponse<CategoryItem>>(
       `${ADMIN_BASE}/${id}`,
-      payload
+      payload,
     );
     return data.data;
   },
 
   async remove(id: string) {
     const { data } = await axios.delete<ApiItemResponse<{ id: string; deleted: boolean }>>(
-      `${ADMIN_BASE}/${id}`
+      `${ADMIN_BASE}/${id}`,
     );
     return data.data;
   },
