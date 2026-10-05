@@ -19,16 +19,36 @@ export const orderIdParamSchema = z.object({
   id: z.string().min(1, { error: "معرّف الطلب مطلوب" }),
 });
 
-export const adminOrdersQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
-  status: z.enum(ORDER_STATUSES).optional(),
-  paymentStatus: z.enum(PAYMENT_STATUSES).optional(),
-  country: z.string().trim().length(2).transform((v) => v.toUpperCase()).optional(),
-  q: z.string().trim().min(1).max(100).optional(),
-  from: z.coerce.date().optional(),
-  to: z.coerce.date().optional(),
-});
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+/** نص تاريخ صالح (YYYY-MM-DD أو ISO كامل) */
+const dateParam = z
+  .string()
+  .trim()
+  .refine((v) => !Number.isNaN(Date.parse(v)), { error: "تاريخ غير صالح" });
+
+export const adminOrdersQuerySchema = z
+  .object({
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+    status: z.enum(ORDER_STATUSES).optional(),
+    paymentStatus: z.enum(PAYMENT_STATUSES).optional(),
+    country: z.string().trim().length(2).transform((v) => v.toUpperCase()).optional(),
+    q: z.string().trim().min(1).max(100).optional(),
+    from: dateParam.transform((v) => new Date(v)).optional(),
+    /** تاريخ بدون وقت (YYYY-MM-DD) يشمل اليوم كاملاً حتى 23:59:59.999 (UTC) */
+    to: dateParam
+      .transform((v) => {
+        const d = new Date(v);
+        if (DATE_ONLY.test(v)) d.setUTCHours(23, 59, 59, 999);
+        return d;
+      })
+      .optional(),
+  })
+  .refine((v) => !v.from || !v.to || v.from.getTime() <= v.to.getTime(), {
+    error: "تاريخ البداية يجب أن يسبق تاريخ النهاية",
+    path: ["to"],
+  });
 export type AdminOrdersQuery = z.infer<typeof adminOrdersQuerySchema>;
 
 /** مجموعات حالات الطلب لفلترة قائمة العميل (تُترجم إلى قائمة OrderStatus في الـ Repository) */

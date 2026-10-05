@@ -78,7 +78,12 @@ export interface AdminOrdersParams {
   limit?: number;
   status?: OrderStatusValue | "";
   paymentStatus?: PaymentStatusValue | "";
+  country?: string;
   q?: string;
+  /** YYYY-MM-DD */
+  from?: string;
+  /** YYYY-MM-DD — يشمل اليوم كاملاً */
+  to?: string;
 }
 
 export function getApiErrorMessage(err: unknown, fallback = "حدث خطأ غير متوقع"): string {
@@ -109,6 +114,23 @@ export async function updateAdminOrderStatus(
 ): Promise<OrderDetail> {
   const { data } = await api.patch(`/admin/orders/${id}`, body);
   return data.data;
+}
+
+/** الحد الأقصى للصفوف في تصدير CSV الواحد */
+export const EXPORT_MAX_ROWS = 5000;
+
+/** يجلب كل الصفحات المطابقة للفلاتر (100 لكل صفحة) حتى EXPORT_MAX_ROWS */
+export async function fetchAllAdminOrders(params: Omit<AdminOrdersParams, "page" | "limit">) {
+  const limit = 100;
+  const first = await fetchAdminOrders({ ...params, page: 1, limit });
+  const items = [...first.items];
+  const lastPage = Math.min(first.meta.totalPages, Math.ceil(EXPORT_MAX_ROWS / limit));
+
+  for (let page = 2; page <= lastPage; page++) {
+    const next = await fetchAdminOrders({ ...params, page, limit });
+    items.push(...next.items);
+  }
+  return { items, total: first.meta.total, truncated: first.meta.total > items.length };
 }
 
 // ---------------------------------------------------------------------------
