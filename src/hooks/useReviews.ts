@@ -2,12 +2,14 @@
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  bulkReviews,
   createReview,
   deleteReview,
   fetchAdminReviews,
+  fetchAdminReviewStats,
   fetchProductReviews,
   moderateReview,
-  type ReviewStatus,
+  type AdminReviewsParams,
 } from "@/services/reviews";
 
 export function useProductReviews(slug: string, page: number) {
@@ -28,33 +30,54 @@ export function useCreateReview(slug: string) {
 }
 
 // ===== الإدارة =====
-export function useAdminReviews(params: { status?: ReviewStatus; page: number }) {
+export function useAdminReviews(params: AdminReviewsParams) {
   return useQuery({
-    queryKey: ["admin-reviews", params],
+    queryKey: ["admin-reviews", "list", params],
     queryFn: () => fetchAdminReviews(params),
     placeholderData: keepPreviousData,
   });
 }
 
-export function useModerateReview() {
+export function useAdminReviewStats() {
+  return useQuery({
+    queryKey: ["admin-reviews", "stats"],
+    queryFn: fetchAdminReviewStats,
+    staleTime: 30_000,
+  });
+}
+
+/** أي تغيير إداري يؤثر على: القوائم والعدّادات + مؤشر "بانتظار الاعتماد" في اللوحة + المراجعات العامة */
+function useInvalidateAfterModeration() {
   const qc = useQueryClient();
+  return () =>
+    Promise.all([
+      qc.invalidateQueries({ queryKey: ["admin-reviews"] }),
+      qc.invalidateQueries({ queryKey: ["admin-overview"] }),
+      qc.invalidateQueries({ queryKey: ["reviews"] }),
+    ]);
+}
+
+export function useModerateReview() {
+  const invalidate = useInvalidateAfterModeration();
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: "APPROVED" | "REJECTED" }) =>
       moderateReview(id, status),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin-reviews"] });
-      qc.invalidateQueries({ queryKey: ["admin-overview"] });
-    },
+    onSuccess: invalidate,
   });
 }
 
 export function useDeleteReview() {
-  const qc = useQueryClient();
+  const invalidate = useInvalidateAfterModeration();
   return useMutation({
     mutationFn: (id: string) => deleteReview(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin-reviews"] });
-      qc.invalidateQueries({ queryKey: ["admin-overview"] });
-    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useBulkReviews() {
+  const invalidate = useInvalidateAfterModeration();
+  return useMutation({
+    mutationFn: bulkReviews,
+    onSuccess: invalidate,
   });
 }

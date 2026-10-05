@@ -2,6 +2,7 @@ import { ApiError } from "@/lib/api-error";
 import * as repo from "./review.repository";
 import type {
   AdminListReviewsQuery,
+  BulkReviewsInput,
   CreateReviewInput,
   ListReviewsQuery,
   ModerateReviewInput,
@@ -107,10 +108,37 @@ export async function createReview(userId: string, input: CreateReviewInput) {
 // ===== الإدارة =====
 export async function adminListReviews(query: AdminListReviewsQuery) {
   const skip = (query.page - 1) * query.limit;
-  const { items, total } = await repo.adminList(query.status, skip, query.limit);
+  const { items, total } = await repo.adminList(
+    { status: query.status, rating: query.rating, verified: query.verified, q: query.q },
+    query.sort,
+    skip,
+    query.limit,
+  );
   return {
-    data: items,
+    data: items.map(({ product, ...review }) => ({
+      ...review,
+      product: {
+        id: product.id,
+        slug: product.slug,
+        nameAr: product.nameAr,
+        nameEn: product.nameEn,
+        image: product.images[0] ?? null,
+      },
+    })),
     meta: { page: query.page, total, totalPages: Math.max(1, Math.ceil(total / query.limit)) },
+  };
+}
+
+export async function adminReviewStats() {
+  const { byStatus, averageRating } = await repo.adminStats();
+  const counts = { PENDING: 0, APPROVED: 0, REJECTED: 0 };
+  for (const row of byStatus) counts[row.status] = row.count;
+  return {
+    total: counts.PENDING + counts.APPROVED + counts.REJECTED,
+    pending: counts.PENDING,
+    approved: counts.APPROVED,
+    rejected: counts.REJECTED,
+    averageRating: averageRating ? Math.round(averageRating * 10) / 10 : 0,
   };
 }
 
@@ -127,4 +155,14 @@ export async function deleteReview(id: string) {
   }
   await repo.deleteById(id);
   return { id, deleted: true };
+}
+
+/** إجراء جماعي. affected قد تقل عن requested إن حُذفت بعض المراجعات في الأثناء. */
+export async function bulkReviews(input: BulkReviewsInput) {
+  const { action, ids } = input;
+  const affected =
+    action === "DELETE"
+      ? await repo.deleteManyByIds(ids)
+      : await repo.updateManyStatus(ids, action === "APPROVE" ? "APPROVED" : "REJECTED");
+  return { action, requested: ids.length, affected };
 }

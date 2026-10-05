@@ -1,6 +1,8 @@
 import axios from "axios";
 
 export type ReviewStatus = "PENDING" | "APPROVED" | "REJECTED";
+export type ReviewSort = "newest" | "oldest" | "rating_desc" | "rating_asc";
+export type BulkReviewAction = "APPROVE" | "REJECT" | "DELETE";
 
 export interface PageMeta {
   page: number;
@@ -54,13 +56,37 @@ export interface AdminReview {
   status: ReviewStatus;
   verifiedPurchase: boolean;
   createdAt: string;
-  product: { id: string; slug: string; nameAr: string; nameEn: string };
+  product: { id: string; slug: string; nameAr: string; nameEn: string; image: string | null };
   user: { id: string; name: string; email: string };
 }
 
-export async function fetchAdminReviews(params: { status?: ReviewStatus; page: number; limit?: number }) {
+export interface AdminReviewsParams {
+  status?: ReviewStatus;
+  rating?: number;
+  verified?: boolean;
+  q?: string;
+  sort?: ReviewSort;
+  page: number;
+  limit?: number;
+}
+
+export interface AdminReviewStats {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  averageRating: number;
+}
+
+export async function fetchAdminReviews(params: AdminReviewsParams) {
+  // axios يتجاهل القيم undefined تلقائياً
   const res = await axios.get("/api/admin/reviews", { params });
   return { items: res.data.data as AdminReview[], meta: res.data.meta as PageMeta };
+}
+
+export async function fetchAdminReviewStats() {
+  const res = await axios.get("/api/admin/reviews/stats");
+  return res.data.data as AdminReviewStats;
 }
 
 export async function moderateReview(id: string, status: "APPROVED" | "REJECTED") {
@@ -71,4 +97,9 @@ export async function moderateReview(id: string, status: "APPROVED" | "REJECTED"
 export async function deleteReview(id: string) {
   const res = await axios.delete(`/api/admin/reviews/${id}`);
   return res.data.data;
+}
+
+export async function bulkReviews(input: { ids: string[]; action: BulkReviewAction }) {
+  const res = await axios.post("/api/admin/reviews/bulk", input);
+  return res.data.data as { action: BulkReviewAction; requested: number; affected: number };
 }
