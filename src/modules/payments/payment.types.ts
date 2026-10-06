@@ -1,3 +1,12 @@
+/**
+ * مهلة صلاحية جلسة الدفع (بالدقائق). يجب أن تكون أقل من مهلة Cron إنهاء الطلبات
+ * (expireStalePendingOrders(60) في /api/cron/expire-orders) كي تنتهي الجلسة لدى المزوّد
+ * (يصلنا حدث checkout.session.expired ويُحرَّر المخزون) قبل أن يُنهي الـ Cron الطلب،
+ * فلا يستطيع العميل الدفع بعد تحرير المخزون.
+ * ملاحظة: الحد الأدنى المسموح في Stripe هو 30 دقيقة.
+ */
+export const PAYMENT_SESSION_TTL_MINUTES = 55;
+
 export interface CreateSessionParams {
   orderId: string;
   /** المبلغ بأصغر وحدة للعملة (سنت/هللة/فلس) — التحويل يتم في checkout.service قبل الاستدعاء */
@@ -19,6 +28,10 @@ export interface WebhookEvent {
   orderId?: string;
   /** مُعرّف المزوّد للعملية (session id لدى Stripe، charge id لدى Tap، payment id لدى Moyasar) */
   providerRef: string;
+  /** المبلغ المدفوع بأصغر وحدة للعملة كما أبلغ به المزوّد (للمطابقة مع إجمالي الطلب) */
+  amountInMinorUnits?: number;
+  /** رمز العملة بحروف كبيرة كما أبلغ به المزوّد */
+  currency?: string;
   /** الحدث الخام كما وصل من المزوّد، للتدقيق أو الاستخدامات المستقبلية */
   raw: unknown;
 }
@@ -35,4 +48,11 @@ export interface PaymentProvider {
 
   /** استرداد كامل، أو جزئي إن كان المزوّد يدعمه (راجع كل provider على حدة) */
   refund(paymentRef: string, amountInMinorUnits?: number): Promise<void>;
+
+  /**
+   * اختياري: يحوّل providerRef القادم في الحدث إلى قيمة Order.paymentRef المخزّنة.
+   * مطلوب عندما يختلف المعرّفان (Stripe: حدث الاسترداد يحمل payment_intent بينما
+   * المخزّن في الطلب هو معرّف الجلسة cs_...). يعيد null إن تعذّر الإيجاد.
+   */
+  resolveOrderPaymentRef?(event: WebhookEvent): Promise<string | null>;
 }

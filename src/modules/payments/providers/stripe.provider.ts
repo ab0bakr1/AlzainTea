@@ -5,6 +5,7 @@ import { setOrderPaymentRef } from "@/modules/checkout/checkout.repository";
 import {
   CreateSessionParams,
   CreateSessionResult,
+  PAYMENT_SESSION_TTL_MINUTES,
   PaymentProvider,
   WebhookEvent,
 } from "@/modules/payments/payment.types";
@@ -18,6 +19,9 @@ export async function createStripeCheckoutSession(
     mode: "payment",
     payment_method_types: ["card"],
     customer_email: params.customerEmail,
+    // تنتهي الجلسة قبل مهلة الـ Cron (60 دقيقة) فيصلنا checkout.session.expired
+    // ويُحرَّر المخزون، ولا يستطيع العميل الدفع بعد تحرير حجزه (راجع payment.types.ts)
+    expires_at: Math.floor(Date.now() / 1000) + PAYMENT_SESSION_TTL_MINUTES * 60,
     line_items: [
       {
         price_data: {
@@ -45,6 +49,7 @@ export async function createStripeCheckoutSession(
 /**
  * يتحقق من توقيع Stripe عبر ترويسة stripe-signature ويحوّل الحدث لصيغة WebhookEvent موحدة.
  * يرمي ApiError(400) عند توقيع مفقود أو غير صالح — لا يُعالج أي حدث دون تحقق ناجح.
+ * رسالة الخطأ عامة عمداً: تفاصيل الـ SDK تُسجَّل في الخادم فقط ولا تُعاد للمُرسِل.
  */
 function verifyStripeWebhook(rawBody: string, headers: Headers): WebhookEvent {
   const signature = headers.get("stripe-signature");
@@ -58,15 +63,22 @@ function verifyStripeWebhook(rawBody: string, headers: Headers): WebhookEvent {
   try {
     event = stripe.webhooks.constructEvent(rawBody, signature, secret);
   } catch (err) {
-    throw new ApiError("INVALID_SIGNATURE", `توقيع Stripe غير صالح: ${(err as Error).message}`, 400);
+    console.error("[stripe] webhook signature verification failed:", (err as Error).message);
+    throw new ApiError("INVALID_SIGNATURE", "توقيع Stripe غير صالح", 400);
   }
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
+    // الجلسة قد تكتمل قبل تحصيل الدفع لوسائل الدفع المؤجلة؛ لا نؤكد الطلب إلا عند "paid"
+    if (session.payment_status === "unpaid") {
+      return { type: "UNKNOWN", providerRef: session.id, raw: event };
+    }
     return {
       type: "PAID",
       orderId: session.metadata?.orderId,
       providerRef: session.id,
+      amountInMinorUnits: session.amount_total ?? undefined,
+      currency: session.currency?.toUpperCase(),
       raw: event,
     };
   }
@@ -93,6 +105,19 @@ function verifyStripeWebhook(rawBody: string, headers: Headers): WebhookEvent {
 }
 
 /**
+ * حدث charge.refunded يحمل payment_intent (pi_...) بينما Order.paymentRef المخزّن هو
+ * معرّف الجلسة (cs_...)، لذا نجلب الجلسة المرتبطة بالـ PaymentIntent لنطابق الطلب.
+ */
+async function resolveStripePaymentRef(event: WebhookEvent): Promise<string | null> {
+  if (!event.providerRef.startsWith("pi_")) return event.providerRef;
+  const sessions = await stripe.checkout.sessions.list({
+    payment_intent: event.providerRef,
+    limit: 1,
+  });
+  return sessions.data[0]?.id ?? null;
+}
+
+/**
  * paymentRef المخزّن في الطلب هو معرّف جلسة Checkout (cs_...)، لذا نجلب أولاً الـ
  * PaymentIntent المرتبط بها قبل تنفيذ الاسترداد الفعلي.
  */
@@ -115,4 +140,5 @@ export const stripeProvider: PaymentProvider = {
   createSession: createStripeCheckoutSession,
   verifyWebhook: verifyStripeWebhook,
   refund: refundStripePayment,
+  resolveOrderPaymentRef: resolveStripePaymentRef,
 };

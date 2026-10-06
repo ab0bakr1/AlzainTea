@@ -25,8 +25,8 @@ export interface CreateOrderData {
  * عند تزامن أكثر من عملية شراء على نفس المنتج.
  *
  * ملاحظة: إن فشل الدفع أو انتهت صلاحية الجلسة، يُحرَّر هذا الحجز عبر releaseReservedStock
- * أدناه (تُستدعى من معالجات الـ Webhook). التحرير التلقائي المبني على مهلة زمنية
- * (Timeout job) لا يزال يُستكمل ضمن وحدة إدارة المخزون الكاملة (الأسبوع 6).
+ * أدناه (تُستدعى من معالجات الـ Webhook)، وكذلك عبر Cron /api/cron/expire-orders للطلبات
+ * التي تجاوزت مهلة 60 دقيقة (order.service.expireStalePendingOrders).
  */
 export async function createOrderWithStockReservation(data: CreateOrderData) {
   return prisma.$transaction(async (tx) => {
@@ -98,19 +98,59 @@ export function findOrderById(orderId: string) {
   return prisma.order.findUnique({ where: { id: orderId }, include: { items: true } });
 }
 
+export type MarkOrderPaidResult =
+  | { outcome: "CONFIRMED"; order: NonNullable<Awaited<ReturnType<typeof findOrderById>>> }
+  /** الطلب مدفوع أصلاً (أو مُسترد/قيد استرداد) — حدث مكرر، لا أثر */
+  | { outcome: "ALREADY_PAID" }
+  /** وصلت دفعة لطلب لم يعد قابلاً للتأكيد (FAILED / CANCELLED ...) — يلزم استرداد يدوي */
+  | { outcome: "NOT_PAYABLE"; status: string; paymentStatus: string }
+  | { outcome: "NOT_FOUND" };
+
 /**
  * يُستدعى من أي Webhook (Stripe أو البوابة المحلية) بعد نجاح الدفع فعلياً.
- * مبني ليكون Idempotent: إن كان الطلب مدفوعاً مسبقاً لا يُعاد خصم المخزون مرة أخرى.
+ *
+ * Idempotent وآمن تحت التزامن: التأكيد يتم بتحديث شرطي ذري (Compare-and-Set)
+ *   updateMany({ where: { id, status: "PENDING", paymentStatus: "UNPAID" } })
+ * فإذا وصل الحدث نفسه مرتين في اللحظة ذاتها ينجح أحدهما فقط (count === 1) ويخصم المخزون،
+ * ويخرج الآخر بـ ALREADY_PAID دون أي أثر. ولا يُؤكَّد طلب انتهى/أُلغي (FAILED/CANCELLED)
+ * مهما تأخر وصول الدفعة — يُعاد NOT_PAYABLE ليتولى المستدعي التنبيه والاسترداد اليدوي،
+ * بدل إعادة طلب نهائي إلى CONFIRMED وإفساد reservedStock.
+ *
  * gatewayLabel اختياري، يُستخدم فقط لنص سجل الحالة (OrderStatusLog) لتوضيح مصدر التأكيد.
  */
-export async function markOrderPaid(orderId: string, gatewayLabel = "المزوّد") {
+export async function markOrderPaid(
+  orderId: string,
+  gatewayLabel = "المزوّد"
+): Promise<MarkOrderPaidResult> {
   return prisma.$transaction(async (tx) => {
-    const order = await tx.order.findUnique({ where: { id: orderId }, include: { items: true } });
-    if (!order || order.paymentStatus === "PAID") {
-      return order;
+    const claimed = await tx.order.updateMany({
+      where: { id: orderId, status: "PENDING", paymentStatus: "UNPAID" },
+      data: { paymentStatus: "PAID", status: "CONFIRMED" },
+    });
+
+    if (claimed.count === 0) {
+      const current = await tx.order.findUnique({ where: { id: orderId } });
+      if (!current) return { outcome: "NOT_FOUND" as const };
+      // PENDING = حجز استرداد جارٍ، REFUNDED = استُرد: كلاهما يعني أن الدفع تم سابقاً
+      if (["PAID", "PENDING", "REFUNDED"].includes(current.paymentStatus)) {
+        return { outcome: "ALREADY_PAID" as const };
+      }
+      return {
+        outcome: "NOT_PAYABLE" as const,
+        status: current.status,
+        paymentStatus: current.paymentStatus,
+      };
     }
 
-    for (const item of order.items) {
+    const order = await tx.order.findUnique({ where: { id: orderId }, include: { items: true } });
+    if (!order) throw new ApiError("ORDER_NOT_FOUND", "الطلب غير موجود", 404);
+
+    // ترتيب ثابت لتفادي Deadlocks بين معاملات متزامنة (نفس نهج order.repository)
+    const items = [...order.items].sort((a, b) =>
+      `${a.productId}:${a.variantId ?? ""}`.localeCompare(`${b.productId}:${b.variantId ?? ""}`)
+    );
+
+    for (const item of items) {
       if (item.variantId) continue; // مخزون المتغيرات خُصم مباشرة عند الحجز
       await tx.product.update({
         where: { id: item.productId },
@@ -121,35 +161,42 @@ export async function markOrderPaid(orderId: string, gatewayLabel = "المزو�
       });
     }
 
-    return tx.order.update({
-      where: { id: orderId },
+    await tx.orderStatusLog.create({
       data: {
-        paymentStatus: "PAID",
+        orderId,
         status: "CONFIRMED",
-        statusHistory: { create: { status: "CONFIRMED", note: `تم تأكيد الدفع عبر ${gatewayLabel} Webhook` } },
+        note: `تم تأكيد الدفع عبر ${gatewayLabel} Webhook`,
       },
     });
+
+    return { outcome: "CONFIRMED" as const, order };
   });
 }
 
 /**
- * يُستدعى عند فشل الدفع أو انتهاء صلاحية جلسة الدفع (Webhook)، أو مستقبلاً عند
- * إلغاء الطلب يدوياً. يُعيد المخزون المحجوز (reservedStock للمنتجات العادية)،
- * أو يُعيد الكمية المخصومة مباشرة (للمتغيرات، لأن حجزها يخصم من stock فوراً عند الإنشاء).
+ * يُستدعى عند فشل الدفع أو انتهاء صلاحية جلسة الدفع (Webhook). يُعيد المخزون المحجوز
+ * (reservedStock للمنتجات العادية)، أو يُعيد الكمية المخصومة مباشرة (للمتغيرات، لأن حجزها
+ * يخصم من stock فوراً عند الإنشاء).
  *
- * مبني ليكون Idempotent: لا يُحرَّر مخزون طلب مدفوع بالفعل، ولا يُكرَّر التحرير
- * لطلب فشل أو أُلغي مسبقاً (لمنع إعادة المخزون مرتين عند تكرار نفس حدث الـ Webhook).
+ * Idempotent وآمن تحت التزامن: الانتقال PENDING/UNPAID → FAILED بتحديث شرطي ذري،
+ * فلا يُحرَّر مخزون طلب مدفوع (يتنافس مع markOrderPaid على نفس الشرط فيربح أحدهما فقط)،
+ * ولا يتكرر التحرير لطلب فشل أو أُلغي مسبقاً. يُعيد الطلب بحالته الحالية في كل الأحوال.
  */
 export async function releaseReservedStock(orderId: string, reason: string) {
   return prisma.$transaction(async (tx) => {
+    const claimed = await tx.order.updateMany({
+      where: { id: orderId, status: "PENDING", paymentStatus: "UNPAID" },
+      data: { status: "FAILED", paymentStatus: "FAILED" },
+    });
+
     const order = await tx.order.findUnique({ where: { id: orderId }, include: { items: true } });
-    if (!order) return null;
+    if (!order || claimed.count === 0) return order;
 
-    if (order.paymentStatus === "PAID" || order.status === "CANCELLED" || order.status === "FAILED") {
-      return order;
-    }
+    const items = [...order.items].sort((a, b) =>
+      `${a.productId}:${a.variantId ?? ""}`.localeCompare(`${b.productId}:${b.variantId ?? ""}`)
+    );
 
-    for (const item of order.items) {
+    for (const item of items) {
       if (item.variantId) {
         await tx.productVariant.update({
           where: { id: item.variantId },
@@ -163,14 +210,22 @@ export async function releaseReservedStock(orderId: string, reason: string) {
       }
     }
 
-    return tx.order.update({
-      where: { id: orderId },
-      data: {
-        status: "FAILED",
-        paymentStatus: "FAILED",
-        statusHistory: { create: { status: "FAILED", note: reason } },
-      },
-    });
+    await tx.orderStatusLog.create({ data: { orderId, status: "FAILED", note: reason } });
+
+    return order;
+  });
+}
+
+/**
+ * يسجّل ملاحظة تدقيق نظامية على الطلب (دفعة متأخرة، استرداد من لوحة المزود، عدم تطابق مبلغ...)
+ * بحالته الحالية دون تغييرها، لتظهر للإدارة في سجل الحالة. الوسم [system] يتبع نفس
+ * اصطلاح order.service (buildNote) لتمييزها كملاحظة داخلية.
+ */
+export async function addOrderAuditNote(orderId: string, note: string): Promise<void> {
+  const order = await prisma.order.findUnique({ where: { id: orderId }, select: { status: true } });
+  if (!order) return;
+  await prisma.orderStatusLog.create({
+    data: { orderId, status: order.status, note: `[system] ${note}` },
   });
 }
 

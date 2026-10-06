@@ -1,33 +1,28 @@
-﻿import { NextRequest, NextResponse } from "next/server";
-import { verifyProviderWebhook } from "@/modules/payments/payment.service";
-import { findOrderByPaymentRef, markOrderPaid, releaseReservedStock } from "@/modules/checkout/checkout.repository";
+﻿import { after, NextRequest, NextResponse } from "next/server";
+import { fail } from "@/lib/api-response";
+import { handlePaymentEvent, verifyWebhookOrReject } from "@/modules/payments/webhook.service";
+import { sendOrderConfirmationEmail } from "@/modules/notifications/notification.service";
 
+/**
+ * نقطة استقبال أحداث Stripe. المنطق كله في webhook.service (مشترك مع البوابة المحلية).
+ * أحداث Stripe المطلوب تسجيلها في اللوحة: checkout.session.completed و checkout.session.expired
+ * (ويُفضَّل charge.refunded لرصد الاستردادات التي تبدأ من لوحة Stripe).
+ * أي خطأ غير متوقع يُعاد 500 عبر fail() فيعيد Stripe المحاولة تلقائياً.
+ */
 export async function POST(req: NextRequest) {
-  const rawBody = await req.text();
-
-  let event;
   try {
-    event = verifyProviderWebhook("stripe", rawBody, req.headers);
-  } catch (err) {
-    console.error("Stripe webhook verification failed", err);
-    return NextResponse.json(
-      { success: false, error: { code: "INVALID_SIGNATURE", message: (err as Error).message } },
-      { status: 400 }
-    );
-  }
+    const rawBody = await req.text(); // الجسم الخام ضروري لحساب التوقيع
+    const event = verifyWebhookOrReject("stripe", rawBody, req.headers);
+    const result = await handlePaymentEvent("stripe", "Stripe", event);
 
-  if (event.type === "PAID" && event.orderId) {
-    // حماية من المعالجة المكررة (Idempotency) في حال أعاد Stripe إرسال نفس الحدث
-    const existingOrder = await findOrderByPaymentRef(event.providerRef);
-    if (existingOrder && existingOrder.paymentStatus !== "PAID") {
-      await markOrderPaid(event.orderId, "Stripe");
+    const emailOrderId = result.confirmationEmailOrderId;
+    if (emailOrderId) {
+      // يُنفَّذ بعد إرجاع الرد؛ لا يرمي أخطاء ولا يتكرر (حجز ذري في notification.service)
+      after(() => sendOrderConfirmationEmail(emailOrderId));
     }
-  } else if (event.type === "FAILED" && event.orderId) {
-    // انتهت صلاحية جلسة الدفع دون إتمامها — نُحرر المخزون المحجوز فوراً بدل انتظار مهلة زمنية
-    await releaseReservedStock(event.orderId, "فشلت أو انتهت صلاحية جلسة الدفع عبر Stripe");
-  }
-  // أحداث REFUNDED تُدار حالياً عبر مسار إدارة الطلبات اليدوي (provider.refund + markOrderRefunded)؛
-  // يمكن ربطها هنا مستقبلاً إن احتجت تحديث الحالة تلقائياً عند استرداد يبدأ من لوحة Stripe مباشرة.
 
-  return NextResponse.json({ success: true, received: true });
+    return NextResponse.json({ success: true, received: true });
+  } catch (error) {
+    return fail(error);
+  }
 }

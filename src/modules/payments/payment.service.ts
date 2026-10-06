@@ -51,6 +51,18 @@ export function verifyProviderWebhook(gateway: Gateway, rawBody: string, headers
   return providers[gateway].verifyWebhook(rawBody, headers);
 }
 
+/**
+ * يحوّل providerRef القادم في الحدث إلى Order.paymentRef المخزّن.
+ * للمزودين الذين لا يحتاجون تحويلاً (Tap / Moyasar) يُعاد providerRef كما هو.
+ */
+export async function resolveOrderPaymentRef(
+  gateway: Gateway,
+  event: WebhookEvent
+): Promise<string | null> {
+  const provider = providers[gateway];
+  return provider.resolveOrderPaymentRef ? provider.resolveOrderPaymentRef(event) : event.providerRef;
+}
+
 /** ينفّذ استرداداً (كاملاً أو جزئياً حسب دعم كل مزوّد) — يُستدعى من مسار إدارة الطلبات */
 export async function refundPayment(
   gateway: Gateway,

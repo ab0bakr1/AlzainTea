@@ -10,7 +10,6 @@ import {
 import { createMoyasarPayment, refundMoyasarPayment } from "@/lib/payment-gateway";
 
 const APP_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-const MOYASAR_WEBHOOK_SECRET = process.env.LOCAL_GATEWAY_WEBHOOK_SECRET ?? "";
 
 async function createMoyasarSession(params: CreateSessionParams): Promise<CreateSessionResult> {
   const payment = await createMoyasarPayment({
@@ -39,6 +38,7 @@ async function createMoyasarSession(params: CreateSessionParams): Promise<Create
  * بطريقة Constant-Time (crypto.timingSafeEqual) لمنع هجمات Timing Attack.
  */
 function verifyMoyasarWebhook(rawBody: string, _headers: Headers): WebhookEvent {
+  const MOYASAR_WEBHOOK_SECRET = process.env.LOCAL_GATEWAY_WEBHOOK_SECRET ?? "";
   if (!MOYASAR_WEBHOOK_SECRET) {
     throw new ApiError("MISSING_SIGNATURE", "سر تحقق Webhook الخاص بـ Moyasar غير مُهيأ", 400);
   }
@@ -75,7 +75,16 @@ function verifyMoyasarWebhook(rawBody: string, _headers: Headers): WebhookEvent 
 
   const orderId: string | undefined = data?.metadata?.orderId;
 
-  return { type, orderId, providerRef: data.id, raw: payload };
+  // Moyasar يرسل المبلغ أصلاً بأصغر وحدة للعملة (هللة/فلس)
+  const amount = Number(data?.amount);
+  return {
+    type,
+    orderId,
+    providerRef: data.id,
+    amountInMinorUnits: Number.isFinite(amount) ? amount : undefined,
+    currency: typeof data?.currency === "string" ? data.currency.toUpperCase() : undefined,
+    raw: payload,
+  };
 }
 
 /** Moyasar يدعم الاسترداد الجزئي أصلاً بنفس وحدة العملة الصغرى، دون حاجة لتحويل عملة */
