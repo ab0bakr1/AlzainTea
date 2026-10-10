@@ -1,18 +1,518 @@
 {
+  "brand": {
+    "name": "Alzain Tea",
+    "slogan": "Finest premium loose-leaf tea, hand-picked for true connoisseurs"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Try again",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "close": "Close",
+    "delete": "Delete",
+    "deleting": "Deleting...",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "viewAll": "View all",
+    "search": "Search",
+    "apply": "Apply",
+    "clear": "Clear",
+    "confirm": "Confirm",
+    "success": "Success",
+    "optional": "Optional",
+    "required": "Required",
+    "currency": "USD",
+    "sar": "SAR",
+    "usd": "$",
+    "status": "Status",
+    "actions": "Actions",
+    "noResults": "No matching results found"
+  },
+  "nav": {
+    "home": "Home",
+    "products": "Products",
+    "categories": "Categories",
+    "about": "About Us",
+    "contact": "Contact Us",
+    "faq": "FAQs",
+    "faqs": "FAQs",
+    "pricing": "Pricing & Plans",
+    "cart": "Cart",
+    "wishlist": "Wishlist",
+    "account": "My Account",
+    "orders": "My Orders",
+    "admin": "Admin Panel",
+    "login": "Sign In",
+    "register": "Register",
+    "logout": "Sign Out",
+    "openMenu": "Open menu",
+    "mobileMenu": "Navigation menu",
+    "mainNavigation": "Main navigation",
+    "userMenu": "Account menu",
+    "loggingOut": "Signing out..."
+  },
   "HomePage": {
+    "brand": "Alzain Tea",
+    "heroTitle": "Premium tea, delivered across the Gulf",
+    "heroSubtitle": "Hand-picked leaves from the best estates, packed fresh and shipped to Saudi Arabia, Oman, the UAE, Kuwait, Bahrain, Qatar and worldwide.",
+    "shopNow": "Shop now",
+    "browseCategories": "Browse categories",
+    "categoriesTitle": "Selected Tea Categories",
+    "newArrivals": "New arrivals",
+    "bestSellers": "Best sellers",
+    "viewAll": "View all",
+    "soldOut": "Out of stock",
+    "emptyProducts": "No products to show right now. Browse the full catalog.",
+    "ctaTitle": "Try your first tin today",
+    "ctaText": "Create an account to save your addresses and wishlist, and track your orders seamlessly.",
+    "registerCta": "Create account",
     "boxes": {
       "box1": {
-        "title": "Create Your Survey",
-        "text": "Choose a template or start from scratch using our easy-to-use builder"
+        "title": "Finest Premium Tea",
+        "text": "Carefully selected leaves from historic tea estates around the world to ensure an extraordinary tasting experience."
       },
       "box2": {
-        "title": "Share With Your Audience",
-        "text": "Send your survey via email, social media, or embed it in your website"
+        "title": "Fast & Reliable GCC Shipping",
+        "text": "Safe doorstep delivery across all GCC nations with real-time shipment tracking and transparent rates."
       },
       "box3": {
-        "title": "Analyze Responses",
-        "text": "Get instant insights with clean charts and downloadable reports"
+        "title": "Authentic Flavor & Guaranteed Quality",
+        "text": "Fresh, airtight packaging preserving rich aromas and genuine taste in every single cup."
+      }
+    },
+    "trust": {
+      "shipping": {
+        "title": "Shipping to 6 GCC countries",
+        "desc": "Plus worldwide, with cost and delivery time shown clearly before checkout."
+      },
+      "payment": {
+        "title": "Secure local payment",
+        "desc": "Apple Pay, mada, Gulf cards, and Stripe for international orders."
+      },
+      "reviews": {
+        "title": "Reviews from real buyers",
+        "desc": "Only customers who purchased and received the product can review it."
+      },
+      "currency": {
+        "title": "Prices in your local currency",
+        "desc": "SAR, AED, OMR, KWD, BHD, and QAR."
       }
     }
+  },
+  "auth": {
+    "login": {
+      "title": "Sign In",
+      "subtitle": "Welcome back to Alzain Tea",
+      "redirecting": "Redirecting you...",
+      "email": "Email address",
+      "emailPlaceholder": "name@example.com",
+      "password": "Password",
+      "passwordPlaceholder": "••••••••",
+      "forgotPassword": "Forgot password?",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "submit": "Sign In",
+      "submitting": "Signing in...",
+      "noAccount": "Don't have an account?",
+      "createAccount": "Create an account",
+      "continueAsGuest": "Continue as guest",
+      "errors": {
+        "invalidCredentials": "Invalid email or password",
+        "emailInvalid": "Please enter a valid email address",
+        "passwordRequired": "Password is required",
+        "unavailable": "Sign in is temporarily unavailable, please try again later"
+      }
+    },
+    "register": {
+      "title": "Create an Account",
+      "subtitle": "Join fine tea lovers and enjoy an exceptional shopping experience with exclusive benefits",
+      "fields": {
+        "name": "Full Name",
+        "email": "Email address",
+        "password": "Password",
+        "confirmPassword": "Confirm Password"
+      },
+      "placeholders": {
+        "name": "e.g. John Doe",
+        "email": "name@example.com",
+        "password": "••••••••",
+        "confirmPassword": "••••••••"
+      },
+      "rules": {
+        "length": "At least 8 characters",
+        "lower": "Lowercase letter (a-z)",
+        "upper": "Uppercase letter (A-Z)",
+        "digit": "At least one number (0-9)"
+      },
+      "strength": {
+        "label": "Password strength",
+        "weak": "Weak",
+        "medium": "Medium",
+        "strong": "Strong"
+      },
+      "submit": "Create Account",
+      "submitting": "Creating account...",
+      "haveAccount": "Already have an account?",
+      "loginLink": "Sign in",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "validation": {
+        "nameMin": "Name must be at least 2 characters",
+        "nameMax": "Name is too long",
+        "emailInvalid": "Invalid email address",
+        "passwordMin": "Password must be at least 8 characters",
+        "passwordMax": "Password is too long",
+        "passwordLower": "Must contain a lowercase letter",
+        "passwordUpper": "Must contain an uppercase letter",
+        "passwordDigit": "Must contain a number",
+        "confirmRequired": "Please confirm your password",
+        "passwordMismatch": "Passwords do not match"
+      },
+      "errors": {
+        "emailTaken": "This email address is already registered",
+        "tooMany": "Too many attempts, please try again later",
+        "generic": "An unexpected error occurred, please try again"
+      }
+    },
+    "forgotPassword": {
+      "title": "Forgot Password",
+      "subtitle": "Enter your email and we will send you a secure link to reset your password",
+      "email": "Email address",
+      "emailPlaceholder": "name@example.com",
+      "submit": "Send Reset Link",
+      "submitting": "Sending...",
+      "backToLogin": "Back to login",
+      "sent": {
+        "title": "Reset Link Sent",
+        "description": "We sent a password reset link to {email}",
+        "hint": "The link is valid for {minutes} minutes only",
+        "resend": "Resend Link",
+        "resendIn": "Resend in {seconds}s",
+        "changeEmail": "Change email"
+      },
+      "errors": {
+        "emailInvalid": "Please enter a valid email address",
+        "unavailable": "Service temporarily unavailable, please try again later",
+        "generic": "Could not send reset link, please try again"
+      }
+    },
+    "resetPassword": {
+      "title": "Set New Password",
+      "subtitle": "Choose a strong password to protect your account and personal details",
+      "password": "New Password",
+      "passwordPlaceholder": "••••••••",
+      "confirmPassword": "Confirm Password",
+      "confirmPlaceholder": "••••••••",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "submit": "Reset Password",
+      "submitting": "Saving...",
+      "backToLogin": "Back to login",
+      "checks": {
+        "length": "At least 8 characters",
+        "lower": "Lowercase letter",
+        "upper": "Uppercase letter",
+        "digit": "Number"
+      },
+      "invalid": {
+        "title": "Invalid or Expired Link",
+        "description": "This password reset link is invalid or has expired. You can request a new link at any time.",
+        "requestNew": "Request New Reset Link"
+      },
+      "errors": {
+        "passwordMin": "Password must be at least 8 characters",
+        "passwordMax": "Password is too long",
+        "passwordLower": "Must contain a lowercase letter",
+        "passwordUpper": "Must contain an uppercase letter",
+        "passwordDigit": "Must contain a number",
+        "confirmRequired": "Please confirm your password",
+        "passwordMismatch": "Passwords do not match",
+        "unavailable": "Service temporarily unavailable, please try again later",
+        "generic": "Could not reset password, please try again"
+      }
+    }
+  },
+  "products": {
+    "title": "Products",
+    "search": "Search products",
+    "searchPlaceholder": "Search tea, leaves, blends, accessories...",
+    "searchLabel": "Search products",
+    "filtersTitle": "Filters",
+    "sortBy": "Sort by",
+    "categories": "Categories",
+    "allCategories": "All Categories",
+    "priceRange": "Price range (USD)",
+    "minPrice": "Min",
+    "maxPrice": "Max",
+    "inStockOnly": "In stock only",
+    "clearFilters": "Clear all filters",
+    "resultsCount": "{count} products",
+    "noProductsFound": "No products match your selected filters.",
+    "sortOptions": {
+      "newest": "Newest",
+      "popular": "Popular",
+      "bestselling": "Best sellers",
+      "priceAsc": "Price: Low to High",
+      "priceDesc": "Price: High to Low",
+      "nameAsc": "Name (A - Z)"
+    },
+    "details": {
+      "inStock": "In Stock",
+      "outOfStock": "Out of Stock",
+      "sku": "SKU",
+      "weight": "Weight",
+      "origin": "Country of Origin",
+      "harvest": "Harvest Season",
+      "ingredients": "Ingredients",
+      "brewingGuide": "Brewing Guide",
+      "temp": "Water Temperature",
+      "time": "Steeping Time",
+      "quantity": "Quantity",
+      "addToCart": "Add to Cart",
+      "addingToCart": "Adding...",
+      "buyNow": "Buy Now",
+      "addedToCart": "Product successfully added to cart",
+      "viewCart": "View Cart",
+      "share": "Share Product"
+    }
+  },
+  "cart": {
+    "title": "Shopping Cart",
+    "emptyTitle": "Your cart is empty",
+    "emptyHint": "You haven't added any products yet. Explore our exquisite collection of fine teas.",
+    "browseProducts": "Browse Products",
+    "continueShopping": "Continue Shopping",
+    "clearCart": "Clear Cart",
+    "clearConfirm": "Are you sure you want to remove all items from your cart?",
+    "remove": "Remove",
+    "quantity": "Quantity",
+    "subtotal": "Subtotal",
+    "shipping": "Shipping",
+    "shippingEstimate": "Estimated Shipping",
+    "shippingFree": "Free Shipping",
+    "shippingTo": "Ship to",
+    "tax": "Estimated Tax",
+    "total": "Estimated Total",
+    "taxNote": "Tax and applicable discounts are calculated accurately at checkout.",
+    "checkout": "Proceed to Checkout",
+    "checkingAvailability": "Checking stock and availability...",
+    "updatedNotice": "Cart contents updated based on current stock."
+  },
+  "checkout": {
+    "title": "Checkout & Payment",
+    "steps": {
+      "address": "Address",
+      "shipping": "Shipping & Discount",
+      "payment": "Payment",
+      "review": "Review & Confirm"
+    },
+    "shippingAddress": "Shipping & Delivery Address",
+    "savedAddresses": "Saved Addresses",
+    "addNewAddress": "Add New Address",
+    "guestCheckout": "Guest Checkout",
+    "contactInfo": "Contact Information",
+    "fullName": "Full Name",
+    "email": "Email address",
+    "phone": "Phone Number",
+    "country": "Country",
+    "city": "City",
+    "street": "Detailed Address",
+    "streetPlaceholder": "District, street name, building number",
+    "postalCode": "Postal Code",
+    "saveAddress": "Save this address to my account for future orders",
+    "coupon": {
+      "title": "Promo Code",
+      "placeholder": "Enter promo code",
+      "apply": "Apply Coupon",
+      "applied": "Coupon applied successfully",
+      "remove": "Remove Coupon",
+      "invalid": "Promo code is invalid or has expired"
+    },
+    "paymentMethod": "Payment Method",
+    "paymentMethods": {
+      "mada": "mada Debit Card",
+      "applePay": "Apple Pay",
+      "card": "Credit Card (Visa / MasterCard)",
+      "stripe": "Secure Payment via Stripe",
+      "cod": "Cash on Delivery"
+    },
+    "orderSummary": "Order Summary",
+    "placeOrder": "Place Order & Pay",
+    "processing": "Processing your payment and order...",
+    "cancel": {
+      "title": "Payment Incomplete",
+      "orderRef": "Order Reference",
+      "savedNote": "Your cart is saved and no payment has been charged.",
+      "holdNote": "Items are temporarily reserved so you can complete your order anytime.",
+      "tryAgain": "Try Again",
+      "backToCart": "Back to Cart"
+    },
+    "success": {
+      "title": "Order Received Successfully!",
+      "subtitle": "Thank you for choosing Alzain Tea. We will start preparing your order right away.",
+      "orderNumber": "Order Number",
+      "trackOrder": "Track Order",
+      "continueShopping": "Continue Shopping"
+    }
+  },
+  "account": {
+    "title": "My Account",
+    "subtitle": "Manage your profile, shipping addresses, and track your orders",
+    "email": "Email",
+    "role": "Account Type",
+    "roleCustomer": "Customer",
+    "roleAdmin": "Admin",
+    "orders": "My Orders",
+    "ordersDesc": "Track your shipments and view your past purchases",
+    "wishlist": "Wishlist",
+    "wishlistDesc": "Items you saved for future purchases",
+    "adminPanel": "Admin Panel",
+    "adminPanelDesc": "Manage products, orders, and users",
+    "addresses": "Shipping Addresses",
+    "addressesDesc": "Saved delivery addresses for quick and easy checkout",
+    "addAddress": "Add New Address",
+    "editAddress": "Edit Address",
+    "deleteAddress": "Delete Address",
+    "setAsDefault": "Set as Default",
+    "defaultBadge": "Default",
+    "emptyAddresses": "No saved addresses yet. Add your first address to autofill at checkout.",
+    "signOut": "Sign Out",
+    "signInPrompt": "Please sign in to view your account details."
+  },
+  "orders": {
+    "title": "Order History",
+    "empty": "You have no orders yet.",
+    "orderNumber": "Order #",
+    "orderDate": "Order Date",
+    "totalAmount": "Total Amount",
+    "status": "Order Status",
+    "itemsCount": "{count} items",
+    "viewDetails": "View Order Details",
+    "cancelOrder": "Cancel Order",
+    "cancelConfirm": "Are you sure you want to cancel this order?",
+    "statuses": {
+      "PENDING": "Pending",
+      "PROCESSING": "Processing",
+      "SHIPPED": "Shipped",
+      "DELIVERED": "Delivered",
+      "CANCELLED": "Cancelled",
+      "REFUNDED": "Refunded"
+    }
+  },
+  "wishlist": {
+    "title": "My Wishlist",
+    "empty": "Your wishlist is currently empty.",
+    "emptyHint": "Save your favorite teas to easily find and purchase them later.",
+    "browseProducts": "Explore Products",
+    "addToCart": "Add to Cart",
+    "remove": "Remove from Wishlist"
+  },
+  "reviews": {
+    "title": "Customer Reviews",
+    "noReviews": "No reviews yet for this product. Be the first to share your experience!",
+    "verifiedPurchase": "Verified Purchase",
+    "ratingOutOf": "out of 5",
+    "writeReview": "Write a Review",
+    "yourRating": "Your Rating",
+    "comment": "Your Review (Optional)",
+    "commentPlaceholder": "Share your thoughts on aroma, taste, and delivery experience...",
+    "submit": "Submit Review",
+    "submitting": "Submitting...",
+    "thankYou": "Thank you for reviewing! Your review will appear after moderation.",
+    "loginRequired": "Please sign in to write a review.",
+    "purchaseRequired": "Only verified customers who received this product can review it."
+  },
+  "about": {
+    "title": "About Alzain Tea",
+    "subtitle": "A passion for authenticity and mastery in every fine tea leaf",
+    "storyTitle": "Our Story",
+    "storyContent": "Alzain Tea was founded with a profound dedication to authentic tea culture. We travel the globe to handpick the finest tea leaves from historic estates in Sri Lanka, India, China, and Japan, delivering unparalleled quality to discerning tea enthusiasts across the Gulf and worldwide.",
+    "missionTitle": "Our Mission",
+    "missionContent": "To provide a complete tea journey marrying supreme leaf quality, artisan packaging, and expedited delivery so every brew is fresh, fragrant, and memorable.",
+    "qualityTitle": "Our Commitment to Quality",
+    "qualityContent": "We adhere to the highest standards of purity, selecting natural harvest free of artificial additives."
+  },
+  "contact": {
+    "title": "Contact Us",
+    "subtitle": "We are always delighted to assist with your inquiries and feedback",
+    "name": "Full Name",
+    "email": "Email address",
+    "subject": "Subject",
+    "message": "Your Message",
+    "send": "Send Message",
+    "sending": "Sending...",
+    "sentSuccess": "Your message has been sent successfully. We will get back to you shortly.",
+    "infoTitle": "Contact Information",
+    "emailLabel": "Email:",
+    "phoneLabel": "Customer Care (WhatsApp):",
+    "hoursLabel": "Working Hours:",
+    "hoursValue": "Daily from 9:00 AM to 10:00 PM"
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Everything you need to know about our teas, orders, delivery, and payments",
+    "categories": {
+      "orders": "Orders & Account",
+      "shipping": "Shipping & Delivery",
+      "payment": "Payment Methods & Security",
+      "tea": "Tea & Brewing Guide"
+    },
+    "items": [
+      {
+        "q": "Which countries do you ship to?",
+        "a": "We ship directly to all GCC nations (Saudi Arabia, UAE, Oman, Kuwait, Bahrain, Qatar) as well as worldwide international delivery."
+      },
+      {
+        "q": "How long does shipping take?",
+        "a": "GCC delivery typically takes between 2 to 5 business days. Exact delivery estimates appear at checkout."
+      },
+      {
+        "q": "What payment methods are supported?",
+        "a": "We support secure payments including mada, Apple Pay, Visa, MasterCard, and Stripe."
+      },
+      {
+        "q": "How do you ensure tea freshness and aroma?",
+        "a": "All our teas are packaged in specialized airtight, light-blocking tins and bags that seal in aromatic oils and peak freshness."
+      }
+    ]
+  },
+  "pricing": {
+    "title": "Special Packages & Plans",
+    "subtitle": "Curated tea collections designed for individuals, connoisseurs, and hospitality businesses",
+    "starter": {
+      "name": "Discovery Selection",
+      "desc": "Perfect for sampling an exquisite variety of our top loose-leaf teas"
+    },
+    "connoisseur": {
+      "name": "Connoisseur Club",
+      "desc": "Our signature assortment for daily indulgence in world-class tea origins"
+    },
+    "wholesale": {
+      "name": "Hospitality & Corporate",
+      "desc": "Commercial quantities and tailored supply for upscale cafes and hotels"
+    }
+  },
+  "admin": {
+    "title": "Store Admin Panel",
+    "dashboard": "Dashboard",
+    "products": "Products Management",
+    "categories": "Categories Management",
+    "orders": "Orders Management",
+    "reviews": "Reviews Moderation",
+    "customers": "Customers",
+    "reports": "Reports & Analytics",
+    "settings": "Settings"
+  },
+  "footer": {
+    "about": "Alzain Tea - Your gateway to the world of fine loose-leaf tea with top-tier craftsmanship and authenticity.",
+    "quickLinks": "Quick Links",
+    "customerService": "Customer Service",
+    "rights": "All rights reserved © Alzain Tea",
+    "privacy": "Privacy Policy",
+    "terms": "Terms & Conditions"
   }
 }

@@ -1,5 +1,4 @@
 import NavLink from "../../atoms/navbar/NavLink";
-import Button from "@/components/atoms/Button";
 
 interface RouteItem {
   id: number;
@@ -33,8 +32,7 @@ export default function MobileNavLinks({
           </NavLink>
         </li>
       ))}
-
-      <Button size="md">login</Button>
+      {/* أزرار الدخول/التسجيل/الخروج أصبحت في <MobileAuthSection /> داخل Navbar */}
     </ul>
   );
 }

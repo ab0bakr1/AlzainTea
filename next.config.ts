@@ -50,6 +50,7 @@ const nextConfig: NextConfig = {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
       { protocol: "https", hostname: "**.public.blob.vercel-storage.com" },
+      { protocol: "https", hostname: "encrypted-tbn0.gstatic.com", pathname: "/images"},
       // أضف هنا أي نطاق صور آخر تستخدمه في بيانات المنتجات (seed / R2 ...)
       // { protocol: "https", hostname: "images.unsplash.com" },
     ],

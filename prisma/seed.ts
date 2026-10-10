@@ -1,7 +1,14 @@
-import { PrismaClient } from "@prisma/client";
 import * as argon2 from "argon2";
+import "dotenv/config";
+import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-const prisma = new PrismaClient();
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }, // نفس إعداد Neon المستخدم في src/lib/prisma.ts
+});
+
+const prisma = new PrismaClient({ adapter });
 
 async function hash(password: string) {
   return argon2.hash(password, { type: argon2.argon2id });
