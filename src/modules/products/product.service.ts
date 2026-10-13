@@ -22,16 +22,23 @@ import {
   deleteOrArchiveProduct,
 } from "./product.repository";
 
-export async function listProducts(query: ProductQuery) {
-  const { items, total } = await findManyProducts(query);
-  const totalPages = Math.max(1, Math.ceil(total / query.limit));
-
-  const serialized = items.map((p: any) => ({
+/** تسلسل عنصر قائمة المنتجات (Decimal → number) مع حساب المخزون المتاح، ويحافظ على نوع العنصر الأصلي */
+function serializeListItem<
+  T extends { price: unknown; compareAtPrice?: unknown; stock: number; reservedStock: number },
+>(p: T) {
+  return {
     ...p,
     price: Number(p.price),
     compareAtPrice: p.compareAtPrice ? Number(p.compareAtPrice) : null,
     availableStock: p.stock - p.reservedStock,
-  }));
+  };
+}
+
+export async function listProducts(query: ProductQuery) {
+  const { items, total } = await findManyProducts(query);
+  const totalPages = Math.max(1, Math.ceil(total / query.limit));
+
+  const serialized = items.map(serializeListItem);
 
   return {
     data: serialized,

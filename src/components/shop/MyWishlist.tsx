@@ -109,9 +109,8 @@ export default function MyWishlist() {
   const totalPages = data?.meta.totalPages ?? 1;
 
   // إن أصبحت الصفحة الحالية فارغة بعد الحذف (آخر عنصر في الصفحة) نرجع للصفحة الأخيرة المتاحة
-  useEffect(() => {
-    if (data && page > data.meta.totalPages) setPage(data.meta.totalPages);
-  }, [data, page]);
+  const lastPage = data ? Math.max(1, data.meta.totalPages) : 1;
+  if (data && page > lastPage) setPage(lastPage);
 
   // إخفاء الإشعار تلقائياً
   useEffect(() => {

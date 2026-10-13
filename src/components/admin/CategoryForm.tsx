@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   useAdminCategoryOptions,
@@ -130,17 +130,17 @@ export function CategoryForm({
   const updateMutation = useUpdateCategory();
   const { data: options, isLoading: optionsLoading } = useAdminCategoryOptions();
 
-  const initialRef = useRef<CategoryFormValues>({ ...EMPTY_VALUES, ...initialValues });
-  const initialPayload = useMemo(() => toPayload(initialRef.current), []);
+  const [initial] = useState<CategoryFormValues>(() => ({ ...EMPTY_VALUES, ...initialValues }));
+  const initialPayload = useMemo(() => toPayload(initial), [initial]);
 
-  const [values, setValues] = useState<CategoryFormValues>(initialRef.current);
+  const [values, setValues] = useState<CategoryFormValues>(initial);
   const [slugTouched, setSlugTouched] = useState(!!categoryId); // لا نغيّر slug فئة قائمة تلقائياً
   const [error, setError] = useState<string | null>(null);
   const [brokenImage, setBrokenImage] = useState<string | null>(null);
-  const savedRef = useRef(false);
+  const [saved, setSaved] = useState(false);
 
   const submitting = createMutation.isPending || updateMutation.isPending;
-  const dirty = !savedRef.current && JSON.stringify(values) !== JSON.stringify(initialRef.current);
+  const dirty = !saved && JSON.stringify(values) !== JSON.stringify(initial);
 
   // تنبيه المتصفح عند مغادرة الصفحة وفيها تغييرات غير محفوظة
   useEffect(() => {
@@ -182,7 +182,7 @@ export function CategoryForm({
       } else {
         await createMutation.mutateAsync(payload);
       }
-      savedRef.current = true;
+      setSaved(true);
       router.push("/admin/categories");
     } catch (err) {
       setError(getErrorMessage(err, "حدث خطأ أثناء حفظ الفئة"));
@@ -324,7 +324,7 @@ export function CategoryForm({
                   <dd className="font-medium text-stone-800">
                     {stats.productsCount > 0 ? (
                       <Link
-                        href={`/admin/products?category=${encodeURIComponent(initialRef.current.slug)}`}
+                        href={`/admin/products?category=${encodeURIComponent(initial.slug)}`}
                         className="text-emerald-700 hover:underline"
                       >
                         {stats.productsCount}

@@ -132,6 +132,9 @@ type ShippingState =
   | { status: 'unavailable' }
   | { status: 'error' }
 
+/** نتيجة طلب الشحن المكتمل (كل الحالات عدا loading التي تُشتق أثناء الرندر) */
+type ShippingResult = Exclude<ShippingState, { status: 'loading' }>
+
 function pickNumber(obj: Record<string, unknown>, keys: string[]): number | null {
   for (const k of keys) {
     const v = obj[k]
@@ -151,7 +154,7 @@ function pickDays(obj: Record<string, unknown>): string | null {
 }
 
 /** يحوّل استجابة /api/shipping/calculate إلى شكل ثابت. (النقطة الوحيدة المرتبطة بشكل ShippingRate) */
-function normalizeShipping(data: unknown, fallbackCostUsd: number): ShippingState {
+function normalizeShipping(data: unknown, fallbackCostUsd: number): ShippingResult {
   const obj = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>
   const cost = pickNumber(obj, ['cost', 'rate', 'price', 'amount', 'shippingCost'])
   return { status: 'ready', costUsd: cost ?? fallbackCostUsd, days: pickDays(obj) }
@@ -176,8 +179,13 @@ export default function CartView() {
 
   const [validateError, setValidateError] = useState<string | null>(null)
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
-  const [shipping, setShipping] = useState<ShippingState>({ status: 'loading' })
   const [shippingAttempt, setShippingAttempt] = useState(0)
+  // نتيجة آخر طلب شحن مرتبطة بمفتاح (الدولة + رقم المحاولة): حالة «جارٍ الحساب» تُشتق أثناء
+  // الرندر عند اختلاف المفتاح، بدل ضبطها يدويًا داخل الـ effect (قاعدة react-hooks/set-state-in-effect)
+  const shippingKey = `${countryCode}:${shippingAttempt}`
+  const [shippingResult, setShippingResult] = useState<{ key: string; state: ShippingResult } | null>(null)
+  const shipping: ShippingState =
+    shippingResult?.key === shippingKey ? shippingResult.state : { status: 'loading' }
   const issuesRef = useRef<HTMLDivElement>(null)
   const didInitialValidate = useRef(false)
 
@@ -194,28 +202,27 @@ export default function CartView() {
   useEffect(() => {
     if (!mounted || !country) return
     const ctrl = new AbortController()
-    setShipping({ status: 'loading' })
 
     fetch(`/api/shipping/calculate?country=${encodeURIComponent(countryCode)}`, { signal: ctrl.signal })
       .then((r) => r.json())
       .then((json) => {
         if (json?.success) {
-          setShipping(normalizeShipping(json.data, shippingRate))
+          setShippingResult({ key: shippingKey, state: normalizeShipping(json.data, shippingRate) })
         } else if (json?.error?.code === 'SHIPPING_NOT_AVAILABLE' || json?.error?.code === 'VALIDATION_ERROR') {
-          setShipping({ status: 'unavailable' })
+          setShippingResult({ key: shippingKey, state: { status: 'unavailable' } })
         } else {
-          setShipping({ status: 'error' })
+          setShippingResult({ key: shippingKey, state: { status: 'error' } })
         }
       })
       .catch((e: unknown) => {
         if (e instanceof DOMException && e.name === 'AbortError') return
-        setShipping({ status: 'error' })
+        setShippingResult({ key: shippingKey, state: { status: 'error' } })
       })
 
     return () => ctrl.abort()
     // shippingRate مستثنى عمدًا: هو قيمة احتياطية فقط ولا يجب أن يعيد الطلب
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mounted, country, countryCode, shippingAttempt])
+  }, [mounted, country, countryCode, shippingKey])
 
   /* المشاكل المعروضة: فقط ما يخص عناصر ما زالت في السلة ولم يُخفِها العميل */
   const cartKeys = new Set(items.map((i) => lineKey(i.productId, i.variantId)))

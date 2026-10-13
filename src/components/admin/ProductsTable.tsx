@@ -444,7 +444,7 @@ function ProductRow({
       </td>
       <td className="px-4 py-3">
         <div className="flex flex-wrap gap-x-4 gap-y-1">
-          <Link href={`/admin/products/${p.id}`} className="text-emerald-700 hover:underline">
+          <Link href={`/admin/products/${p.id}/edit`} className="text-emerald-700 hover:underline">
             تعديل
           </Link>
           {p.status === "ACTIVE" && (

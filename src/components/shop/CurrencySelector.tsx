@@ -3,7 +3,6 @@
 
 'use client'
 
-import { EXCHANGE_RATES } from '@/lib/currency'
 import { getCurrencySymbol } from '@/lib/currency'
 
 type CurrencySelectorProps = {

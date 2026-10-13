@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+
     const address = await addAddress(session.user.id, parsed.data);
     return ok(address);
   } catch (err) {

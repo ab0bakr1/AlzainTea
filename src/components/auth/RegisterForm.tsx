@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, Loader2, X } from "lucide-react";
 import Title from "@/components/atoms/Title";
@@ -53,7 +53,7 @@ export default function RegisterForm() {
   );
 
   const {
-    register, handleSubmit, watch, setError, setFocus,
+    register, handleSubmit, control, setError, setFocus,
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormInput, unknown, RegisterFormOutput>({
     resolver: zodResolver(schema),
@@ -66,7 +66,8 @@ export default function RegisterForm() {
     if (status === "authenticated") router.replace(callbackUrl);
   }, [status, callbackUrl, router]);
 
-  const checks = getPasswordChecks(watch("password") ?? "");
+  const password = useWatch({ control, name: "password" });
+  const checks = getPasswordChecks(password ?? "");
   const score = Object.values(checks).filter(Boolean).length;
   const barColor = score <= 1 ? "bg-red-500" : score < 4 ? "bg-amber-500" : "ds-bg-primary";
   const strengthLabel = score <= 1 ? t("strength.weak") : score < 4 ? t("strength.medium") : t("strength.strong");

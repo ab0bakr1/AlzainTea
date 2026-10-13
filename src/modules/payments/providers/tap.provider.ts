@@ -11,6 +11,19 @@ import { createTapCharge, refundTapCharge } from "@/lib/payment-gateway";
 
 const APP_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 
+/** الحقول التي نستخدمها فعلاً من جسم Webhook الخاص بـ Tap (كل شيء اختياري لأن الجسم غير موثوق قبل التحقق) */
+interface TapWebhookPayload {
+  id?: string;
+  hashstring?: string;
+  amount?: number | string;
+  currency?: string;
+  status?: string;
+  created?: string | number;
+  reference?: { gateway?: string; payment?: string; order?: string };
+  transaction?: { created?: string | number };
+  metadata?: { orderId?: string };
+}
+
 const THREE_DECIMAL_CURRENCIES = new Set(["KWD", "BHD", "OMR"]);
 const decimalsFor = (currency: string) => (THREE_DECIMAL_CURRENCIES.has(currency.toUpperCase()) ? 3 : 2);
 
@@ -71,9 +84,9 @@ function verifyTapWebhook(rawBody: string, headers: Headers): WebhookEvent {
     throw new ApiError("MISSING_SIGNATURE", "سر تحقق Webhook الخاص بـ Tap غير مُهيأ", 400);
   }
 
-  let payload: Record<string, any>;
+  let payload: TapWebhookPayload;
   try {
-    payload = JSON.parse(rawBody);
+    payload = JSON.parse(rawBody) as TapWebhookPayload;
   } catch {
     throw new ApiError("INVALID_PAYLOAD", "جسم Webhook الخاص بـ Tap غير صالح", 400);
   }
@@ -137,7 +150,7 @@ function verifyTapWebhook(rawBody: string, headers: Headers): WebhookEvent {
   return {
     type,
     orderId,
-    providerRef: payload.id,
+    providerRef: payload?.id ?? "",
     amountInMinorUnits,
     currency: currency ? currency.toUpperCase() : undefined,
     raw: payload,

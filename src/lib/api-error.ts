@@ -32,7 +32,7 @@ export class ApiError extends Error {
   }
 }
 
-export function apiError(code: ApiErrorCode, message: string, status: number) {
+export function apiError(code: ApiErrorCode, message: string, status: number): NextResponse {
   return NextResponse.json(
     { success: false, error: { code, message, statusCode: status } },
     { status }
@@ -43,7 +43,7 @@ export function apiError(code: ApiErrorCode, message: string, status: number) {
  * يُستخدم داخل كل catch block في route handlers.
  * يسجّل تفاصيل الخطأ الكاملة في الخادم (لاحقاً: Sentry) ويرجع رسالة عامة آمنة للعميل.
  */
-export function handleApiError(error: unknown) {
+export function handleApiError(error: unknown): NextResponse {
   if (error instanceof ApiError) {
     return NextResponse.json(
       {
@@ -53,6 +53,7 @@ export function handleApiError(error: unknown) {
       { status: error.statusCode }
     );
   }
+
 
   // TODO: إرسال التفاصيل الكاملة إلى Sentry هنا
   console.error("[API_ERROR]", error);

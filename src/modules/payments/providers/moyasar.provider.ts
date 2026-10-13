@@ -11,6 +11,19 @@ import { createMoyasarPayment, refundMoyasarPayment } from "@/lib/payment-gatewa
 
 const APP_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 
+/** الحقول التي نستخدمها فعلاً من جسم Webhook الخاص بـ Moyasar (كل شيء اختياري لأن الجسم غير موثوق قبل التحقق) */
+interface MoyasarWebhookPayload {
+  type?: string;
+  secret_token?: unknown;
+  data?: {
+    id?: string;
+    status?: string;
+    amount?: number | string;
+    currency?: string;
+    metadata?: { orderId?: string };
+  };
+}
+
 async function createMoyasarSession(params: CreateSessionParams): Promise<CreateSessionResult> {
   const payment = await createMoyasarPayment({
     amount: params.amountInCents,
@@ -43,14 +56,14 @@ function verifyMoyasarWebhook(rawBody: string, _headers: Headers): WebhookEvent 
     throw new ApiError("MISSING_SIGNATURE", "سر تحقق Webhook الخاص بـ Moyasar غير مُهيأ", 400);
   }
 
-  let payload: Record<string, any>;
+  let payload: MoyasarWebhookPayload;
   try {
-    payload = JSON.parse(rawBody);
+    payload = JSON.parse(rawBody) as MoyasarWebhookPayload;
   } catch {
     throw new ApiError("INVALID_PAYLOAD", "جسم Webhook الخاص بـ Moyasar غير صالح", 400);
   }
 
-  const receivedToken: string = payload?.secret_token ?? "";
+  const receivedToken = typeof payload?.secret_token === "string" ? payload.secret_token : "";
   const expected = Buffer.from(MOYASAR_WEBHOOK_SECRET);
   const received = Buffer.from(receivedToken);
 
@@ -80,7 +93,7 @@ function verifyMoyasarWebhook(rawBody: string, _headers: Headers): WebhookEvent 
   return {
     type,
     orderId,
-    providerRef: data.id,
+    providerRef: data.id ?? "",
     amountInMinorUnits: Number.isFinite(amount) ? amount : undefined,
     currency: typeof data?.currency === "string" ? data.currency.toUpperCase() : undefined,
     raw: payload,

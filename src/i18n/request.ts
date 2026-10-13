@@ -8,5 +8,6 @@ export default getRequestConfig(async (params) => {
   return {
     locale,
     messages,
+    timeZone: "Asia/Riyadh",
   };
 });

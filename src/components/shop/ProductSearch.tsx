@@ -14,9 +14,11 @@ export function ProductSearch() {
   const [value, setValue] = useState(filters.q ?? "");
 
   // مزامنة الحقل مع الرابط عند التنقل (زر رجوع المتصفح مثلاً)
-  useEffect(() => {
+  const [prevQ, setPrevQ] = useState(filters.q);
+  if (filters.q !== prevQ) {
+    setPrevQ(filters.q);
     setValue(filters.q ?? "");
-  }, [filters.q]);
+  }
 
   useEffect(() => {
     const handle = setTimeout(() => {

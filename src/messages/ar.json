@@ -120,6 +120,8 @@
       "noAccount": "ليس لديك حساب؟",
       "createAccount": "إنشاء حساب جديد",
       "continueAsGuest": "المتابعة كزائر",
+      "metaTitle": "تسجيل الدخول | متجر الزين للشاي",
+      "metaDescription": "سجّل دخولك إلى حسابك في متجر الزين للشاي",
       "errors": {
         "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
         "emailInvalid": "يرجى إدخال بريد إلكتروني صحيح",

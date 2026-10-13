@@ -1,4 +1,4 @@
-// src/app/admin/products/[id]/page.tsx
+// src/app/admin/products/[id]/edit/page.tsx
 import Link from "next/link";
 import { ProductEditor } from "@/components/admin/ProductEditor";
 

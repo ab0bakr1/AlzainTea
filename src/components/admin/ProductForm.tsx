@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   useCategoryOptions,
@@ -168,10 +168,10 @@ export function ProductForm({ product }: { product?: AdminProductDetail }) {
   const [values, setValues] = useState<FormValues>(initialValues);
   const [slugTouched, setSlugTouched] = useState(!!product); // لا نغيّر slug منتج قائم تلقائياً
   const [error, setError] = useState<string | null>(null);
-  const savedRef = useRef(false);
+  const [saved, setSaved] = useState(false);
 
   const submitting = createMutation.isPending || updateMutation.isPending;
-  const dirty = !savedRef.current && JSON.stringify(values) !== JSON.stringify(initialValues);
+  const dirty = !saved && JSON.stringify(values) !== JSON.stringify(initialValues);
 
   // تنبيه المتصفح عند مغادرة الصفحة وفيها تغييرات غير محفوظة
   useEffect(() => {
@@ -208,7 +208,7 @@ export function ProductForm({ product }: { product?: AdminProductDetail }) {
       } else {
         await createMutation.mutateAsync(payload);
       }
-      savedRef.current = true;
+      setSaved(true);
       router.push("/admin/products");
     } catch (err) {
       setError(extractApiError(err, "حدث خطأ أثناء حفظ المنتج"));

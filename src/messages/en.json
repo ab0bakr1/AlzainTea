@@ -120,6 +120,8 @@
       "noAccount": "Don't have an account?",
       "createAccount": "Create an account",
       "continueAsGuest": "Continue as guest",
+      "metaTitle": "Login | Alzain Tea Store",
+      "metaDescription": "Login to your account at Alzain Tea Store",
       "errors": {
         "invalidCredentials": "Invalid email or password",
         "emailInvalid": "Please enter a valid email address",

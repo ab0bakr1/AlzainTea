@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { signOut } from "next-auth/react";
 import { FolderTree, LayoutDashboard, LogOut, Menu, Package, ShoppingBag, Star, Store, X } from "lucide-react";
 
@@ -23,7 +23,11 @@ export default function AdminSidebar({ userName, role }: { userName: string; rol
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
-  useEffect(() => setOpen(false), [pathname]);
+  const [prevPath, setPrevPath] = useState(pathname);
+  if (pathname !== prevPath) {
+    setPrevPath(pathname);
+    setOpen(false);
+  }
 
   const panel = (
     <div className="flex h-full flex-col">

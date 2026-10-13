@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, Check, Circle, Eye, EyeOff, Leaf, Lock, ShieldAlert } from "lucide-react";
 import Button from "@/components/atoms/Button";
@@ -59,14 +59,15 @@ export default function ResetPasswordForm() {
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<ResetPasswordFormInput, unknown, ResetPasswordFormOutput>({
     resolver: zodResolver(schema),
     defaultValues: { password: "", confirmPassword: "" },
   });
 
-  const checks = getPasswordChecks(watch("password") ?? "");
+  const password = useWatch({ control, name: "password" });
+  const checks = getPasswordChecks(password ?? "");
 
   const onSubmit = async (values: ResetPasswordFormOutput) => {
     setFormError(null);

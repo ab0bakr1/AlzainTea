@@ -1,23 +1,27 @@
+// src/modules/addresses/address.service.ts
+
 import { ApiError } from "@/lib/api-error";
 import {
-  clearDefaultAddresses,
-  createAddress,
+  createAddressForUser,
   deleteAddress,
   findAddressById,
   listAddressesByUser,
-  updateAddress,
+  updateAddressForUser,
 } from "./address.repository";
 import { AddressInput, UpdateAddressInput } from "./address.validators";
+
+/** "" أو مسافات في الرمز البريدي تُخزَّن كـ null. لا نلمس الحقل إن لم يُرسل أصلاً (تعديل جزئي). */
+function normalizePostalCode<T extends { postalCode?: string | null }>(input: T): T {
+  if (!("postalCode" in input)) return input;
+  return { ...input, postalCode: input.postalCode?.trim() || null };
+}
 
 export function getUserAddresses(userId: string) {
   return listAddressesByUser(userId);
 }
 
-export async function addAddress(userId: string, input: AddressInput) {
-  if (input.isDefault) {
-    await clearDefaultAddresses(userId);
-  }
-  return createAddress(userId, input);
+export function addAddress(userId: string, input: AddressInput) {
+  return createAddressForUser(userId, normalizePostalCode(input));
 }
 
 export async function editAddress(userId: string, addressId: string, input: UpdateAddressInput) {
@@ -25,10 +29,7 @@ export async function editAddress(userId: string, addressId: string, input: Upda
   if (!address || address.userId !== userId) {
     throw new ApiError("ADDRESS_NOT_FOUND", "العنوان غير موجود", 404);
   }
-  if (input.isDefault) {
-    await clearDefaultAddresses(userId);
-  }
-  return updateAddress(addressId, input);
+  return updateAddressForUser(userId, addressId, normalizePostalCode(input));
 }
 
 export async function removeAddress(userId: string, addressId: string) {

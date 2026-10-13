@@ -236,7 +236,7 @@ export default function ProductsCatalog() {
   /* ----- البحث النصي (Debounce 300ms) ----- */
   const [searchInput, setSearchInput] = useState(q);
   const debouncedSearch = useDebounced(searchInput.trim(), 300);
-  useEffect(() => setSearchInput(q), [q]); // مزامنة عند الرجوع/مسح الفلاتر
+  
   useEffect(() => {
     if (debouncedSearch !== q) updateUrl({ q: debouncedSearch || undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -245,10 +245,19 @@ export default function ProductsCatalog() {
   /* ----- حقول السعر (تُطبَّق عند الضغط على تطبيق/Enter) ----- */
   const [minInput, setMinInput] = useState(minPrice);
   const [maxInput, setMaxInput] = useState(maxPrice);
-  useEffect(() => {
+  
+  const [prevQ, setPrevQ] = useState(q);
+  if (q !== prevQ) {
+    setPrevQ(q);
+    setSearchInput(q);
+  }
+
+  const [prevRange, setPrevRange] = useState({ minPrice, maxPrice });
+  if (minPrice !== prevRange.minPrice || maxPrice !== prevRange.maxPrice) {
+    setPrevRange({ minPrice, maxPrice });
     setMinInput(minPrice);
     setMaxInput(maxPrice);
-  }, [minPrice, maxPrice]);
+  }
 
   const applyPrice = () => {
     let lo = minInput ? Number(minInput) : undefined;

@@ -34,7 +34,7 @@ export default function AppProviders({ children, locale, messages }: Props) {
       <CartAuthSync />
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
-          <NextIntlClientProvider locale={locale} messages={messages}>
+          <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Riyadh">
             {children}
           </NextIntlClientProvider>
         </ThemeProvider>

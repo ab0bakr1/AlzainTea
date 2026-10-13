@@ -51,8 +51,9 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "**.public.blob.vercel-storage.com" },
       { protocol: "https", hostname: "encrypted-tbn0.gstatic.com", pathname: "/images"},
+      { protocol: "https", hostname: "**.mymarket.ma", pathname: "/cdn/shop/files/**"},
       // أضف هنا أي نطاق صور آخر تستخدمه في بيانات المنتجات (seed / R2 ...)
-      // { protocol: "https", hostname: "images.unsplash.com" },
+      { protocol: "https", hostname: "images.unsplash.com" }
     ],
   },
 
