@@ -1,19 +1,11 @@
 "use client";
 
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { OrderStatusValue } from "@/modules/orders/order-status";
 import { formatDateTime } from "@/lib/order-format";
 
 /** المسار الطبيعي للطلب (الحالات النهائية الاستثنائية تُعرض كتنبيه وليس كشريط تقدم) */
 const STEPS = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"] as const;
-
-const LABELS: Record<(typeof STEPS)[number], { ar: string; en: string }> = {
-  PENDING: { ar: "تم الطلب", en: "Placed" },
-  CONFIRMED: { ar: "تم التأكيد", en: "Confirmed" },
-  PROCESSING: { ar: "قيد التجهيز", en: "Preparing" },
-  SHIPPED: { ar: "تم الشحن", en: "Shipped" },
-  DELIVERED: { ar: "تم التوصيل", en: "Delivered" },
-};
 
 interface Props {
   status: OrderStatusValue;
@@ -22,7 +14,7 @@ interface Props {
 
 export function OrderProgress({ status, history }: Props) {
   const locale = useLocale();
-  const lang = locale === "ar" ? "ar" : "en";
+  const t = useTranslations("orders.detail");
   const current = STEPS.indexOf(status as (typeof STEPS)[number]);
   if (current === -1) return null;
 
@@ -30,8 +22,8 @@ export function OrderProgress({ status, history }: Props) {
 
   return (
     <ol
-      aria-label={lang === "ar" ? "مراحل الطلب" : "Order progress"}
-      className="flex rounded-[var(--radius-lg)] border border-[var(--color-form)] bg-[var(--color-bg)] px-2 py-5 sm:px-4"
+      aria-label={t("progressLabel")}
+      className="flex rounded-[var(--radius-2xl)] border border-[var(--border-color)] bg-[var(--color-bg)] px-2 py-7 shadow-[var(--shadow-xs)] sm:px-6"
     >
       {STEPS.map((step, i) => {
         const done = i < current || (i === current && step === "DELIVERED");
@@ -46,38 +38,38 @@ export function OrderProgress({ status, history }: Props) {
             {i < STEPS.length - 1 && (
               <span
                 aria-hidden
-                className={`absolute start-1/2 top-3.5 h-0.5 w-full ${
-                  i < current ? "bg-[var(--color-primary)]" : "bg-[var(--color-form)]"
+                className={`absolute start-1/2 top-4 h-0.5 w-full ${
+                  i < current ? "bg-[var(--color-primary)]" : "bg-[var(--border-color)]"
                 }`}
               />
             )}
             <span
-              className={`relative z-10 grid h-7 w-7 place-items-center rounded-full border-2 text-xs ${
+              className={`relative z-10 grid h-8 w-8 place-items-center rounded-full border-2 text-xs transition-shadow ${
                 done
-                  ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
+                  ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-[var(--shadow-gold)]"
                   : active
-                    ? "border-[var(--color-primary)] bg-[var(--color-bg)] ring-4 ring-[var(--color-primary-200)]"
-                    : "border-[var(--color-form)] bg-[var(--color-bg)]"
+                    ? "border-[var(--color-primary)] bg-[var(--color-bg)] ring-4 ring-[var(--color-primary-300)]"
+                    : "border-[var(--border-color-strong)] bg-[var(--color-bg)]"
               }`}
             >
               {done && (
-                <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="3">
+                <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="3">
                   <path d="m4 10 4 4 8-8" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               )}
-              {active && <span className="h-2 w-2 rounded-full bg-[var(--color-primary)]" />}
+              {active && <span className="h-2.5 w-2.5 rounded-full bg-[var(--color-primary)]" />}
             </span>
             <span
-              className={`mt-2 px-0.5 text-[11px] leading-tight sm:text-sm ${
+              className={`mt-3 px-0.5 text-[11px] leading-tight sm:text-sm ${
                 done || active
-                  ? "font-medium text-[var(--color-text-primary)]"
+                  ? "font-semibold text-[var(--color-text-primary)]"
                   : "text-[var(--color-text-disabled)]"
               }`}
             >
-              {LABELS[step][lang]}
+              {t(`steps.${step}`)}
             </span>
             {at && (done || active) && (
-              <span className="mt-0.5 hidden text-xs text-[var(--color-text-secondary)] sm:block">
+              <span className="mt-1 hidden text-xs text-[var(--color-text-secondary)] sm:block">
                 {formatDateTime(at, locale)}
               </span>
             )}

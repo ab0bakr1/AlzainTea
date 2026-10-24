@@ -9,9 +9,6 @@ export const metadata: Metadata = {
 
 export default async function AccountOrderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <MyOrderDetail id={id} />
-    </div>
-  );
+  // الحاوية والمسافات صارت داخل MyOrderDetail (ترويسة داكنة بعرض كامل مثل الصفحة الرئيسية)
+  return <MyOrderDetail id={id} />;
 }

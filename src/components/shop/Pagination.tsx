@@ -2,7 +2,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useProductFiltersUrl } from "@/hooks/useProductFiltersUrl";
 
 interface PaginationProps {
@@ -28,9 +28,17 @@ function getPageNumbers(current: number, total: number): (number | "...")[] {
   return withGaps;
 }
 
+const pageBtnBase =
+  "grid size-10 place-items-center rounded-full border border-[var(--border-color)] text-sm tabular-nums text-[var(--color-text-primary)] transition hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-200)] disabled:pointer-events-none disabled:opacity-40";
+
+const pageBtnActive =
+  "grid size-10 place-items-center rounded-full border border-transparent bg-[image:var(--gradient-gold)] text-sm font-semibold tabular-nums text-[var(--color-on-primary)] shadow-[var(--shadow-gold)]";
+
 export function Pagination({ currentPage, totalPages, hasNextPage, hasPrevPage }: PaginationProps) {
   const locale = useLocale();
   const isRtl = locale === "ar";
+  const t = useTranslations("products.catalog");
+  const tc = useTranslations("common");
   const { updateFilters } = useProductFiltersUrl();
 
   if (totalPages <= 1) return null;
@@ -39,20 +47,27 @@ export function Pagination({ currentPage, totalPages, hasNextPage, hasPrevPage }
   const NextIcon = isRtl ? ChevronLeft : ChevronRight;
 
   return (
-    <nav className="flex items-center justify-center gap-1" aria-label="Pagination">
+    <nav
+      className="mt-14 flex flex-wrap items-center justify-center gap-2"
+      aria-label={t("paginationLabel")}
+    >
       <button
         type="button"
         disabled={!hasPrevPage}
         onClick={() => updateFilters({ page: currentPage - 1 })}
-        className="flex h-9 w-9 items-center justify-center rounded-lg border border-border disabled:opacity-40"
-        aria-label="Previous page"
+        className={pageBtnBase}
+        aria-label={tc("previous")}
       >
-        <PrevIcon className="h-4 w-4" />
+        <PrevIcon className="size-4" aria-hidden />
       </button>
 
       {getPageNumbers(currentPage, totalPages).map((page, idx) =>
         page === "..." ? (
-          <span key={`gap-${idx}`} className="px-2 text-sm text-muted-foreground">
+          <span
+            key={`gap-${idx}`}
+            className="px-1 text-[var(--color-text-disabled)]"
+            aria-hidden
+          >
             …
           </span>
         ) : (
@@ -60,12 +75,9 @@ export function Pagination({ currentPage, totalPages, hasNextPage, hasPrevPage }
             key={page}
             type="button"
             onClick={() => updateFilters({ page })}
+            aria-label={t("pageLabel", { page })}
             aria-current={page === currentPage ? "page" : undefined}
-            className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm transition ${
-              page === currentPage
-                ? "bg-primary text-primary-foreground"
-                : "border border-border hover:bg-muted"
-            }`}
+            className={page === currentPage ? pageBtnActive : pageBtnBase}
           >
             {page}
           </button>
@@ -76,10 +88,10 @@ export function Pagination({ currentPage, totalPages, hasNextPage, hasPrevPage }
         type="button"
         disabled={!hasNextPage}
         onClick={() => updateFilters({ page: currentPage + 1 })}
-        className="flex h-9 w-9 items-center justify-center rounded-lg border border-border disabled:opacity-40"
-        aria-label="Next page"
+        className={pageBtnBase}
+        aria-label={tc("next")}
       >
-        <NextIcon className="h-4 w-4" />
+        <NextIcon className="size-4" aria-hidden />
       </button>
     </nav>
   );

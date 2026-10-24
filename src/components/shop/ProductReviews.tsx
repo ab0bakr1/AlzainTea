@@ -2,56 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
 import { useCreateReview, useProductReviews } from "@/hooks/useReviews";
 import { getErrorMessage } from "@/lib/get-error-message";
 import StarRating from "./StarRating";
-
-const T = {
-  ar: {
-    title: "تقييمات العملاء",
-    noReviews: "لا توجد تقييمات بعد. كن أول من يقيّم هذا المنتج.",
-    verified: "شراء موثّق",
-    outOf: "من 5",
-    reviews: "تقييم",
-    write: "اكتب تقييمك",
-    yourRating: "تقييمك",
-    comment: "تعليقك (اختياري)",
-    submit: "إرسال التقييم",
-    sending: "جارٍ الإرسال...",
-    thanks: "شكراً! سيظهر تقييمك بعد مراجعته من الإدارة.",
-    login: "سجّل الدخول لكتابة تقييم",
-    needPurchase: "يمكنك تقييم المنتجات التي استلمتها فقط.",
-    pending: "تقييمك قيد المراجعة.",
-    approved: "تم نشر تقييمك. شكراً لك!",
-    rejected: "لم يتم قبول تقييمك.",
-    prev: "السابق",
-    next: "التالي",
-    pickRating: "الرجاء اختيار عدد النجوم",
-  },
-  en: {
-    title: "Customer reviews",
-    noReviews: "No reviews yet. Be the first to review this product.",
-    verified: "Verified purchase",
-    outOf: "out of 5",
-    reviews: "reviews",
-    write: "Write a review",
-    yourRating: "Your rating",
-    comment: "Your comment (optional)",
-    submit: "Submit review",
-    sending: "Submitting...",
-    thanks: "Thank you! Your review will appear after moderation.",
-    login: "Sign in to write a review",
-    needPurchase: "Only customers who received this product can review it.",
-    pending: "Your review is awaiting moderation.",
-    approved: "Your review is published. Thank you!",
-    rejected: "Your review was not approved.",
-    prev: "Previous",
-    next: "Next",
-    pickRating: "Please select a star rating",
-  },
-} as const;
 
 interface Props {
   productId: string;
@@ -60,7 +15,8 @@ interface Props {
 
 export default function ProductReviews({ productId, slug }: Props) {
   const locale = useLocale();
-  const t = locale === "ar" ? T.ar : T.en;
+  const t = useTranslations("reviews");
+  const tc = useTranslations("common");
   const { status } = useSession();
   const [page, setPage] = useState(1);
   const { data, isLoading } = useProductReviews(slug, page);
@@ -73,7 +29,7 @@ export default function ProductReviews({ productId, slug }: Props) {
 
   async function handleSubmit() {
     setFormError(null);
-    if (rating < 1) return setFormError(t.pickRating);
+    if (rating < 1) return setFormError(t("pickRating"));
     try {
       await create.mutateAsync({ productId, rating, comment: comment.trim() || undefined });
       setSubmitted(true);
@@ -89,32 +45,35 @@ export default function ProductReviews({ productId, slug }: Props) {
   const dateFmt = new Intl.DateTimeFormat(locale === "ar" ? "ar-u-nu-latn" : "en-US", { dateStyle: "medium" });
 
   return (
-    <section className="mt-12 space-y-8" aria-labelledby="reviews-title">
-      <h2 id="reviews-title" className="text-2xl font-bold">
-        {t.title}
-      </h2>
+    <section className="space-y-8" aria-labelledby="reviews-title">
+      <div>
+        <h2 id="reviews-title" className="ds-font-heading">
+          {t("title")}
+        </h2>
+        <div className="ds-gold-rule mt-3 max-w-48" aria-hidden />
+      </div>
 
-      {isLoading && <div className="h-24 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" />}
+      {isLoading && <div className="ds-rounded-xl h-24 animate-pulse bg-[var(--color-form)]" />}
 
       {summary && summary.count > 0 && (
-        <div className="flex flex-col gap-6 rounded-xl border p-5 sm:flex-row sm:items-center">
-          <div className="text-center sm:min-w-40">
-            <div className="text-5xl font-bold">{summary.average.toFixed(1)}</div>
-            <StarRating value={summary.average} />
-            <p className="mt-1 text-sm text-gray-500">
-              {summary.count} {t.reviews}
-            </p>
+        <div className="ds-card ds-shadow-sm flex flex-col gap-6 p-5 sm:flex-row sm:items-center sm:p-6">
+          <div className="text-center sm:min-w-44">
+            <div className="ds-price text-5xl">{summary.average.toFixed(1)}</div>
+            <div className="mt-1 flex justify-center">
+              <StarRating value={summary.average} />
+            </div>
+            <p className="ds-text-secondary mt-1 text-sm">{t("count", { count: summary.count })}</p>
           </div>
-          <div className="flex-1 space-y-1.5">
+          <div className="flex-1 space-y-2">
             {([5, 4, 3, 2, 1] as const).map((n) => {
               const pct = summary.count ? (summary.distribution[n] / summary.count) * 100 : 0;
               return (
-                <div key={n} className="flex items-center gap-2 text-sm">
-                  <span className="w-3 text-center">{n}</span>
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-                    <div className="h-full bg-amber-400" style={{ width: `${pct}%` }} />
+                <div key={n} className="flex items-center gap-3 text-sm">
+                  <span className="ds-numeric ds-text-secondary w-3 text-center">{n}</span>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--color-form)]">
+                    <div className="ds-bg-gold h-full rounded-full" style={{ width: `${pct}%` }} />
                   </div>
-                  <span className="w-8 text-end text-gray-500">{summary.distribution[n]}</span>
+                  <span className="ds-numeric ds-text-secondary w-8 text-end">{summary.distribution[n]}</span>
                 </div>
               );
             })}
@@ -122,78 +81,79 @@ export default function ProductReviews({ productId, slug }: Props) {
         </div>
       )}
 
-      {data && data.items.length === 0 && <p className="text-gray-500">{t.noReviews}</p>}
+      {data && data.items.length === 0 && <p className="ds-text-secondary">{t("noReviews")}</p>}
 
-      <ul className="space-y-5">
+      <ul className="space-y-4">
         {data?.items.map((r) => (
-          <li key={r.id} className="border-b pb-5">
+          <li key={r.id} className="ds-card ds-rounded-xl p-5">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <StarRating value={r.rating} size={16} />
-              <span className="font-medium">{r.authorName}</span>
+              <span className="ds-text-primary font-semibold">{r.authorName}</span>
               {r.verifiedPurchase && (
-                <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700 dark:bg-green-900/40 dark:text-green-300">
-                  {t.verified}
-                </span>
+                <span className="ds-badge ds-badge-success">{t("verifiedPurchase")}</span>
               )}
-              <span className="text-xs text-gray-500">{dateFmt.format(new Date(r.createdAt))}</span>
+              <span className="ds-text-disabled ds-numeric text-xs">{dateFmt.format(new Date(r.createdAt))}</span>
             </div>
-            {r.comment && <p className="mt-2 whitespace-pre-line text-gray-700 dark:text-gray-300">{r.comment}</p>}
+            {r.comment && <p className="ds-text-secondary mt-3 leading-relaxed whitespace-pre-line">{r.comment}</p>}
           </li>
         ))}
       </ul>
 
       {data && data.meta.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3">
+        <div className="flex items-center justify-center gap-4">
           <button
             disabled={page <= 1}
             onClick={() => setPage((p) => p - 1)}
-            className="rounded-md border px-3 py-1.5 text-sm disabled:opacity-40"
+            className="ds-btn ds-btn-outline min-h-10 px-5 text-sm"
           >
-            {t.prev}
+            {tc("previous")}
           </button>
-          <span className="text-sm text-gray-500">
+          <span className="ds-numeric ds-text-secondary text-sm">
             {page} / {data.meta.totalPages}
           </span>
           <button
             disabled={page >= data.meta.totalPages}
             onClick={() => setPage((p) => p + 1)}
-            className="rounded-md border px-3 py-1.5 text-sm disabled:opacity-40"
+            className="ds-btn ds-btn-outline min-h-10 px-5 text-sm"
           >
-            {t.next}
+            {tc("next")}
           </button>
         </div>
       )}
 
       {/* منطقة كتابة التقييم */}
-      <div className="rounded-xl border p-5">
+      <div className="ds-card ds-rounded-2xl p-5 sm:p-6">
         {status === "unauthenticated" && (
-          <Link href={`/login?callbackUrl=/products/${slug}`} className="text-green-700 underline">
-            {t.login}
+          <Link
+            href={`/login?callbackUrl=/products/${slug}`}
+            className="ds-text-alt font-semibold underline underline-offset-4"
+          >
+            {t("loginLink")}
           </Link>
         )}
 
         {status === "authenticated" && viewer?.hasReviewed && viewer.myReview && (
-          <p className="text-gray-700 dark:text-gray-300">
-            {viewer.myReview.status === "PENDING" && t.pending}
-            {viewer.myReview.status === "APPROVED" && t.approved}
-            {viewer.myReview.status === "REJECTED" && t.rejected}
+          <p className="ds-text-secondary">
+            {viewer.myReview.status === "PENDING" && t("pending")}
+            {viewer.myReview.status === "APPROVED" && t("approved")}
+            {viewer.myReview.status === "REJECTED" && t("rejected")}
           </p>
         )}
 
         {status === "authenticated" && viewer && !viewer.hasReviewed && !viewer.canReview && (
-          <p className="text-gray-500">{t.needPurchase}</p>
+          <p className="ds-text-secondary">{t("purchaseRequired")}</p>
         )}
 
         {status === "authenticated" && viewer?.canReview && !submitted && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">{t.write}</h3>
+          <div className="space-y-5">
+            <h3 className="ds-font-heading">{t("writeReview")}</h3>
             <div>
-              <p className="mb-1 text-sm">{t.yourRating}</p>
+              <p className="ds-text-primary mb-2 text-sm font-medium">{t("yourRating")}</p>
               <StarRating value={rating} size={28} onChange={setRating} />
             </div>
             <div>
-              <label className="mb-1 block text-sm" htmlFor="review-comment">
-                {t.comment}
+              <label className="ds-text-primary mb-2 block text-sm font-medium" htmlFor="review-comment">
+                {t("comment")}
               </label>
               <textarea
                 id="review-comment"
@@ -201,22 +161,23 @@ export default function ProductReviews({ productId, slug }: Props) {
                 onChange={(e) => setComment(e.target.value)}
                 maxLength={1000}
                 rows={4}
-                className="w-full rounded-md border bg-transparent p-3"
+                placeholder={t("commentPlaceholder")}
+                className="ds-input py-3"
               />
             </div>
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
+            {formError && <p className="text-sm text-[var(--color-danger)]">{formError}</p>}
             <button
               type="button"
               onClick={handleSubmit}
               disabled={create.isPending}
-              className="rounded-md bg-green-700 px-5 py-2 text-white transition hover:bg-green-800 disabled:opacity-60"
+              className="ds-btn ds-btn-primary px-8"
             >
-              {create.isPending ? t.sending : t.submit}
+              {create.isPending ? t("submitting") : t("submit")}
             </button>
           </div>
         )}
 
-        {submitted && <p className="text-green-700 dark:text-green-400">{t.thanks}</p>}
+        {submitted && <p className="font-medium text-[var(--color-success)]">{t("thankYou")}</p>}
       </div>
     </section>
   );

@@ -7,7 +7,7 @@ export const focusRing =
 const btn = `inline-flex items-center justify-center rounded-xl font-medium transition ${focusRing}`;
 
 export const btnOutline = `${btn} border border-[var(--color-primary)] ds-text-alt hover:bg-[var(--color-bg-alt)]`;
-export const btnPrimary = `${btn} ds-bg-primary text-white hover:opacity-90`;
+export const btnPrimary = `${btn} ds-bg-gold hover:opacity-90`;
 
 export const btnSizeDesktop = "h-10 px-4 text-sm";
 export const btnSizeMobile = "h-12 w-full px-5 text-base";

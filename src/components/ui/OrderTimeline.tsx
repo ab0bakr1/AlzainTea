@@ -1,7 +1,7 @@
 "use client";
 
-import { useLocale } from "next-intl";
-import { ORDER_STATUS_LABELS, type OrderStatusValue } from "@/modules/orders/order-status";
+import { useLocale, useTranslations } from "next-intl";
+import type { OrderStatusValue } from "@/modules/orders/order-status";
 import { formatDateTime } from "@/lib/order-format";
 
 interface Entry {
@@ -14,23 +14,30 @@ interface Entry {
 /** سجل تتبع الطلب (من الأحدث إلى الأقدم). showNotes=false للعميل لإخفاء وسوم الإدارة الداخلية. */
 export function OrderTimeline({ history, showNotes = false }: { history: Entry[]; showNotes?: boolean }) {
   const locale = useLocale();
-  const lang = locale === "ar" ? "ar" : "en";
+  const t = useTranslations("orders.detail.orderStatus");
   const entries = [...history].reverse();
 
   if (entries.length === 0) return null;
 
   return (
-    <ol className="relative ms-3 border-s border-zinc-300 dark:border-zinc-700">
+    <ol className="relative ms-3 border-s border-[var(--border-color-strong)]">
       {entries.map((e, i) => (
-        <li key={e.id} className="mb-5 ms-5 last:mb-0">
+        <li key={e.id} className="mb-6 ms-6 last:mb-0">
           <span
-            className={`absolute -start-[5px] mt-1.5 h-2.5 w-2.5 rounded-full ${
-              i === 0 ? "bg-emerald-500" : "bg-zinc-400 dark:bg-zinc-600"
+            aria-hidden
+            className={`absolute -start-[7px] mt-1 h-3.5 w-3.5 rounded-full border-2 border-[var(--color-bg)] ${
+              i === 0
+                ? "bg-[var(--color-primary)] shadow-[var(--shadow-gold)]"
+                : "bg-[var(--border-color-strong)]"
             }`}
           />
-          <p className="text-sm font-medium">{ORDER_STATUS_LABELS[e.status][lang]}</p>
-          <p className="text-xs text-zinc-500">{formatDateTime(e.createdAt, locale)}</p>
-          {showNotes && e.note && <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">{e.note}</p>}
+          <p className={`text-sm ${i === 0 ? "font-bold" : "font-medium"}`}>{t(e.status)}</p>
+          <p className="mt-0.5 text-xs tabular-nums text-[var(--color-text-secondary)]">
+            {formatDateTime(e.createdAt, locale)}
+          </p>
+          {showNotes && e.note && (
+            <p className="mt-1 text-xs text-[var(--color-text-secondary)]">{e.note}</p>
+          )}
         </li>
       ))}
     </ol>

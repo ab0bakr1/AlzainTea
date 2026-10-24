@@ -2,21 +2,35 @@
 
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
-import { Heart, LayoutDashboard, LogOut, Package } from "lucide-react";
+import { useTranslations } from "next-intl";
+import {
+  ChevronRight,
+  Heart,
+  LayoutDashboard,
+  LogOut,
+  Package,
+} from "lucide-react";
 import Title from "@/components/atoms/Title";
-import { useAccountText } from "./account-i18n";
+
+// نفس لغة الصفحة الرئيسية: بطاقة داكنة منقّطة (مثل cta-box) + بطاقات فاتحة
+// بأيقونات داخل دوائر (مثل بطاقات "لماذا الزين") + فاصل الكثبان الذهبي.
+const darkCardStyle: React.CSSProperties = {
+  backgroundImage:
+    "radial-gradient(rgba(240,230,211,.07) 1px, transparent 1px), linear-gradient(160deg, #1a1612 0%, #0f0d0a 60%, #14110c 100%)",
+  backgroundSize: "22px 22px, auto",
+};
 
 export default function MyAccount() {
-  const { t } = useAccountText();
+  const t = useTranslations("account");
   const { data: session, status } = useSession();
 
   if (status === "loading") {
     return (
-      <div className="space-y-4" aria-busy="true">
-        <div className="h-28 animate-pulse rounded-xl bg-zinc-200 dark:bg-zinc-800" />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="h-20 animate-pulse rounded-xl bg-zinc-200 dark:bg-zinc-800" />
-          <div className="h-20 animate-pulse rounded-xl bg-zinc-200 dark:bg-zinc-800" />
+      <div className="space-y-6" aria-busy="true">
+        <div className="h-36 animate-pulse rounded-[var(--radius-2xl)] bg-[var(--color-form)]" />
+        <div className="grid gap-5 sm:grid-cols-2 md:gap-6">
+          <div className="h-24 animate-pulse rounded-[var(--radius-2xl)] bg-[var(--color-form)]" />
+          <div className="h-24 animate-pulse rounded-[var(--radius-2xl)] bg-[var(--color-form)]" />
         </div>
       </div>
     );
@@ -24,9 +38,20 @@ export default function MyAccount() {
 
   if (!session?.user) {
     return (
-      <Link href="/login" className="font-medium underline">
-        {t.signIn}
-      </Link>
+      <div className="rounded-[var(--radius-2xl)] border border-[var(--border-color)] bg-[var(--color-bg)] px-6 py-12 text-center">
+        <span
+          aria-hidden
+          className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-form)] text-[var(--color-accent-text)]"
+        >
+          <LogOut size={24} className="rtl:rotate-180" />
+        </span>
+        <p className="mx-auto mt-5 max-w-sm text-[var(--color-text-secondary)]">
+          {t("signInPrompt")}
+        </p>
+        <Link href="/login" className="ds-btn ds-btn-primary mt-7 px-8">
+          {t("signIn")}
+        </Link>
+      </div>
     );
   }
 
@@ -36,52 +61,80 @@ export default function MyAccount() {
   const initial = (name ?? email ?? "?").trim().charAt(0).toUpperCase();
 
   const links = [
-    { href: "/account/orders", label: t.orders, desc: t.ordersDesc, Icon: Package },
-    { href: "/account/wishlist", label: t.wishlist, desc: t.wishlistDesc, Icon: Heart },
-    ...(isAdmin ? [{ href: "/admin", label: t.adminPanel, desc: t.adminPanelDesc, Icon: LayoutDashboard }] : []),
+    { href: "/account/orders", label: t("orders"), desc: t("ordersDesc"), Icon: Package },
+    { href: "/account/wishlist", label: t("wishlist"), desc: t("wishlistDesc"), Icon: Heart },
+    ...(isAdmin
+      ? [{ href: "/admin", label: t("adminPanel"), desc: t("adminPanelDesc"), Icon: LayoutDashboard }]
+      : []),
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-4 rounded-xl border border-zinc-200 p-5 dark:border-zinc-800">
+    <div className="space-y-8">
+      {/* بطاقة الملف الشخصي — داكنة دائماً في الوضعين مثل الـ Hero */}
+      <div
+        style={darkCardStyle}
+        className="flex flex-wrap items-center gap-5 rounded-[var(--radius-2xl)] border border-[rgba(240,230,211,.12)] p-6 text-[#f0e6d3] md:gap-6 md:p-8"
+      >
         <div
           aria-hidden
-          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full ds-bg-primary text-xl font-semibold text-white"
+          className="ds-bg-gold ds-font-heading flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-2xl font-bold shadow-[var(--shadow-gold)] ring-2 ring-[rgba(240,230,211,.18)] md:h-20 md:w-20 md:text-3xl"
         >
           {initial}
         </div>
+
         <div className="min-w-0 flex-1">
-          <Title size="md" className="truncate font-semibold">
+          <Title
+            size="lg"
+            className="ds-font-heading truncate font-bold text-[#f0e6d3]!"
+          >
             {name}
           </Title>
-          <p dir="ltr" className="truncate text-start text-sm text-zinc-500">
+          <p dir="ltr" className="mt-1 truncate text-start text-sm text-[#c4b49e]">
             {email}
           </p>
-          <p className="mt-1 text-xs text-zinc-500">
-            {t.role}: {isAdmin ? t.roleAdmin : t.roleCustomer}
+          <p className="mt-3 inline-flex rounded-full border border-[rgba(201,164,92,.4)] bg-[rgba(201,164,92,.12)] px-3 py-1 text-xs font-semibold text-[var(--brand-gold-light)]">
+            {t("role")}: {isAdmin ? t("roleAdmin") : t("roleCustomer")}
           </p>
         </div>
+
         <button
           onClick={() => signOut({ callbackUrl: "/" })}
-          className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-zinc-300 px-3 py-2 text-sm transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+          className="ds-btn ds-btn-outline cursor-pointer px-5 text-sm text-[#f0e6d3] hover:border-[rgba(201,164,92,.6)] hover:bg-white/5"
         >
           <LogOut size={16} className="rtl:rotate-180" />
-          {t.signOut}
+          {t("signOut")}
         </button>
       </div>
 
-      <nav aria-label={t.title} className={`grid gap-4 ${links.length > 2 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+      <div aria-hidden className="ds-dune-divider opacity-40" />
+
+      <nav
+        aria-label={t("title")}
+        className={`grid gap-5 md:gap-6 ${links.length > 2 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}
+      >
         {links.map(({ href, label, desc, Icon }) => (
           <Link
             key={href}
             href={href}
-            className="flex items-center gap-3 rounded-xl border border-zinc-200 p-4 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+            className="group flex items-center gap-4 rounded-[var(--radius-2xl)] border border-[var(--border-color)] bg-[var(--color-bg)] p-5 transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-1 hover:border-[var(--color-primary)] hover:shadow-[var(--shadow-md)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
           >
-            <Icon size={22} className="shrink-0 text-zinc-500" />
-            <span className="min-w-0">
-              <span className="block font-medium">{label}</span>
-              <span className="block truncate text-sm text-zinc-500">{desc}</span>
+            <span
+              aria-hidden
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--color-form)] text-[var(--color-accent-text)] transition-colors duration-200 group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-on-primary)]"
+            >
+              <Icon size={26} />
             </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-lg font-bold">{label}</span>
+              <span className="mt-1 block truncate text-sm text-[var(--color-text-secondary)]">
+                {desc}
+              </span>
+            </span>
+            <ChevronRight
+              size={18}
+              aria-hidden
+              className="shrink-0 text-[var(--color-text-disabled)] transition-transform duration-200 group-hover:translate-x-1 group-hover:text-[var(--color-accent-text)] rtl:rotate-180 rtl:group-hover:-translate-x-1"
+            />
           </Link>
         ))}
       </nav>

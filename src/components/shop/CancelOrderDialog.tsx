@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 
 interface Props {
   open: boolean;
@@ -14,30 +15,9 @@ interface Props {
   lang: "ar" | "en";
 }
 
-const COPY = {
-  ar: {
-    title: "إلغاء الطلب",
-    unpaid: "سيتم إلغاء هذا الطلب وتحرير الكمية المحجوزة.",
-    paid: "سيتم إلغاء الطلب واسترداد المبلغ كاملاً إلى وسيلة الدفع الأصلية. لا يمكن التراجع عن هذا الإجراء.",
-    reasonLabel: "سبب الإلغاء (اختياري)",
-    keep: "الاحتفاظ بالطلب",
-    confirm: "تأكيد الإلغاء",
-    working: "جارٍ الإلغاء…",
-  },
-  en: {
-    title: "Cancel order",
-    unpaid: "This order will be cancelled and the reserved items released.",
-    paid: "The order will be cancelled and the full amount refunded to your original payment method. This can't be undone.",
-    reasonLabel: "Reason for cancelling (optional)",
-    keep: "Keep order",
-    confirm: "Confirm cancellation",
-    working: "Cancelling…",
-  },
-} as const;
-
 export function CancelOrderDialog(p: Props) {
   const ref = useRef<HTMLDialogElement>(null);
-  const t = COPY[p.lang];
+  const t = useTranslations("orders.detail.dialog");
 
   useEffect(() => {
     const d = ref.current;
@@ -57,48 +37,57 @@ export function CancelOrderDialog(p: Props) {
       onClick={(e) => {
         if (e.target === e.currentTarget && !p.pending) p.onClose();
       }}
-      className="m-auto w-[calc(100%-2rem)] max-w-md rounded-[var(--radius-xl)] border border-[var(--color-form)] bg-[var(--color-bg)] p-0 text-[var(--color-text-primary)] shadow-[var(--shadow-lg)] backdrop:bg-black/50"
+      className="m-auto w-[calc(100%-2rem)] max-w-md overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--border-color)] bg-[var(--color-bg)] p-0 text-[var(--color-text-primary)] shadow-[var(--shadow-lg)] backdrop:bg-black/60 backdrop:backdrop-blur-sm"
     >
-      <div className="space-y-4 p-6">
-        <h2 id="cancel-order-title" className="text-lg font-semibold">
-          {t.title}
-        </h2>
-        <p className="text-sm text-[var(--color-text-secondary)]">{p.paid ? t.paid : t.unpaid}</p>
+      <div aria-hidden className="h-1 w-full" style={{ backgroundImage: "var(--gradient-gold)" }} />
+      <div className="space-y-5 p-6 md:p-7">
+        <div>
+          <h2 id="cancel-order-title" className="ds-font-heading text-2xl font-bold">
+            {t("title")}
+          </h2>
+          <span aria-hidden className="mt-3 block h-[2px] w-12 rounded-full bg-[var(--border-color-strong)]" />
+        </div>
+        <p className="text-sm leading-7 text-[var(--color-text-secondary)]">
+          {p.paid ? t("paid") : t("unpaid")}
+        </p>
 
         <label className="block text-sm">
-          <span className="mb-1 block font-medium">{t.reasonLabel}</span>
+          <span className="mb-2 block font-medium">{t("reasonLabel")}</span>
           <textarea
             value={p.reason}
             onChange={(e) => p.onReasonChange(e.target.value)}
             maxLength={200}
             rows={3}
             disabled={p.pending}
-            className="w-full resize-none rounded-[var(--radius-md)] border border-[var(--color-form)] bg-[var(--color-bg-alt)] p-2.5 text-sm focus-visible:outline-2 focus-visible:outline-[var(--focus-ring-color)]"
+            className="ds-input resize-none py-3 text-sm"
           />
         </label>
 
         {p.error && (
-          <p role="alert" className="rounded-[var(--radius-md)] bg-red-100 px-3 py-2 text-sm text-red-900 dark:bg-red-500/15 dark:text-red-300">
+          <p
+            role="alert"
+            className="rounded-[var(--radius-lg)] border border-[var(--color-danger)]/30 bg-[var(--color-danger-bg)] px-4 py-3 text-sm text-[var(--color-danger)]"
+          >
             {p.error}
           </p>
         )}
 
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={p.onClose}
             disabled={p.pending}
-            className="rounded-[var(--radius-md)] border border-[var(--color-form)] px-4 py-2 text-sm font-medium hover:bg-[var(--color-bg-alt)] disabled:opacity-50"
+            className="ds-btn ds-btn-outline px-6 text-sm"
           >
-            {t.keep}
+            {t("keep")}
           </button>
           <button
             type="button"
             onClick={p.onConfirm}
             disabled={p.pending}
-            className="rounded-[var(--radius-md)] bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+            className="ds-btn border-[var(--color-danger)] bg-[var(--color-danger-bg)] px-6 text-sm text-[var(--color-danger)] hover:bg-[var(--color-danger)] hover:text-[var(--color-bg)]"
           >
-            {p.pending ? t.working : t.confirm}
+            {p.pending ? t("working") : t("confirm")}
           </button>
         </div>
       </div>

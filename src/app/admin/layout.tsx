@@ -19,7 +19,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   return (
     <div className="min-h-screen bg-[var(--color-bg-alt)] text-[var(--color-text-primary)] lg:flex">
       <AdminSidebar userName={session.user?.name ?? ""} role={role} />
-      <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+      <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-10">
+        <div className="mx-auto w-full max-w-[1240px]">{children}</div>
+      </main>
     </div>
   );
 }

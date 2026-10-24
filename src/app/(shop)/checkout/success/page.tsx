@@ -3,20 +3,28 @@
 
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { getTranslations } from "next-intl/server";
 import CheckoutResult from "@/components/checkout/CheckoutResult";
+import { ResultHeroSkeleton, ResultShell } from "@/components/checkout/ResultHero";
 
-export const metadata: Metadata = {
-  title: "نتيجة الدفع | الزين للشاي",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("checkout.result");
+  const brand = await getTranslations("brand");
+  return {
+    title: `${t("metaTitle")} | ${brand("name")}`,
+    robots: { index: false, follow: false },
+  };
+}
 
-export default function CheckoutSuccessPage() {
+export default async function CheckoutSuccessPage() {
+  const t = await getTranslations("checkout.result");
+
   return (
     <Suspense
       fallback={
-        <div className="container mx-auto px-4 py-16 max-w-2xl" aria-busy="true">
-          <div className="h-24 rounded-xl bg-muted animate-pulse" />
-        </div>
+        <ResultShell>
+          <ResultHeroSkeleton label={t("loading")} />
+        </ResultShell>
       }
     >
       <CheckoutResult />

@@ -7,12 +7,13 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertCircle, ArrowRight, Check, Info, Lock, ShoppingBag } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { useCountry } from "@/hooks/useCountry";
 import { makeMoney } from "@/lib/checkout-money";
-import { getCountryByCode } from "@/lib/shipping-rates";
 import {
   createAddress,
   createCheckoutSession,
@@ -31,10 +32,12 @@ import CouponField from "@/components/checkout/CouponField";
 import OrderSummary from "@/components/checkout/OrderSummary";
 import PaymentMethodPicker from "@/components/checkout/PaymentMethodPicker";
 import ShippingCalculator from "@/components/checkout/ShippingCalculator";
+import StepHeading from "@/components/checkout/StepHeading";
 import VatField from "@/components/checkout/VatField";
+import { countryLabel } from "@/components/checkout/checkout-utils";
 import { saveTrackingToken } from "@/services/order-result.service";
 
-const STEPS = ["العنوان", "الشحن والخصم", "الدفع", "المراجعة"] as const;
+const STEP_KEYS = ["address", "shipping", "payment", "review"] as const;
 
 const EMPTY_GUEST: GuestForm = {
   email: "",
@@ -48,6 +51,11 @@ const EMPTY_GUEST: GuestForm = {
 const noopSubscribe = () => () => {};
 
 export default function CheckoutView() {
+  const t = useTranslations("checkout");
+  const tc = useTranslations("common");
+  const tCart = useTranslations("cart");
+  const locale = useLocale();
+
   const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const { status, data: session } = useSession();
   const isAuth = status === "authenticated";
@@ -166,7 +174,7 @@ export default function CheckoutView() {
       return;
     }
     setShowErrors(false);
-    setStep((s) => Math.min(s + 1, STEPS.length - 1));
+    setStep((s) => Math.min(s + 1, STEP_KEYS.length - 1));
   }
 
   // ------------------------------------------------------------------ إجراءات
@@ -184,7 +192,7 @@ export default function CheckoutView() {
       couponSubtotalRef.current = subtotal;
       setCoupon(result);
     } catch (e) {
-      setCouponError(parseApiError(e, "تعذّر التحقق من الكوبون").message);
+      setCouponError(parseApiError(e, t("errors.couponVerify")).message);
     } finally {
       setCouponLoading(false);
     }
@@ -223,7 +231,7 @@ export default function CheckoutView() {
 
     try {
       const result = await createCheckoutSession(body);
-      if (!result.checkoutUrl) throw new Error("تعذّر إنشاء رابط الدفع، حاول مرة أخرى.");
+      if (!result.checkoutUrl) throw new Error(t("errors.noCheckoutUrl"));
       // نحفظ رمز التتبع قبل مغادرة الصفحة: روابط العودة من البوابات لا تحمله
       if (result.orderId && result.trackingToken) {
         saveTrackingToken(result.orderId, result.trackingToken);
@@ -232,7 +240,7 @@ export default function CheckoutView() {
       window.location.assign(result.checkoutUrl);
       return; // يبقى القفل مفعلاً أثناء الانتقال
     } catch (e) {
-      const err = parseApiError(e, "تعذّر إتمام الطلب");
+      const err = parseApiError(e, t("errors.orderFailed"));
 
       if (err.code === "CART_INVALID" || err.code === "OUT_OF_STOCK") {
         try {
@@ -240,7 +248,7 @@ export default function CheckoutView() {
         } catch {
           /* نكتفي برسالة الخادم */
         }
-        setCartNotice("تغيّر سعر أو توفر بعض المنتجات وتم تحديث سلتك. راجع الإجمالي ثم أكمل الطلب.");
+        setCartNotice(t("cartChanged"));
         setSubmitError(err.message);
       } else if (err.code?.startsWith("COUPON_")) {
         setCoupon(null);
@@ -257,255 +265,326 @@ export default function CheckoutView() {
   // ------------------------------------------------------------------ حالات خاصة
   if (!mounted || status === "loading") {
     return (
-      <div className="container mx-auto px-4 py-8" aria-busy="true">
-        <div className="h-9 w-48 rounded bg-muted animate-pulse mb-6" />
-        <div className="h-64 rounded-xl bg-muted animate-pulse" />
-      </div>
+      <main className="bg-[var(--color-bg-alt)]">
+        <div className="mx-auto max-w-7xl px-5 py-10 md:px-8" aria-busy="true">
+          <div className="mb-6 h-10 w-56 animate-pulse rounded bg-[var(--color-form)]" />
+          <div className="h-72 animate-pulse rounded-[var(--radius-2xl)] bg-[var(--color-form)]" />
+        </div>
+      </main>
     );
   }
 
   if (items.length === 0) {
     return (
-      <div className="container mx-auto px-4 py-16 text-center space-y-4">
-        <h1 className="text-2xl font-bold">سلتك فارغة</h1>
-        <p className="text-muted-foreground">أضف منتجاتك المفضلة أولاً ثم أكمل الشراء.</p>
-        <Link
-          href="/products"
-          className="inline-block px-6 py-2 rounded-xl bg-primary text-primary-foreground font-medium"
-        >
-          تصفّح المنتجات
-        </Link>
-      </div>
+      <main className="ds-bg-dune">
+        <div className="mx-auto max-w-7xl px-5 py-20 text-center md:px-8 md:py-28">
+          <span
+            aria-hidden
+            className="mx-auto flex size-20 items-center justify-center rounded-full bg-[var(--color-bg)] text-[var(--color-accent-text)] shadow-[var(--shadow-sm)]"
+          >
+            <ShoppingBag size={34} />
+          </span>
+          <h1 className="ds-font-heading mt-8 text-3xl font-bold md:text-4xl">{tCart("emptyTitle")}</h1>
+          <p className="mx-auto mt-4 max-w-md leading-8 text-[var(--color-text-secondary)]">
+            {tCart("emptyHint")}
+          </p>
+          <Link href="/products" className="ds-btn ds-btn-primary mt-9 px-8">
+            {tCart("browseProducts")}
+          </Link>
+        </div>
+      </main>
     );
   }
 
-  const countryName = getCountryByCode(countryCode)?.nameAr;
+  const countryName = countryLabel(countryCode, locale);
+  const etaRaw = shippingQuery.data?.estimatedDays ?? country?.estimatedDays;
   const issueMessages = (validationIssues ?? [])
     .map((i) => (i as { message?: string }).message)
     .filter((m): m is string => !!m);
+  const lastStep = STEP_KEYS.length - 1;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">إتمام الشراء</h1>
+    <main className="bg-[var(--color-bg-alt)] text-[var(--color-text-primary)]">
+      <style>{`
+        .co-hero{
+          background:linear-gradient(160deg,#1a1612 0%,#0f0d0a 60%,#14110c 100%);
+          color:#f0e6d3;
+          border-bottom:1px solid rgba(201,164,92,.25);
+        }
+      `}</style>
 
-      {/* مؤشر الخطوات */}
-      <ol className="flex flex-wrap gap-x-6 gap-y-2 mb-8 text-sm" aria-label="خطوات الشراء">
-        {STEPS.map((label, i) => {
-          const done = i < step;
-          const current = i === step;
-          return (
-            <li key={label} aria-current={current ? "step" : undefined}>
-              <button
-                type="button"
-                disabled={!done}
-                onClick={() => setStep(i)}
-                className={`flex items-center gap-2 ${
-                  current ? "font-semibold" : done ? "text-foreground" : "text-muted-foreground"
-                }`}
-              >
-                <span
-                  className={`grid size-6 place-items-center rounded-full border text-xs ${
-                    current || done ? "bg-primary text-primary-foreground border-primary" : ""
-                  }`}
-                >
-                  {done ? "✓" : i + 1}
-                </span>
-                {label}
-              </button>
-            </li>
-          );
-        })}
-      </ol>
+      {/* الرأس الداكن + مؤشر الخطوات */}
+      <div className="co-hero">
+        <div className="mx-auto max-w-7xl px-5 pb-8 pt-10 md:px-8 md:pb-12 md:pt-14">
+          <h1 className="ds-font-heading text-3xl font-extrabold leading-[1.2] text-[#f0e6d3] md:text-5xl">
+            {t("title")}
+          </h1>
 
-      {(cartNotice || issueMessages.length > 0) && (
-        <div role="status" className="mb-6 p-4 rounded-xl border bg-muted/30 text-sm space-y-1">
-          {cartNotice && <p>{cartNotice}</p>}
-          {issueMessages.map((m, i) => (
-            <p key={i} className="text-muted-foreground">
-              {m}
-            </p>
-          ))}
+          <nav aria-label={t("stepsLabel")} className="mt-8 md:mt-10">
+            <ol className="flex items-center">
+              {STEP_KEYS.map((key, i) => {
+                const done = i < step;
+                const current = i === step;
+                return (
+                  <li
+                    key={key}
+                    aria-current={current ? "step" : undefined}
+                    className={`flex items-center ${i < lastStep ? "flex-1" : ""}`}
+                  >
+                    <button
+                      type="button"
+                      disabled={!done}
+                      onClick={() => setStep(i)}
+                      className="flex items-center gap-3 disabled:cursor-default"
+                    >
+                      <span
+                        className={`grid size-8 shrink-0 place-items-center rounded-full border text-sm font-semibold tabular-nums transition-[box-shadow,background-color] duration-200 ${
+                          done
+                            ? "border-transparent bg-[var(--brand-gold)] text-[#0f0d0a]"
+                            : current
+                              ? "border-transparent bg-[var(--brand-gold)] text-[#0f0d0a] ring-4 ring-[rgba(201,164,92,0.3)]"
+                              : "border-[#f0e6d3]/25 text-[#c4b49e]"
+                        }`}
+                      >
+                        {done ? <Check size={16} strokeWidth={3} aria-hidden /> : i + 1}
+                      </span>
+                      <span
+                        className={`text-sm md:text-base ${
+                          current
+                            ? "font-semibold text-[#f0e6d3]"
+                            : done
+                              ? "hidden text-[#f0e6d3]/85 sm:inline"
+                              : "hidden text-[#c4b49e] sm:inline"
+                        }`}
+                      >
+                        {t(`steps.${key}`)}
+                      </span>
+                    </button>
+                    {i < lastStep && (
+                      <span
+                        aria-hidden
+                        className={`mx-3 h-px flex-1 md:mx-5 ${
+                          done ? "bg-[var(--brand-gold)]" : "bg-[#f0e6d3]/15"
+                        }`}
+                      />
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
         </div>
-      )}
-
-      <div className="grid gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-          {step === 0 && (
-            <>
-              {!isAuth && (
-                <p className="text-sm text-muted-foreground">
-                  لديك حساب؟{" "}
-                  <Link href="/login?callbackUrl=/checkout" className="underline underline-offset-4">
-                    سجّل الدخول
-                  </Link>{" "}
-                  لاستخدام عناوينك المحفوظة، أو أكمل كزائر.
-                </p>
-              )}
-              <AddressStep
-                isAuthenticated={isAuth}
-                countryCode={countryCode}
-                onCountryChange={updateCountry}
-                showErrors={showErrors}
-                addresses={addresses}
-                addressesLoading={addressesQuery.isLoading}
-                addressesError={addressesQuery.isError}
-                onRetryAddresses={() => addressesQuery.refetch()}
-                selectedId={effectiveId}
-                onSelect={setSelectedId}
-                onAddAddress={handleAddAddress}
-                guest={guest}
-                onGuestChange={(p) => setGuest((g) => ({ ...g, ...p }))}
-              />
-            </>
-          )}
-
-          {step === 1 && (
-            <section className="space-y-6" aria-labelledby="shipping-heading">
-              <h2 id="shipping-heading" className="text-xl font-semibold">
-                الشحن والخصم
-              </h2>
-              <ShippingCalculator
-                countryName={countryName}
-                costLabel={money.format(shippingC)}
-                estimatedDays={shippingQuery.data?.estimatedDays ?? country?.estimatedDays}
-                isLoading={shippingQuery.isLoading}
-                isEstimate={shippingQuery.isError || shippingQuery.data === null}
-                onRetry={() => shippingQuery.refetch()}
-              />
-              <CouponField
-                applied={coupon ? { code: coupon.code, discountLabel: money.format(discountC) } : null}
-                loading={couponLoading}
-                error={couponError}
-                onApply={applyCoupon}
-                onRemove={() => {
-                  setCoupon(null);
-                  setCouponError(null);
-                }}
-              />
-            </section>
-          )}
-
-          {step === 2 && (
-            <section className="space-y-6">
-              <PaymentMethodPicker isGulf={isGulf} currency={money.currency} />
-              <VatField value={vat} onChange={setVat} />
-            </section>
-          )}
-
-          {step === 3 && (
-            <section className="space-y-5" aria-labelledby="review-heading">
-              <h2 id="review-heading" className="text-xl font-semibold">
-                مراجعة الطلب
-              </h2>
-
-              <ReviewRow label="الشحن إلى" onEdit={() => setStep(0)}>
-                {isAuth && selectedAddress ? (
-                  <>
-                    {selectedAddress.fullName} — {selectedAddress.street}، {selectedAddress.city}،{" "}
-                    {getCountryByCode(selectedAddress.country)?.nameAr ?? selectedAddress.country}
-                  </>
-                ) : (
-                  <>
-                    {guest.fullName} — {guest.street}، {guest.city}، {countryName}
-                    <br />
-                    <span dir="ltr">{guest.email}</span>
-                  </>
-                )}
-              </ReviewRow>
-
-              <ReviewRow label="الشحن" onEdit={() => setStep(1)}>
-                {money.format(shippingC)}
-                {(shippingQuery.data?.estimatedDays ?? country?.estimatedDays) &&
-                  ` — ${shippingQuery.data?.estimatedDays ?? country?.estimatedDays}`}
-              </ReviewRow>
-
-              <ReviewRow label="الكوبون" onEdit={() => setStep(1)}>
-                {coupon ? `${coupon.code} (−${money.format(discountC)})` : "لا يوجد"}
-              </ReviewRow>
-
-              <ReviewRow label="الدفع" onEdit={() => setStep(2)}>
-                {isGulf ? `بوابة الدفع المحلية — ${money.currency}` : "بطاقة دولية — USD"}
-                {vat.trim() && (
-                  <>
-                    <br />
-                    الرقم الضريبي: <span dir="ltr">{vat.trim()}</span>
-                  </>
-                )}
-              </ReviewRow>
-
-              {submitError && (
-                <p role="alert" className="p-4 rounded-xl border border-red-300 text-sm text-red-700">
-                  {submitError}
-                </p>
-              )}
-            </section>
-          )}
-
-          {/* التنقل */}
-          <div className="flex items-center justify-between gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setStep((s) => Math.max(0, s - 1))}
-              disabled={step === 0 || submitting}
-              className="px-6 py-2 rounded-xl border text-sm disabled:invisible"
-            >
-              رجوع
-            </button>
-
-            {step < STEPS.length - 1 ? (
-              <button
-                type="button"
-                onClick={goNext}
-                className="px-8 py-2 rounded-xl bg-primary text-primary-foreground font-medium"
-              >
-                متابعة
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={submit}
-                disabled={submitting}
-                className="px-8 py-2 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-60"
-              >
-                {submitting ? "جارٍ تحويلك للدفع…" : `ادفع ${money.format(totalC)}`}
-              </button>
-            )}
-          </div>
-        </div>
-
-        <OrderSummary
-          items={items}
-          formatUsd={formatUsd}
-          currency={money.currency}
-          lines={{
-            subtotal: money.format(subtotalC),
-            discount: coupon ? money.format(discountC) : null,
-            shipping: money.format(shippingC),
-            total: money.format(totalC),
-          }}
-        />
       </div>
-    </div>
+
+      <div className="mx-auto max-w-7xl px-5 py-10 md:px-8 md:py-14">
+        {(cartNotice || issueMessages.length > 0) && (
+          <div
+            role="status"
+            className="mb-8 flex items-start gap-3 rounded-[var(--radius-xl)] border border-[var(--color-warning)]/40 bg-[var(--color-warning-bg)] p-4 text-sm"
+          >
+            <Info size={18} className="mt-0.5 shrink-0 text-[var(--color-warning)]" aria-hidden />
+            <div className="space-y-1">
+              {cartNotice && <p className="font-medium">{cartNotice}</p>}
+              {issueMessages.map((m, i) => (
+                <p key={i} className="text-[var(--color-text-secondary)]">
+                  {m}
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="grid gap-8 lg:grid-cols-3 lg:items-start">
+          <div className="lg:col-span-2">
+            <div className="rounded-[var(--radius-2xl)] border border-[var(--border-color)] bg-[var(--color-bg)] p-5 shadow-[var(--shadow-xs)] md:p-8">
+              <div className="space-y-6">
+                {step === 0 && (
+                  <>
+                    {!isAuth && (
+                      <p className="rounded-[var(--radius-lg)] bg-[var(--color-bg-alt)] p-4 text-sm leading-7 text-[var(--color-text-secondary)]">
+                        {t.rich("guestPrompt", {
+                          login: (chunks) => (
+                            <Link
+                              href="/login?callbackUrl=/checkout"
+                              className="font-semibold text-[var(--color-text-primary)] underline underline-offset-4"
+                            >
+                              {chunks}
+                            </Link>
+                          ),
+                        })}
+                      </p>
+                    )}
+                    <AddressStep
+                      isAuthenticated={isAuth}
+                      countryCode={countryCode}
+                      onCountryChange={updateCountry}
+                      showErrors={showErrors}
+                      addresses={addresses}
+                      addressesLoading={addressesQuery.isLoading}
+                      addressesError={addressesQuery.isError}
+                      onRetryAddresses={() => addressesQuery.refetch()}
+                      selectedId={effectiveId}
+                      onSelect={setSelectedId}
+                      onAddAddress={handleAddAddress}
+                      guest={guest}
+                      onGuestChange={(p) => setGuest((g) => ({ ...g, ...p }))}
+                    />
+                  </>
+                )}
+
+                {step === 1 && (
+                  <section className="space-y-6" aria-labelledby="shipping-heading">
+                    <StepHeading id="shipping-heading">{t("steps.shipping")}</StepHeading>
+                    <ShippingCalculator
+                      countryName={countryName}
+                      costLabel={money.format(shippingC)}
+                      estimatedDays={etaRaw}
+                      isLoading={shippingQuery.isLoading}
+                      isEstimate={shippingQuery.isError || shippingQuery.data === null}
+                      onRetry={() => shippingQuery.refetch()}
+                    />
+                    <CouponField
+                      applied={coupon ? { code: coupon.code, discountLabel: money.format(discountC) } : null}
+                      loading={couponLoading}
+                      error={couponError}
+                      onApply={applyCoupon}
+                      onRemove={() => {
+                        setCoupon(null);
+                        setCouponError(null);
+                      }}
+                    />
+                  </section>
+                )}
+
+                {step === 2 && (
+                  <section className="space-y-6">
+                    <PaymentMethodPicker isGulf={isGulf} currency={money.currency} />
+                    <VatField value={vat} onChange={setVat} />
+                  </section>
+                )}
+
+                {step === 3 && (
+                  <section className="space-y-4" aria-labelledby="review-heading">
+                    <div className="pb-2">
+                      <StepHeading id="review-heading">{t("reviewTitle")}</StepHeading>
+                    </div>
+
+                    <ReviewRow label={t("review.shipTo")} editLabel={tc("edit")} onEdit={() => setStep(0)}>
+                      {isAuth && selectedAddress ? (
+                        <>
+                          {selectedAddress.fullName} — {selectedAddress.street}، {selectedAddress.city}،{" "}
+                          {countryLabel(selectedAddress.country, locale)}
+                        </>
+                      ) : (
+                        <>
+                          {guest.fullName} — {guest.street}، {guest.city}، {countryName}
+                          <br />
+                          <span dir="ltr">{guest.email}</span>
+                        </>
+                      )}
+                    </ReviewRow>
+
+                    <ReviewRow label={t("review.shipping")} editLabel={tc("edit")} onEdit={() => setStep(1)}>
+                      {money.format(shippingC)}
+                      {etaRaw && ` — ${etaRaw}`}
+                    </ReviewRow>
+
+                    <ReviewRow label={t("review.coupon")} editLabel={tc("edit")} onEdit={() => setStep(1)}>
+                      {coupon ? `${coupon.code} (−${money.format(discountC)})` : t("review.none")}
+                    </ReviewRow>
+
+                    <ReviewRow label={t("review.payment")} editLabel={tc("edit")} onEdit={() => setStep(2)}>
+                      {isGulf
+                        ? t("review.gatewayLocal", { currency: money.currency })
+                        : t("review.cardIntl")}
+                      {vat.trim() && (
+                        <>
+                          <br />
+                          {t("vat.label")}: <span dir="ltr">{vat.trim()}</span>
+                        </>
+                      )}
+                    </ReviewRow>
+
+                    {submitError && (
+                      <p
+                        role="alert"
+                        className="flex items-start gap-3 rounded-[var(--radius-xl)] border border-[var(--color-danger)] bg-[var(--color-danger-bg)] p-4 text-sm font-medium text-[var(--color-danger)]"
+                      >
+                        <AlertCircle size={18} className="mt-0.5 shrink-0" aria-hidden />
+                        <span>{submitError}</span>
+                      </p>
+                    )}
+                  </section>
+                )}
+              </div>
+
+              {/* التنقل */}
+              <div className="mt-8 flex items-center justify-between gap-3 border-t border-[var(--border-color)] pt-6">
+                <button
+                  type="button"
+                  onClick={() => setStep((s) => Math.max(0, s - 1))}
+                  disabled={step === 0 || submitting}
+                  className="ds-btn ds-btn-outline px-6 disabled:invisible"
+                >
+                  {tc("back")}
+                </button>
+
+                {step < STEP_KEYS.length - 1 ? (
+                  <button type="button" onClick={goNext} className="ds-btn ds-btn-primary px-8">
+                    {tc("next")}
+                    <ArrowRight size={18} className="rtl:rotate-180" aria-hidden />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={submit}
+                    disabled={submitting}
+                    className="ds-btn ds-btn-primary min-h-[52px] px-8 text-base disabled:opacity-60"
+                  >
+                    <Lock size={18} aria-hidden />
+                    {submitting ? t("redirecting") : t("pay", { amount: money.format(totalC) })}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <OrderSummary
+            items={items}
+            formatUsd={formatUsd}
+            currency={money.currency}
+            lines={{
+              subtotal: money.format(subtotalC),
+              discount: coupon ? money.format(discountC) : null,
+              shipping: money.format(shippingC),
+              total: money.format(totalC),
+            }}
+          />
+        </div>
+      </div>
+    </main>
   );
 }
 
 function ReviewRow({
   label,
+  editLabel,
   onEdit,
   children,
 }: {
   label: string;
+  editLabel: string;
   onEdit: () => void;
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 p-4 rounded-xl border text-sm">
-      <div className="space-y-1">
-        <p className="text-muted-foreground">{label}</p>
-        <p>{children}</p>
+    <div className="flex items-start justify-between gap-4 rounded-[var(--radius-xl)] border border-[var(--border-color)] bg-[var(--color-bg-alt)] p-5 text-sm">
+      <div className="min-w-0 space-y-1">
+        <p className="text-xs text-[var(--color-text-secondary)]">{label}</p>
+        <p className="font-medium leading-7">{children}</p>
       </div>
-      <button type="button" onClick={onEdit} className="underline underline-offset-4 shrink-0">
-        تعديل
+      <button type="button" onClick={onEdit} className="ds-btn ds-btn-ghost shrink-0 px-4 text-sm">
+        {editLabel}
       </button>
     </div>
   );

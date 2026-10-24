@@ -106,7 +106,7 @@ export default function UserMenu() {
       >
         <span
           aria-hidden
-          className="ds-bg-primary flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white"
+          className="ds-bg-gold flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold"
         >
           {getInitials(user.name, user.email)}
         </span>
@@ -128,7 +128,7 @@ export default function UserMenu() {
           aria-label={t("userMenu")}
           tabIndex={-1}
           onKeyDown={onMenuKeyDown}
-          className="ds-bg absolute end-0 top-full z-50 mt-2 w-64 rounded-2xl border border-[var(--color-form)] p-2 shadow-lg outline-none"
+          className="ds-bg absolute end-0 top-full z-50 mt-2 w-64 rounded-2xl border border-[var(--color-glass-border)] p-2 shadow-lg outline-none"
         >
           <div className="border-b border-[var(--color-form)] px-3 pt-2 pb-3">
             <p className="ds-text-primary truncate text-sm font-bold">{displayName}</p>
@@ -157,7 +157,7 @@ export default function UserMenu() {
               role="menuitem"
               onClick={handleLogout}
               disabled={isLoggingOut}
-              className={cn(menuItemBase, "text-sm text-red-600 disabled:opacity-60 dark:text-red-400")}
+              className={cn(menuItemBase, "text-sm text-red-400 disabled:opacity-60")}
             >
               <LogOut aria-hidden size={18} />
               {isLoggingOut ? t("loggingOut") : t("logout")}

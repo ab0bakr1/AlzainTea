@@ -53,7 +53,11 @@
     "mobileMenu": "Navigation menu",
     "mainNavigation": "Main navigation",
     "userMenu": "Account menu",
-    "loggingOut": "Signing out..."
+    "loggingOut": "Signing out...",
+    "closeMenu": "Close menu",
+    "toggleTheme": "Toggle dark / light mode",
+    "switchLanguage": "Switch language to Arabic",
+    "localeCode": "AR"
   },
   "HomePage": {
     "brand": "Alzain Tea",
@@ -280,6 +284,29 @@
       "addedToCart": "Product successfully added to cart",
       "viewCart": "View Cart",
       "share": "Share Product"
+    },
+    "catalog": {
+      "subtitle": "Discover our collection of premium teas and accessories, delivered across the GCC and worldwide.",
+      "breadcrumbLabel": "Breadcrumb",
+      "results": "{count, plural, one {# product} other {# products}}",
+      "from": "From",
+      "to": "To",
+      "showResults": "Show results",
+      "pageLabel": "Page {page}",
+      "paginationLabel": "Pagination",
+      "emptyTitle": "No matching products",
+      "emptyBody": "Try different keywords or remove some filters.",
+      "errorTitle": "Couldn't load products",
+      "errorBody": "Check your connection and try again.",
+      "searchChip": "Search: {query}",
+      "priceChip": "Price {from}–{to}",
+      "removeFilter": "Remove filter",
+      "activeFilters": "Active filters",
+      "searchCatalogPlaceholder": "Search teas and accessories"
+    },
+    "card": {
+      "soldOut": "Out of stock",
+      "sale": "{percent}% off"
     }
   },
   "cart": {
@@ -332,7 +359,10 @@
       "apply": "Apply Coupon",
       "applied": "Coupon applied successfully",
       "remove": "Remove Coupon",
-      "invalid": "Promo code is invalid or has expired"
+      "invalid": "Promo code is invalid or has expired",
+      "label": "Have a discount code?",
+      "appliedWith": "Discount applied: {amount}",
+      "verifying": "Checking…"
     },
     "paymentMethod": "Payment Method",
     "paymentMethods": {
@@ -359,6 +389,90 @@
       "orderNumber": "Order Number",
       "trackOrder": "Track Order",
       "continueShopping": "Continue Shopping"
+    },
+    "stepsLabel": "Checkout steps",
+    "guestPrompt": "Have an account? <login>Sign in</login> to use your saved addresses, or continue as a guest.",
+    "reviewTitle": "Review your order",
+    "pay": "Pay {amount}",
+    "redirecting": "Redirecting to payment…",
+    "cartChanged": "The price or availability of some items changed and your cart was updated. Review the total, then continue.",
+    "errors": {
+      "couponVerify": "Couldn't verify the coupon",
+      "orderFailed": "Couldn't place your order",
+      "noCheckoutUrl": "Couldn't create the payment link. Please try again."
+    },
+    "review": {
+      "shipTo": "Ship to",
+      "shipping": "Shipping",
+      "coupon": "Coupon",
+      "payment": "Payment",
+      "none": "None",
+      "gatewayLocal": "Local payment gateway — {currency}",
+      "cardIntl": "International card — USD"
+    },
+    "shippingBox": {
+      "title": "Shipping details",
+      "cost": "Shipping cost",
+      "eta": "Estimated delivery",
+      "businessDays": "{days} business days",
+      "estimateNote": "We couldn't fetch the exact shipping rate. The amount shown is an estimate and will be finalized at payment."
+    },
+    "payment": {
+      "localTitle": "Secure local payment",
+      "localDesc": "Apple Pay, mada, and Visa / Mastercard cards — paid in {currency}",
+      "intlTitle": "International credit card",
+      "intlDesc": "Visa / Mastercard — paid in US dollars (USD)",
+      "redirectNote": "You'll be taken to a secure payment page to enter your card details. We never store your card on our site."
+    },
+    "vat": {
+      "toggle": "Buying for a business? Add your VAT number",
+      "placeholder": "VAT number",
+      "label": "VAT number"
+    },
+    "summary": {
+      "quantity": "Qty: {count}",
+      "subtotal": "Subtotal",
+      "discount": "Discount",
+      "shipping": "Shipping",
+      "totalBeforeTax": "Total before tax",
+      "vatNote": "VAT is added based on the shipping country. The final amount in {currency} is shown on the secure payment page.",
+      "itemFallback": "Product"
+    },
+    "address": {
+      "shippingData": "Shipping details",
+      "guestEmail": "Email (for your order confirmation)",
+      "emailInvalid": "Enter a valid email address",
+      "loadError": "Couldn't load your addresses.",
+      "default": "Default",
+      "unsupported": "We don't ship to this country yet.",
+      "editAria": "Edit address for {name}",
+      "selectPrompt": "Choose an address or add a new one to continue.",
+      "editTitle": "Edit address",
+      "newTitle": "New address",
+      "saveEdits": "Save changes",
+      "save": "Save address"
+    },
+    "result": {
+      "metaTitle": "Payment result",
+      "loading": "Loading payment result",
+      "emailNote": "We'll send your order confirmation by email.",
+      "myOrders": "My orders",
+      "contactUs": "Contact us",
+      "failedText": "Your cart is saved. Try again or use a different payment method.",
+      "unknown": {
+        "thanksTitle": "Thank you for your order",
+        "checkingTitle": "Checking your payment",
+        "text": "We can't show the order details in this browser. If the payment went through, a confirmation email is on its way."
+      },
+      "pending": {
+        "title": "Confirming your payment…",
+        "timedOutTitle": "Still confirming your payment",
+        "text": "Keep this page open. It only takes a few seconds.",
+        "timedOutText": "Confirmation can take a few minutes. You'll get an email as soon as it's done, and you don't need to pay again.",
+        "refresh": "Refresh status"
+      },
+      "tax": "Tax",
+      "total": "Total"
     }
   },
   "account": {
@@ -383,7 +497,8 @@
     "defaultBadge": "Default",
     "emptyAddresses": "No saved addresses yet. Add your first address to autofill at checkout.",
     "signOut": "Sign Out",
-    "signInPrompt": "Please sign in to view your account details."
+    "signInPrompt": "Please sign in to view your account details.",
+    "signIn": "Sign In"
   },
   "orders": {
     "title": "Order History",
@@ -403,6 +518,144 @@
       "DELIVERED": "Delivered",
       "CANCELLED": "Cancelled",
       "REFUNDED": "Refunded"
+    },
+    "list": {
+      "pageTitle": "My orders",
+      "pageSubtitle": "Track your orders and revisit your past purchases from Alzain Tea.",
+      "tabs": {
+        "all": "All",
+        "awaiting_payment": "Awaiting payment",
+        "in_progress": "In progress",
+        "completed": "Delivered",
+        "closed": "Cancelled & closed"
+      },
+      "filterLabel": "Filter orders",
+      "count": "{count, plural, =1 {1 order} other {{count} orders}}",
+      "loadError": "We couldn't load your orders.",
+      "loginNeeded": "Sign in to view your orders.",
+      "login": "Sign in",
+      "retry": "Try again",
+      "emptyAll": "You haven't placed any orders yet.",
+      "emptyAllHint": "Start by browsing our premium tea collection.",
+      "emptyFiltered": "No orders in this category.",
+      "showAll": "Show all orders",
+      "browse": "Browse products",
+      "order": "Order",
+      "items": "{count, plural, =1 {1 item} other {{count} items}}",
+      "more": "+{count} more",
+      "total": "Total",
+      "details": "View details",
+      "cancel": "Cancel order",
+      "cancelling": "Cancelling…",
+      "keep": "Keep order",
+      "confirmUnpaid": "Do you want to cancel this order?",
+      "confirmPaid": "The order will be cancelled and the amount refunded to your original payment method. Continue?",
+      "confirmCancel": "Confirm cancellation",
+      "payWindow": "Payment window closes in {minutes} min",
+      "payExpired": "Payment window has ended; the order will be closed automatically soon",
+      "prev": "Previous",
+      "next": "Next",
+      "page": "Page {page} of {total}",
+      "paginationLabel": "Pagination"
+    },
+    "detail": {
+      "myOrders": "My orders",
+      "order": "Order",
+      "copy": "Copy number",
+      "copied": "Copied",
+      "print": "Print",
+      "loading": "Loading order",
+      "notFound": "Order not found",
+      "notFoundHint": "The link may be wrong, or the order belongs to another account.",
+      "loginNeeded": "Sign in to view this order",
+      "login": "Sign in",
+      "loadFailed": "Couldn't load the order",
+      "retry": "Try again",
+      "backToOrders": "Back to my orders",
+      "items": "Items ({count})",
+      "summary": "Order summary",
+      "subtotal": "Subtotal",
+      "discount": "Discount",
+      "discountWithCoupon": "Discount (coupon {code})",
+      "shipping": "Shipping",
+      "free": "Free",
+      "tax": "Tax",
+      "vat": "VAT number",
+      "total": "Total",
+      "tracking": "Order tracking",
+      "address": "Shipping address",
+      "addressSeparator": ", ",
+      "payment": "Payment",
+      "method": "Method",
+      "notes": "Your notes",
+      "cancel": "Cancel order",
+      "cancelHint": "You can cancel until preparation starts.",
+      "notCancellable": "This order can't be cancelled once preparation has started. Contact support for help.",
+      "paymentProcessing": "Payment is still processing. Cancelling will be available once it completes.",
+      "rateProduct": "Rate: {name}",
+      "rateTitle": "How was your experience?",
+      "rateText": "Your order has arrived. Share your review to help other shoppers.",
+      "progressLabel": "Order progress",
+      "steps": {
+        "PENDING": "Placed",
+        "CONFIRMED": "Confirmed",
+        "PROCESSING": "Preparing",
+        "SHIPPED": "Shipped",
+        "DELIVERED": "Delivered"
+      },
+      "orderStatus": {
+        "PENDING": "Awaiting payment",
+        "CONFIRMED": "Confirmed",
+        "PROCESSING": "Preparing",
+        "SHIPPED": "Shipped",
+        "DELIVERED": "Delivered",
+        "CANCELLED": "Cancelled",
+        "RETURNED": "Returned",
+        "REFUNDED": "Refunded",
+        "FAILED": "Failed"
+      },
+      "paymentStatus": {
+        "UNPAID": "Unpaid",
+        "PAID": "Paid",
+        "FAILED": "Payment failed",
+        "REFUNDED": "Refunded",
+        "PENDING": "Processing"
+      },
+      "notice": {
+        "pendingUnpaid": "Waiting for payment. If it isn't completed by {until}, the order is cancelled automatically and the items are released.",
+        "pendingPaying": "We're verifying your payment. This page updates automatically once it's confirmed.",
+        "confirmed": "We've received your payment and will start preparing your order shortly.",
+        "delivered": "Your order has been delivered. Enjoy your tea.",
+        "cancelledRefunded": "The order was cancelled and the amount refunded to your original payment method. It may take a few business days to appear.",
+        "cancelledRefunding": "The order was cancelled and your refund is being processed.",
+        "cancelled": "This order was cancelled.",
+        "failed": "Payment wasn't completed or timed out, so the order wasn't placed. You can start a new order.",
+        "returned": "A return has been recorded for this order.",
+        "refunded": "This order has been refunded to your original payment method."
+      },
+      "errors": {
+        "generic": "Something went wrong. Please try again.",
+        "ORDER_STATE_CONFLICT": "The order status just changed. Refresh the page and try again.",
+        "REFUND_IN_PROGRESS": "A refund is already in progress for this order. Please wait a moment.",
+        "REFUND_FAILED": "The payment gateway couldn't process the refund. The order was not cancelled; try again later or contact support.",
+        "ORDER_NOT_CANCELLABLE": "This order can't be cancelled once preparation has started. Contact support.",
+        "PAYMENT_IN_PROGRESS": "Payment is still processing. Try again shortly.",
+        "TOO_MANY_REQUESTS": "Too many attempts. Wait a minute and try again."
+      },
+      "methods": {
+        "stripe": "Stripe",
+        "tap": "Tap Payments",
+        "moyasar": "Moyasar"
+      },
+      "dialog": {
+        "title": "Cancel order",
+        "unpaid": "This order will be cancelled and the reserved items released.",
+        "paid": "The order will be cancelled and the full amount refunded to your original payment method. This can't be undone.",
+        "reasonLabel": "Reason for cancelling (optional)",
+        "keep": "Keep order",
+        "confirm": "Confirm cancellation",
+        "working": "Cancelling…"
+      }
     }
   },
   "wishlist": {
@@ -411,7 +664,25 @@
     "emptyHint": "Save your favorite teas to easily find and purchase them later.",
     "browseProducts": "Explore Products",
     "addToCart": "Add to Cart",
-    "remove": "Remove from Wishlist"
+    "remove": "Remove from Wishlist",
+    "add": "Add to wishlist",
+    "count": "{count, plural, one {{count} item} other {{count} items}}",
+    "moveAll": "Move available to cart",
+    "removeNamed": "Remove from wishlist: {name}",
+    "unavailable": "Currently unavailable",
+    "lowStock": "Only {count} left",
+    "addedOn": "Added on {date}",
+    "errorTitle": "Couldn't load your wishlist",
+    "errorDesc": "Check your connection and try again.",
+    "retry": "Try again",
+    "prev": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {total}",
+    "pagination": "Pagination",
+    "movedOne": "\"{name}\" moved to your cart",
+    "movedMany": "{count} items moved to your cart",
+    "removed": "Removed from wishlist",
+    "failed": "Something went wrong, please try again"
   },
   "reviews": {
     "title": "Customer Reviews",
@@ -426,7 +697,13 @@
     "submitting": "Submitting...",
     "thankYou": "Thank you for reviewing! Your review will appear after moderation.",
     "loginRequired": "Please sign in to write a review.",
-    "purchaseRequired": "Only verified customers who received this product can review it."
+    "purchaseRequired": "Only verified customers who received this product can review it.",
+    "count": "{count, plural, one {# review} other {# reviews}}",
+    "pending": "Your review is awaiting moderation.",
+    "approved": "Your review is published. Thank you!",
+    "rejected": "Your review was not approved.",
+    "pickRating": "Please select a star rating",
+    "loginLink": "Sign in to write a review"
   },
   "about": {
     "title": "About Alzain Tea",
@@ -436,7 +713,45 @@
     "missionTitle": "Our Mission",
     "missionContent": "To provide a complete tea journey marrying supreme leaf quality, artisan packaging, and expedited delivery so every brew is fresh, fragrant, and memorable.",
     "qualityTitle": "Our Commitment to Quality",
-    "qualityContent": "We adhere to the highest standards of purity, selecting natural harvest free of artificial additives."
+    "qualityContent": "We adhere to the highest standards of purity, selecting natural harvest free of artificial additives.",
+    "statsTitle": "Alzain in numbers",
+    "stats": {
+      "countries": {
+        "value": "6",
+        "label": "GCC countries we ship to"
+      },
+      "products": {
+        "value": "100+",
+        "label": "fine teas to choose from"
+      },
+      "customers": {
+        "value": "1000+",
+        "label": "customers who trust us"
+      }
+    },
+    "valuesTitle": "Our Values",
+    "values": {
+      "quality": {
+        "title": "Our Commitment to Quality",
+        "desc": "We adhere to the highest standards of purity, selecting natural harvest free of artificial additives."
+      },
+      "origin": {
+        "title": "Carefully chosen origins",
+        "desc": "Our leaves come from estates in Sri Lanka, India, China, and Japan."
+      },
+      "freshness": {
+        "title": "Fresh packaging",
+        "desc": "Airtight tins that keep the aroma and authentic taste to the last cup."
+      },
+      "service": {
+        "title": "Service you can count on",
+        "desc": "Shipping with clear cost and timing, and support before and after your order."
+      }
+    },
+    "ctaTitle": "Start your fine tea journey",
+    "ctaText": "Browse our selected range and pick your first tin.",
+    "shopCta": "Browse products",
+    "contactCta": "Contact us"
   },
   "contact": {
     "title": "Contact Us",
@@ -452,35 +767,102 @@
     "emailLabel": "Email:",
     "phoneLabel": "Customer Care (WhatsApp):",
     "hoursLabel": "Working Hours:",
-    "hoursValue": "Daily from 9:00 AM to 10:00 PM"
+    "hoursValue": "Daily from 9:00 AM to 10:00 PM",
+    "formTitle": "Send us a message",
+    "formHint": "Fill in the form and we will get back to you shortly.",
+    "sentTitle": "Thank you for reaching out",
+    "sendAnother": "Send another message",
+    "errorRequired": "This field is required",
+    "errorEmail": "Please enter a valid email address",
+    "emailAction": "Email us",
+    "whatsappAction": "Chat with us"
   },
   "faq": {
     "title": "Frequently Asked Questions",
     "subtitle": "Everything you need to know about our teas, orders, delivery, and payments",
-    "categories": {
-      "orders": "Orders & Account",
-      "shipping": "Shipping & Delivery",
-      "payment": "Payment Methods & Security",
-      "tea": "Tea & Brewing Guide"
-    },
-    "items": [
-      {
-        "q": "Which countries do you ship to?",
-        "a": "We ship directly to all GCC nations (Saudi Arabia, UAE, Oman, Kuwait, Bahrain, Qatar) as well as worldwide international delivery."
+    "jumpTo": "Jump to section",
+    "helpTitle": "Didn't find your answer?",
+    "helpText": "Our team is happy to help with any question about your order or our teas.",
+    "contactCta": "Contact us",
+    "shopCta": "Browse products",
+    "groups": {
+      "shipping": {
+        "title": "Shipping & Delivery",
+        "items": [
+          {
+            "q": "Which countries do you ship to?",
+            "a": "We ship directly to all GCC nations (Saudi Arabia, UAE, Oman, Kuwait, Bahrain, Qatar) as well as worldwide international delivery."
+          },
+          {
+            "q": "How long does shipping take?",
+            "a": "GCC delivery typically takes between 2 to 5 business days. Exact delivery estimates appear at checkout."
+          },
+          {
+            "q": "How is the shipping cost calculated?",
+            "a": "Shipping depends on the destination country you choose. You'll see the cost and estimated delivery time before you pay."
+          },
+          {
+            "q": "Do prices include tax?",
+            "a": "VAT is added according to your delivery country and is itemized in your order summary before payment."
+          }
+        ]
       },
-      {
-        "q": "How long does shipping take?",
-        "a": "GCC delivery typically takes between 2 to 5 business days. Exact delivery estimates appear at checkout."
+      "payment": {
+        "title": "Payment Methods & Security",
+        "items": [
+          {
+            "q": "What payment methods are supported?",
+            "a": "We support secure payments including mada, Apple Pay, Visa, MasterCard, and Stripe."
+          },
+          {
+            "q": "Which currency will I pay in?",
+            "a": "For GCC deliveries you pay in your local currency. For the rest of the world, payment is in US dollars."
+          },
+          {
+            "q": "Is my card information safe?",
+            "a": "Payments are processed by trusted, encrypted payment gateways, and we never store your card details on our servers."
+          },
+          {
+            "q": "How do I get a refund for a cancelled order?",
+            "a": "When a paid order is cancelled, the amount is refunded automatically to your original payment method. How soon it appears depends on your bank."
+          }
+        ]
       },
-      {
-        "q": "What payment methods are supported?",
-        "a": "We support secure payments including mada, Apple Pay, Visa, MasterCard, and Stripe."
+      "orders": {
+        "title": "Orders & Account",
+        "items": [
+          {
+            "q": "Can I order without creating an account?",
+            "a": "Yes. You can check out as a guest with your email and shipping address. An account lets you track orders and save a wishlist."
+          },
+          {
+            "q": "How do I track my order?",
+            "a": "Sign in and open \"My Orders\" to see the status and progress of each order."
+          },
+          {
+            "q": "Can I cancel my order?",
+            "a": "You can cancel from the order details page while it's awaiting payment or confirmed, before we start preparing it."
+          },
+          {
+            "q": "When can I review a product?",
+            "a": "You can write a review only after your order has been delivered. It appears once our team has approved it."
+          }
+        ]
       },
-      {
-        "q": "How do you ensure tea freshness and aroma?",
-        "a": "All our teas are packaged in specialized airtight, light-blocking tins and bags that seal in aromatic oils and peak freshness."
+      "tea": {
+        "title": "Tea & Storage",
+        "items": [
+          {
+            "q": "How do you ensure tea freshness and aroma?",
+            "a": "All our teas are packaged in specialized airtight, light-blocking tins and bags that seal in aromatic oils and peak freshness."
+          },
+          {
+            "q": "How should I store tea once opened?",
+            "a": "Keep it in its airtight container, away from light, moisture and strong odors, in a cool, dry place."
+          }
+        ]
       }
-    ]
+    }
   },
   "pricing": {
     "title": "Special Packages & Plans",
@@ -515,6 +897,550 @@
     "customerService": "Customer Service",
     "rights": "All rights reserved © Alzain Tea",
     "privacy": "Privacy Policy",
-    "terms": "Terms & Conditions"
+    "terms": "Terms & Conditions",
+    "whatsapp": "WhatsApp",
+    "email": "Email",
+    "instagram": "Instagram",
+    "paymentMethods": "Payment methods",
+    "copyright": "© {year} Alzain Tea. All rights reserved."
+  },
+  "productPage": {
+    "breadcrumbLabel": "Breadcrumb",
+    "home": "Home",
+    "products": "Products",
+    "description": "Description",
+    "specs": "Product details",
+    "sku": "SKU",
+    "brand": "Brand",
+    "option": "Option",
+    "quantity": "Quantity",
+    "decreaseQty": "Decrease quantity",
+    "increaseQty": "Increase quantity",
+    "inStock": "In stock",
+    "lowStock": "Only {count} left",
+    "outOfStock": "Currently out of stock",
+    "addToCart": "Add to cart",
+    "added": "Added to cart",
+    "viewCart": "View cart",
+    "save": "Save {percent}%"
+  },
+  "adminPanel": {
+    "meta": {
+      "dashboardTitle": "Dashboard | Alzain Tea"
+    },
+    "common": {
+      "all": "All",
+      "cancel": "Cancel",
+      "clearFilters": "Clear filters",
+      "clearFiltersCount": "Clear filters ({n})",
+      "close": "Close",
+      "delete": "Delete",
+      "dismiss": "Dismiss message",
+      "edit": "Edit",
+      "executing": "Working...",
+      "next": "Next",
+      "open": "Open",
+      "previous": "Previous",
+      "retry": "Try again",
+      "updating": "Updating…",
+      "view": "View"
+    },
+    "sidebar": {
+      "brand": "Alzain Tea",
+      "brandInitial": "A",
+      "panel": "Admin panel",
+      "navLabel": "Main navigation",
+      "openMenu": "Open menu",
+      "closeMenu": "Close menu",
+      "viewStore": "View store",
+      "logout": "Sign out",
+      "nav": {
+        "dashboard": "Dashboard",
+        "orders": "Orders",
+        "products": "Products",
+        "categories": "Categories",
+        "reviews": "Reviews"
+      },
+      "roles": {
+        "ADMIN": "Admin",
+        "SUPER_ADMIN": "Super admin"
+      },
+      "collapse": "Collapse sidebar",
+      "expand": "Expand sidebar"
+    },
+    "chart": {
+      "aria": "Paid orders per day over {days} days, peak {peak} orders",
+      "orders": "{n, plural, one {# order} other {# orders}}"
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "subtitle": "Store performance",
+      "subtitleSince": "Store performance since {date}",
+      "rangeLabel": "Time range",
+      "days": "{n} days",
+      "refresh": "Refresh data",
+      "loadError": "Couldn't load the reports. Check your connection and try again.",
+      "loadingAria": "Loading data",
+      "ordersCount": "{n, plural, one {# order} other {# orders}}",
+      "lowStock": {
+        "title": "Low stock alerts",
+        "subtitle": "Available = stock − reserved by unpaid orders",
+        "thresholdLabel": "Alert threshold",
+        "thresholdOption": "Available ≤ {n}",
+        "error": "Couldn't load stock alerts",
+        "empty": "All active products are well stocked",
+        "outOfStock": "Out of stock",
+        "available": "{n} available",
+        "reserved": "{n} reserved",
+        "showingFirst": "Showing the 20 products closest to running out."
+      },
+      "actions": {
+        "pendingReviews": "reviews awaiting approval",
+        "confirmedOrders": "confirmed orders awaiting fulfilment",
+        "lowStock": "products low on stock",
+        "none": "No pending actions right now."
+      },
+      "kpi": {
+        "paidOrders": "Paid orders",
+        "paidOf": "out of {n} orders",
+        "payRate": "Payment rate",
+        "payRateHint": "Paid ÷ all orders",
+        "newCustomers": "New customers",
+        "newCustomersHint": "Sign-ups in the period",
+        "pendingReviews": "Reviews awaiting approval",
+        "pendingReviewsHint": "Open the reviews page"
+      },
+      "revenue": {
+        "title": "Revenue",
+        "subtitle": "Totals include shipping and tax, shown per currency with no conversion between them",
+        "empty": "No paid sales in this period",
+        "average": "Average order {value}"
+      },
+      "daily": {
+        "title": "Paid orders per day",
+        "subtitle": "{total} orders in the period, best day {peak} orders ({date})",
+        "empty": "No paid orders in this period"
+      },
+      "top": {
+        "title": "Best sellers",
+        "subtitle": "By units sold",
+        "empty": "No sales yet",
+        "units": "{n, plural, one {# unit} other {# units}}"
+      },
+      "status": {
+        "title": "Orders by status",
+        "subtitle": "Orders created during the selected period",
+        "empty": "No orders in this period"
+      },
+      "country": {
+        "title": "Sales by country",
+        "subtitle": "Sorted by paid orders",
+        "empty": "No sales yet"
+      }
+    },
+    "orders": {
+      "title": "Orders",
+      "export": "Export CSV",
+      "exporting": "Exporting…",
+      "searchAria": "Search orders",
+      "searchPlaceholder": "Order ID, payment reference, email or name",
+      "orderStatusAria": "Order status",
+      "allOrderStatuses": "All order statuses",
+      "paymentStatusAria": "Payment status",
+      "allPaymentStatuses": "All payment statuses",
+      "countryAria": "Country",
+      "allCountries": "All countries",
+      "from": "From",
+      "to": "To",
+      "cols": {
+        "order": "Order",
+        "customer": "Customer",
+        "country": "Country",
+        "total": "Total",
+        "payment": "Payment",
+        "status": "Status",
+        "date": "Date"
+      },
+      "itemsCount": "{n, plural, one {# item} other {# items}}",
+      "guest": "Guest",
+      "loading": "Loading orders…",
+      "loadError": "Couldn't load orders.",
+      "emptyFiltered": "No orders match these filters. Loosen or clear them.",
+      "empty": "No orders yet. They'll appear here as soon as the first purchase is made.",
+      "pageInfo": "Page {page} of {pages} — {total} orders",
+      "exportNone": "No matching orders to export.",
+      "exportTruncated": "Exported only the first {max} orders. Narrow the filters to export the rest.",
+      "exportDone": "Exported {n} orders.",
+      "exportFailed": "Export failed, please try again."
+    },
+    "orderDetail": {
+      "loading": "Loading order…",
+      "notFound": "The order doesn't exist or couldn't be loaded.",
+      "retry": "Try again",
+      "backToOrders": "Back to orders",
+      "allOrders": "All orders",
+      "orderLabel": "Order",
+      "copyId": "Copy full ID",
+      "copied": "Copied",
+      "refresh": "Refresh",
+      "refreshing": "Refreshing…",
+      "table": {
+        "product": "Product",
+        "quantity": "Qty",
+        "price": "Price",
+        "lineTotal": "Total"
+      },
+      "summary": {
+        "subtotal": "Subtotal",
+        "discount": "Discount",
+        "shipping": "Shipping",
+        "tax": "Tax",
+        "total": "Total"
+      },
+      "customer": {
+        "title": "Customer",
+        "guest": "Guest",
+        "coupon": "Coupon: {code}",
+        "vat": "VAT number: {vat}",
+        "notes": "Customer notes: {notes}"
+      },
+      "shipping": {
+        "title": "Shipping address",
+        "none": "No saved address",
+        "comma": ",",
+        "payment": "Payment: {method}"
+      },
+      "update": {
+        "title": "Update status",
+        "terminal": "This is a final status; no actions are available.",
+        "noteAria": "Internal note",
+        "notePlaceholder": "A note saved to the order log (optional)",
+        "restock": "Return quantities to stock on return"
+      },
+      "statusUpdated": "Status updated to “{status}”.",
+      "history": {
+        "title": "Status history"
+      },
+      "dialog": {
+        "title": "Move order to “{status}”",
+        "confirm": "Confirm",
+        "irreversible": "This is a final status and can't be undone."
+      },
+      "impact": {
+        "refund": "{amount} will be fully refunded to the customer via {method}.",
+        "restock": "Product quantities will return to available stock.",
+        "release": "Stock reserved for this order will be released."
+      }
+    },
+    "products": {
+      "status": {
+        "ALL": "All",
+        "DRAFT": "Draft",
+        "ACTIVE": "Active",
+        "ARCHIVED": "Archived",
+        "OUT_OF_STOCK": "Out of stock"
+      },
+      "sort": {
+        "newest": "Newest",
+        "oldest": "Oldest",
+        "nameAsc": "Name (A → Z)",
+        "priceAsc": "Price: low to high",
+        "priceDesc": "Price: high to low",
+        "stockAsc": "Stock: low to high",
+        "stockDesc": "Stock: high to low"
+      },
+      "tabsAria": "Filter by status",
+      "searchPlaceholder": "Search by name, SKU or slug",
+      "searchAria": "Search products",
+      "categoryAria": "Filter by category",
+      "allCategories": "All categories",
+      "stockAria": "Filter by stock",
+      "allStock": "All stock levels",
+      "lowStock": "Low stock",
+      "outStock": "Out of stock",
+      "sortAria": "Sort products",
+      "loadError": "Couldn't load products.",
+      "emptyFiltered": "No products match the current filters.",
+      "empty": "No products yet.",
+      "addFirst": "Add your first product",
+      "pageInfo": "{total} products — page {page} of {pages}",
+      "cols": {
+        "product": "Product",
+        "category": "Category",
+        "price": "Price",
+        "available": "Available",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "variantsCount": "{n, plural, one {# variant} other {# variants}}",
+      "out": "Out",
+      "low": "Low",
+      "reserved": "Reserved: {n}",
+      "dialog": {
+        "title": "Delete product",
+        "confirm": "Delete product",
+        "body": "“<strong>{name}</strong>” will be deleted. A permanent deletion can't be undone.",
+        "archiveNote": "If the product is linked to past orders it will be archived instead of deleted, to preserve order history."
+      },
+      "notice": {
+        "archived": "“{name}” was archived because it's linked to past orders",
+        "deleted": "“{name}” was permanently deleted",
+        "deleteFailed": "Couldn't delete the product"
+      }
+    },
+    "categories": {
+      "tabs": {
+        "ALL": "All",
+        "ROOT": "Top-level",
+        "CHILD": "Sub-categories"
+      },
+      "sort": {
+        "newest": "Newest",
+        "oldest": "Oldest",
+        "nameAsc": "Name (A → Z)",
+        "productsDesc": "Most products",
+        "productsAsc": "Fewest products"
+      },
+      "tabsAria": "Filter by category type",
+      "searchPlaceholder": "Search by Arabic or English name, or slug",
+      "searchAria": "Search categories",
+      "sortAria": "Sort categories",
+      "loadError": "Couldn't load categories.",
+      "emptyFiltered": "No categories match the current filters.",
+      "empty": "No categories yet.",
+      "addFirst": "Add your first category",
+      "pageInfo": "{total} categories — page {page} of {pages}",
+      "cols": {
+        "category": "Category",
+        "parent": "Parent",
+        "products": "Products",
+        "children": "Sub-categories",
+        "created": "Created",
+        "actions": "Actions"
+      },
+      "dialog": {
+        "title": "Delete category",
+        "confirm": "Delete category",
+        "blockedIntro": "“<strong>{name}</strong>” can't be deleted right now:",
+        "blockedProducts": "It contains {n, plural, one {# product} other {# products}} — move them to another category first.",
+        "blockedChildren": "It has {n, plural, one {# sub-category} other {# sub-categories}} — move or delete them first.",
+        "body": "“<strong>{name}</strong>” will be permanently deleted. This can't be undone."
+      },
+      "notice": {
+        "deleted": "“{name}” was permanently deleted",
+        "deleteFailed": "Couldn't delete the category"
+      }
+    },
+    "reviews": {
+      "sort": {
+        "newest": "Newest first",
+        "oldest": "Oldest first",
+        "ratingDesc": "Highest rated",
+        "ratingAsc": "Lowest rated"
+      },
+      "tabsAria": "Review status",
+      "searchAria": "Search reviews",
+      "searchPlaceholder": "Search comment, product, or reviewer name/email",
+      "ratingAria": "Rating",
+      "allRatings": "All ratings",
+      "stars": "{n, plural, one {# star} other {# stars}}",
+      "verifiedAria": "Verified purchase",
+      "allVerified": "Verified and unverified",
+      "verifiedOnly": "Verified purchases only",
+      "unverifiedOnly": "Unverified only",
+      "sortAria": "Sort",
+      "bulk": {
+        "region": "Bulk actions",
+        "selected": "{n} selected",
+        "approve": "Publish selected",
+        "reject": "Reject selected",
+        "delete": "Delete selected",
+        "clear": "Clear selection"
+      },
+      "selectAll": "Select all reviews on this page",
+      "selectReview": "Select review by {name}",
+      "cols": {
+        "product": "Product",
+        "reviewer": "Reviewer",
+        "ratingComment": "Rating & comment",
+        "status": "Status",
+        "date": "Date"
+      },
+      "verifiedBadge": "Verified purchase",
+      "noComment": "Rating without a comment",
+      "showMore": "Show more",
+      "showLess": "Show less",
+      "approve": "Publish",
+      "reject": "Reject",
+      "loadError": "Couldn't load reviews.",
+      "empty": {
+        "page": "No results on this page.",
+        "backFirst": "Back to the first page",
+        "filtered": "No reviews match these filters. Loosen or clear them.",
+        "pending": "No reviews awaiting a decision. They'll appear here as soon as customers submit them.",
+        "tab": "No reviews in this tab."
+      },
+      "pageInfo": "Page {page} of {pages} — {total} reviews",
+      "dialog": {
+        "titleMany": "Delete {n} reviews?",
+        "titleOne": "Delete this review?",
+        "desc": "Deletion is permanent and can't be undone. To only hide it from customers, use “Reject” instead.",
+        "deleting": "Deleting…",
+        "deleteForever": "Delete permanently"
+      },
+      "notice": {
+        "published": "Review published.",
+        "rejected": "Review rejected.",
+        "bulkApproved": "Published {affected} of {requested} reviews.",
+        "bulkRejected": "Rejected {affected} of {requested} reviews.",
+        "deletedOne": "Review deleted.",
+        "deletedMany": "Deleted {n} reviews."
+      },
+      "stats": {
+        "loadError": "Couldn't load the statistics.",
+        "pending": {
+          "label": "Pending review",
+          "hint": "Needs your decision"
+        },
+        "approved": {
+          "label": "Published",
+          "hint": "Visible in the store"
+        },
+        "rejected": {
+          "label": "Rejected",
+          "hint": "Hidden from customers"
+        },
+        "average": {
+          "label": "Average rating",
+          "hint": "Published reviews only"
+        }
+      }
+    },
+    "productForm": {
+      "sections": {
+        "basic": "Basic information",
+        "images": "Images",
+        "variants": "Variants (optional)",
+        "publish": "Publishing",
+        "organize": "Organisation",
+        "pricing": "Price & stock"
+      },
+      "fields": {
+        "nameAr": "Name (Arabic)",
+        "nameEn": "Name (English)",
+        "slug": "Slug",
+        "descAr": "Description (Arabic)",
+        "descEn": "Description (English)",
+        "status": "Status",
+        "category": "Category",
+        "sku": "SKU",
+        "price": "Price (USD)",
+        "compareAt": "Compare-at price (optional)",
+        "stock": "Physical stock"
+      },
+      "hints": {
+        "slugEdit": "Changing the slug breaks the product's old links in search engines.",
+        "slugNew": "Generated from the English name; you can edit it.",
+        "compareAt": "Must be higher than the current price.",
+        "stock": "Reserved for orders awaiting payment: {reserved} — available to sell after saving: {available}"
+      },
+      "statusOptions": {
+        "DRAFT": {
+          "label": "Draft",
+          "hint": "Not visible in the store"
+        },
+        "ACTIVE": {
+          "label": "Active",
+          "hint": "Visible and purchasable"
+        },
+        "OUT_OF_STOCK": {
+          "label": "Out of stock",
+          "hint": "Visible but not purchasable"
+        },
+        "ARCHIVED": {
+          "label": "Archived",
+          "hint": "Hidden but kept on record"
+        }
+      },
+      "loading": "Loading...",
+      "chooseCategory": "Choose a category",
+      "saveError": "An error occurred while saving the product",
+      "loadError": "Couldn't load the product",
+      "backToProducts": "Back to products",
+      "actions": {
+        "saving": "Saving...",
+        "saveChanges": "Save changes",
+        "create": "Create product",
+        "cancel": "Cancel",
+        "unsaved": "Unsaved changes"
+      }
+    },
+    "productImages": {
+      "empty": "No images yet. An active product needs at least one image.",
+      "urlAria": "Image {n} URL",
+      "primary": "Primary image",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "remove": "Remove image",
+      "add": "Add image",
+      "invalidUrl": "Invalid URL",
+      "failed": "Failed"
+    },
+    "productVariants": {
+      "intro": "Use these when the product is sold in different sizes or packs (e.g. a 250g tin and a 500g tin). When variants exist, stock is deducted from the variant itself at purchase.",
+      "name": "Name",
+      "namePlaceholder": "250g tin",
+      "price": "Price (USD)",
+      "pricePlaceholder": "Product price",
+      "stock": "Stock",
+      "remove": "Remove",
+      "removeAria": "Remove variant {n}",
+      "add": "Add variant"
+    },
+    "categoryForm": {
+      "sections": {
+        "basic": "Basic information",
+        "organize": "Organisation",
+        "image": "Image",
+        "usage": "Usage"
+      },
+      "fields": {
+        "nameAr": "Name (Arabic)",
+        "nameEn": "Name (English)",
+        "slug": "Slug",
+        "description": "Description (optional)",
+        "parent": "Parent category (optional)",
+        "imageUrl": "Image URL (optional)"
+      },
+      "hints": {
+        "slugEdit": "Changing the slug breaks the category's old links in search engines.",
+        "slugNew": "Generated from the English name; you can edit it.",
+        "parent": "Leave empty to make it a top-level category.",
+        "imageUrl": "An https:// URL or a local path starting with /"
+      },
+      "slugPatternTitle": "Lowercase English letters, numbers and hyphens only",
+      "loading": "Loading...",
+      "noParent": "No parent (top-level category)",
+      "previewFailed": "Couldn't preview the image; check the URL.",
+      "usage": {
+        "products": "Products",
+        "children": "Sub-categories",
+        "blockedNote": "A category can't be deleted while it contains products or sub-categories."
+      },
+      "saveError": "An error occurred while saving the category",
+      "actions": {
+        "saving": "Saving...",
+        "saveChanges": "Save changes",
+        "create": "Create category",
+        "cancel": "Cancel"
+      }
+    }
+  },
+  "notFound": {
+    "code": "404",
+    "title": "This page can't be found",
+    "description": "The link you followed may be broken, or the page may have moved. Let us take you somewhere better, and perhaps to a fine cup of tea.",
+    "home": "Back to home",
+    "browse": "Browse products"
   }
 }

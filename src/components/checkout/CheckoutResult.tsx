@@ -1,6 +1,8 @@
 // src/components/checkout/CheckoutResult.tsx
 // نتيجة الدفع بعد العودة من البوابة. الـ Webhook هو مصدر الحقيقة للحالة،
 // لذلك نقرأ حالة الطلب من الخادم (polling خفيف) ولا نفترض النجاح من الوصول للصفحة.
+// التصميم: هيرو داكن بميدالية الحالة (ResultHero) + بطاقة ملخص الطلب، بنفس لغة الصفحة الرئيسية.
+// النصوص كلها من checkout.* في ar.json / en.json.
 
 "use client";
 
@@ -9,11 +11,16 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocale, useTranslations } from "next-intl";
+import { Mail } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { formatMoney } from "@/lib/order-format";
 import { fetchMyOrder } from "@/services/orders.service";
 import { fetchOrderStatus, readTrackingToken } from "@/services/order-result.service";
 import type { PublicOrder } from "@/services/order-result.service";
+import type { OrderStatusValue, PaymentStatusValue } from "@/modules/orders/order-status";
+import { OrderStatusBadge, PaymentStatusBadge } from "@/components/ui/OrderStatusBadge";
+import { ResultHero, ResultHeroSkeleton, ResultShell, resultBtn, resultCard } from "./ResultHero";
 
 const POLL_MS = 3000;
 const MAX_POLLS = 10; // ~30 ثانية
@@ -26,12 +33,13 @@ function phaseOf(o: PublicOrder): Phase {
   return "pending";
 }
 
-const btnPrimary = "px-6 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium";
-const btnSecondary = "px-6 py-2 rounded-xl border text-sm font-medium";
-
 const noopSubscribe = () => () => {};
 
 export default function CheckoutResult() {
+  const t = useTranslations("checkout");
+  const locale = useLocale();
+  const isAr = locale === "ar";
+
   const params = useSearchParams();
   const orderId = params.get("orderId");
   const hasStripeSession = !!params.get("session_id");
@@ -49,7 +57,7 @@ export default function CheckoutResult() {
   const resolving = token === undefined || (!token && authStatus === "loading");
   const canFetch = !!orderId && !resolving && (!!token || isAuth);
 
-    // عدّاد المحاولات: يُزاد عند كل جلب، ويحدد توقف الـ polling وظهور حالة "ما زلنا نؤكد"
+  // عدّاد المحاولات: يُزاد عند كل جلب، ويحدد توقف الـ polling وظهور حالة "ما زلنا نؤكد"
   const [polls, setPolls] = useState(0);
 
   const query = useQuery<PublicOrder>({
@@ -83,174 +91,195 @@ export default function CheckoutResult() {
   }, [shouldClear, clearCart]);
 
   const ref = orderId ? `#${orderId.slice(-8).toUpperCase()}` : null;
+  const refLabel = t("success.orderNumber");
 
   // ------------------------------------------------------------ تحميل
   if (resolving || (canFetch && query.isLoading)) {
     return (
-      <Shell>
-        <div className="space-y-4" aria-busy="true" role="status">
-          <div className="h-8 w-2/3 mx-auto rounded bg-muted animate-pulse" />
-          <div className="h-24 rounded-xl bg-muted animate-pulse" />
-        </div>
-      </Shell>
+      <ResultShell>
+        <ResultHeroSkeleton label={t("result.loading")} />
+      </ResultShell>
     );
   }
 
   // ------------------------------------------- لا يمكن قراءة الطلب من هذا المتصفح
   if (!order) {
     return (
-      <Shell>
-        <h1 className="text-2xl font-bold mb-3">
-          {hasStripeSession ? "شكراً لطلبك" : "نتحقق من نتيجة الدفع"}
-        </h1>
-        {ref && <p className="text-sm text-muted-foreground mb-3">رقم الطلب: {ref}</p>}
-        <p className="text-muted-foreground mb-8">
-          لا يمكننا عرض تفاصيل الطلب من هذا المتصفح. إن اكتمل الدفع فستصلك رسالة تأكيد على بريدك الإلكتروني.
-        </p>
-        <Actions>
+      <ResultShell>
+        <ResultHero
+          tone="info"
+          title={hasStripeSession ? t("result.unknown.thanksTitle") : t("result.unknown.checkingTitle")}
+          refLabel={refLabel}
+          refValue={ref}
+          description={t("result.unknown.text")}
+        >
           {isAuth && (
-            <Link href="/account/orders" className={btnPrimary}>
-              طلباتي
+            <Link href="/account/orders" className={resultBtn.primary}>
+              {t("result.myOrders")}
             </Link>
           )}
-          <Link href="/products" className={isAuth ? btnSecondary : btnPrimary}>
-            متابعة التسوق
+          <Link href="/products" className={isAuth ? resultBtn.secondary : resultBtn.primary}>
+            {t("success.continueShopping")}
           </Link>
-        </Actions>
-      </Shell>
+        </ResultHero>
+      </ResultShell>
     );
   }
 
   // ------------------------------------------------------------ فشل
   if (phase === "failed") {
     return (
-      <Shell>
-        <h1 className="text-2xl font-bold text-red-600 mb-3">لم يكتمل الدفع</h1>
-        {ref && <p className="text-sm text-muted-foreground mb-3">رقم الطلب: {ref}</p>}
-        <p className="text-muted-foreground mb-8">
-          سلتك محفوظة ويمكنك المحاولة مرة أخرى أو استخدام وسيلة دفع أخرى.
-        </p>
-        <Actions>
-          <Link href="/checkout" className={btnPrimary}>
-            إعادة المحاولة
+      <ResultShell>
+        <ResultHero
+          tone="failed"
+          title={t("cancel.title")}
+          refLabel={refLabel}
+          refValue={ref}
+          description={t("result.failedText")}
+        >
+          <Link href="/checkout" className={resultBtn.primary}>
+            {t("cancel.tryAgain")}
           </Link>
-          <Link href="/cart" className={btnSecondary}>
-            العودة إلى السلة
+          <Link href="/cart" className={resultBtn.secondary}>
+            {t("cancel.backToCart")}
           </Link>
-        </Actions>
-      </Shell>
+          <Link href="/contact" className={resultBtn.ghost}>
+            {t("result.contactUs")}
+          </Link>
+        </ResultHero>
+      </ResultShell>
     );
   }
 
   // ------------------------------------------------------------ بانتظار التأكيد
   if (phase === "pending") {
     return (
-      <Shell>
-        <div role="status" aria-live="polite">
-          {!timedOut && (
-            <span
-              className="inline-block size-8 mb-4 rounded-full border-4 border-muted border-t-primary animate-spin"
-              aria-hidden
-            />
+      <ResultShell>
+        <ResultHero
+          live
+          tone="pending"
+          title={timedOut ? t("result.pending.timedOutTitle") : t("result.pending.title")}
+          refLabel={refLabel}
+          refValue={ref}
+          description={timedOut ? t("result.pending.timedOutText") : t("result.pending.text")}
+        >
+          {timedOut && (
+            <>
+              <button type="button" onClick={() => query.refetch()} className={resultBtn.primary}>
+                {t("result.pending.refresh")}
+              </button>
+              <Link href="/products" className={resultBtn.secondary}>
+                {t("success.continueShopping")}
+              </Link>
+            </>
           )}
-          <h1 className="text-2xl font-bold mb-3">
-            {timedOut ? "ما زلنا نؤكد دفعتك" : "جارٍ تأكيد الدفع…"}
-          </h1>
-          {ref && <p className="text-sm text-muted-foreground mb-3">رقم الطلب: {ref}</p>}
-          <p className="text-muted-foreground mb-8">
-            {timedOut
-              ? "قد يستغرق التأكيد دقائق. ستصلك رسالة على بريدك الإلكتروني فور اكتماله، ولا تحتاج لإعادة الدفع."
-              : "لا تغلق الصفحة، يستغرق هذا ثوانيَ معدودة."}
-          </p>
-        </div>
-        {timedOut && (
-          <Actions>
-            <button type="button" onClick={() => query.refetch()} className={btnPrimary}>
-              تحديث الحالة
-            </button>
-            <Link href="/products" className={btnSecondary}>
-              متابعة التسوق
-            </Link>
-          </Actions>
-        )}
-      </Shell>
+        </ResultHero>
+      </ResultShell>
     );
   }
 
   // ------------------------------------------------------------ نجاح
-  const money = (v: string | number) => formatMoney(v, order.currency, "ar");
+  const money = (v: string | number) => formatMoney(v, order.currency, locale);
   const hasDiscount = Number(order.discount) > 0;
 
   return (
-    <Shell align="start">
-      <div className="text-center mb-8" role="status" aria-live="polite">
-        <h1 className="text-2xl font-bold text-green-700 mb-2">تم استلام طلبك</h1>
-        <p className="text-sm text-muted-foreground">رقم الطلب: {ref}</p>
-        <p className="text-muted-foreground mt-3">سنرسل تأكيد الطلب إلى بريدك الإلكتروني.</p>
-      </div>
-
-      <section className="p-5 rounded-xl border bg-muted/30 space-y-4 mb-8" aria-label="ملخص الطلب">
-        <ul className="space-y-3">
-          {order.items.map((item) => (
-            <li key={item.id} className="flex items-center gap-3 text-sm">
-              {item.product.images[0] ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={item.product.images[0]} alt="" className="size-12 rounded-lg object-cover border" />
-              ) : (
-                <div className="size-12 rounded-lg bg-muted border" aria-hidden />
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">
-                  {item.product.nameAr}
-                  {item.variant ? ` — ${item.variant.name}` : ""}
-                </p>
-                <p className="text-muted-foreground">الكمية: {item.quantity}</p>
-              </div>
-              <span className="shrink-0">{money(Number(item.price) * item.quantity)}</span>
-            </li>
-          ))}
-        </ul>
-
-        <dl className="space-y-2 text-sm border-t pt-4">
-          <Row label="المجموع الفرعي" value={money(order.subtotal)} />
-          {hasDiscount && <Row label="الخصم" value={`−${money(order.discount)}`} className="text-green-700" />}
-          <Row label="الشحن" value={money(order.shippingCost)} />
-          <Row label="الضريبة" value={money(order.tax)} />
-          <Row label="الإجمالي" value={money(order.total)} className="border-t pt-3 font-semibold text-base" />
-        </dl>
-      </section>
-
-      <Actions>
+    <ResultShell>
+      <ResultHero
+        live
+        tone="success"
+        title={t("success.title")}
+        refLabel={refLabel}
+        refValue={ref}
+        description={t("success.subtitle")}
+        note={
+          <span className="inline-flex items-center gap-2">
+            <Mail size={16} aria-hidden />
+            {t("result.emailNote")}
+          </span>
+        }
+      >
         {isAuth && (
-          <Link href={`/account/orders/${order.id}`} className={btnPrimary}>
-            تتبع طلبي
+          <Link href={`/account/orders/${order.id}`} className={resultBtn.primary}>
+            {t("success.trackOrder")}
           </Link>
         )}
-        <Link href="/products" className={isAuth ? btnSecondary : btnPrimary}>
-          متابعة التسوق
+        <Link href="/products" className={isAuth ? resultBtn.secondary : resultBtn.primary}>
+          {t("success.continueShopping")}
         </Link>
-      </Actions>
-    </Shell>
+      </ResultHero>
+
+      <section className="mx-auto max-w-3xl px-5 py-14 md:px-8 md:py-20" aria-labelledby="result-summary">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 id="result-summary" className="text-3xl font-bold md:text-4xl">
+              {t("orderSummary")}
+            </h2>
+            <span aria-hidden className="mt-3 block h-[2px] w-12 rounded-full bg-[var(--border-color-strong)]" />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <PaymentStatusBadge status={order.paymentStatus as PaymentStatusValue} />
+            <OrderStatusBadge status={order.status as OrderStatusValue} />
+          </div>
+        </div>
+
+        <div className={resultCard}>
+          <ul className="divide-y divide-[var(--border-color)]">
+            {order.items.map((item) => {
+              const product = item.product as { nameAr: string; nameEn?: string };
+              const name = isAr ? product.nameAr : (product.nameEn ?? product.nameAr);
+              return (
+                <li key={item.id} className="flex items-center gap-4 p-5">
+                  {item.product.images[0] ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.product.images[0]}
+                      alt=""
+                      className="size-16 shrink-0 rounded-[var(--radius-lg)] border border-[var(--border-color)] object-cover"
+                    />
+                  ) : (
+                    <div
+                      className="size-16 shrink-0 rounded-[var(--radius-lg)] border border-[var(--border-color)] bg-[var(--color-form)]"
+                      aria-hidden
+                    />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold">
+                      {name}
+                      {item.variant ? ` — ${item.variant.name}` : ""}
+                    </p>
+                    <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                      {t("summary.quantity", { count: item.quantity })}
+                    </p>
+                  </div>
+                  <span className="shrink-0 font-bold tabular-nums">{money(Number(item.price) * item.quantity)}</span>
+                </li>
+              );
+            })}
+          </ul>
+
+          <dl className="space-y-3 border-t border-[var(--border-color)] bg-[var(--color-form)]/50 p-6 text-sm">
+            <Row label={t("summary.subtotal")} value={money(order.subtotal)} />
+            {hasDiscount && (
+              <Row label={t("summary.discount")} value={`−${money(order.discount)}`} tone="ok" />
+            )}
+            <Row label={t("summary.shipping")} value={money(order.shippingCost)} />
+            <Row label={t("result.tax")} value={money(order.tax)} />
+            <div className="flex items-baseline justify-between gap-4 border-t border-[var(--border-color)] pt-4">
+              <dt className="text-base font-bold">{t("result.total")}</dt>
+              <dd className="ds-price text-2xl">{money(order.total)}</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+    </ResultShell>
   );
 }
 
-function Shell({ children, align = "center" }: { children: React.ReactNode; align?: "center" | "start" }) {
+function Row({ label, value, tone }: { label: string; value: string; tone?: "ok" }) {
   return (
-    <div className={`container mx-auto px-4 py-16 max-w-2xl ${align === "center" ? "text-center" : ""}`}>
-      {children}
-    </div>
-  );
-}
-
-function Actions({ children }: { children: React.ReactNode }) {
-  return <div className="flex flex-wrap justify-center gap-3">{children}</div>;
-}
-
-function Row({ label, value, className = "" }: { label: string; value: string; className?: string }) {
-  return (
-    <div className={`flex justify-between ${className}`}>
-      <dt className={className ? "" : "text-muted-foreground"}>{label}</dt>
-      <dd>{value}</dd>
+    <div className="flex justify-between gap-4">
+      <dt className="text-[var(--color-text-secondary)]">{label}</dt>
+      <dd className={`tabular-nums ${tone === "ok" ? "text-[var(--color-success)]" : ""}`}>{value}</dd>
     </div>
   );
 }

@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { useIsFetching, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   CheckCircle2,
-  ChevronLeft,
+  ChevronRight,
   CircleDollarSign,
   MessageSquareText,
   Percent,
@@ -21,7 +22,6 @@ import { formatMoney } from "@/lib/order-format";
 import type { OrderStatusValue } from "@/modules/orders/order-status";
 import type { OverviewReport } from "@/services/reports";
 
-const LOCALE = "ar-u-nu-latn";
 const RANGES = [7, 30, 90] as const;
 const THRESHOLDS = [3, 5, 10, 20] as const;
 const STATUS_ORDER = [
@@ -36,26 +36,42 @@ const STATUS_ORDER = [
   "FAILED",
 ];
 
-const fmtNum = (n: number) => new Intl.NumberFormat(LOCALE).format(n);
-const fmtPercent = (ratio: number) => new Intl.NumberFormat(LOCALE, { style: "percent" }).format(ratio);
-const fmtDate = (iso: string) =>
-  new Intl.DateTimeFormat(LOCALE, { dateStyle: "medium", timeZone: "UTC" }).format(new Date(iso));
-const money = (value: number, currency: string) => formatMoney(value, currency, LOCALE);
+/** يختار الاسم حسب اللغة، ويرجع للعربي إن لم يوفّر التقرير الاسم الإنجليزي */
+const pickName = (isAr: boolean, p: { nameAr: string; nameEn?: string | null }) =>
+  isAr ? p.nameAr : (p.nameEn ?? p.nameAr);
 
 const isReportQuery = (q: { queryKey: readonly unknown[] }) =>
   (ADMIN_REPORT_KEYS as readonly string[]).includes(String(q.queryKey[0]));
 
-const muted = "text-[var(--color-text-secondary)]";
-const card = "rounded-2xl border border-black/10 bg-[var(--color-bg)] shadow-sm dark:border-white/10";
-const rowDivider = "divide-y divide-black/5 dark:divide-white/10";
+const muted = "adm-subtle";
+const card = "adm-card";
+const rowDivider = "divide-y divide-[var(--border-color)]";
+
+/** منسّقات الأرقام والتواريخ والعملات حسب لغة الواجهة */
+function useFormatters() {
+  const locale = useLocale();
+  const isAr = locale === "ar";
+  const intl = isAr ? "ar-u-nu-latn" : "en-US";
+  return useMemo(
+    () => ({
+      locale,
+      isAr,
+      intl,
+      num: (n: number) => new Intl.NumberFormat(intl).format(n),
+      percent: (ratio: number) => new Intl.NumberFormat(intl, { style: "percent" }).format(ratio),
+      date: (iso: string) =>
+        new Intl.DateTimeFormat(intl, { dateStyle: "medium", timeZone: "UTC" }).format(new Date(iso)),
+      money: (value: number, currency: string) => formatMoney(value, currency, intl),
+    }),
+    [locale, isAr, intl],
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /* عناصر مساعدة                                                        */
 /* ------------------------------------------------------------------ */
 
-const Pulse = ({ className = "" }: { className?: string }) => (
-  <div className={`animate-pulse rounded-xl bg-black/5 dark:bg-white/10 ${className}`} />
-);
+const Pulse = ({ className = "" }: { className?: string }) => <div className={`adm-skeleton ${className}`} />;
 
 const Empty = ({ children }: { children: ReactNode }) => (
   <p className={`py-6 text-center text-sm ${muted}`}>{children}</p>
@@ -63,8 +79,8 @@ const Empty = ({ children }: { children: ReactNode }) => (
 
 function Bar({ pct }: { pct: number }) {
   return (
-    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
-      <div className="h-full rounded-full bg-[var(--color-primary)]" style={{ width: `${Math.max(2, pct)}%` }} />
+    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--color-form)]">
+      <div className="ds-bg-gold h-full rounded-full" style={{ width: `${Math.max(2, pct)}%` }} />
     </div>
   );
 }
@@ -84,14 +100,14 @@ function Panel({
 }) {
   return (
     <section className={`${card} ${className}`}>
-      <header className="flex items-start justify-between gap-3 border-b border-black/5 px-5 py-4 dark:border-white/10">
+      <header className="flex items-start justify-between gap-3 border-b border-[var(--border-color)] px-6 py-5">
         <div>
-          <h2 className="text-base font-semibold">{title}</h2>
-          {subtitle && <p className={`mt-0.5 text-xs ${muted}`}>{subtitle}</p>}
+          <h2 className="ds-font-heading text-lg font-bold">{title}</h2>
+          {subtitle && <p className={`mt-1 text-xs leading-6 ${muted}`}>{subtitle}</p>}
         </div>
         {action}
       </header>
-      <div className="p-5">{children}</div>
+      <div className="p-6">{children}</div>
     </section>
   );
 }
@@ -110,14 +126,14 @@ function KpiCard({
   href?: string;
 }) {
   const body = (
-    <div className={`${card} flex items-start gap-4 p-5 ${href ? "transition-colors hover:border-[var(--color-primary)]" : ""}`}>
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+    <div className={`${card} flex items-start gap-4 p-5 ${href ? "adm-card-link" : ""}`}>
+      <span className="adm-icon-chip">
         <Icon className="h-5 w-5" aria-hidden />
       </span>
       <div className="min-w-0">
         <p className={`text-sm ${muted}`}>{label}</p>
-        <p className="mt-0.5 text-2xl font-bold tabular-nums">{value}</p>
-        {hint && <p className={`mt-0.5 text-xs ${muted}`}>{hint}</p>}
+        <p className="ds-font-heading ds-text-alt mt-1 text-3xl font-bold tabular-nums">{value}</p>
+        {hint && <p className={`mt-1 text-xs ${muted}`}>{hint}</p>}
       </div>
     </div>
   );
@@ -125,27 +141,23 @@ function KpiCard({
 }
 
 function ErrorBox({ onRetry }: { onRetry: () => void }) {
+  const t = useTranslations("adminPanel.dashboard");
+  const tc = useTranslations("common");
   return (
-    <div
-      role="alert"
-      className="flex flex-col items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-10 text-center text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300"
-    >
+    <div role="alert" className="adm-alert adm-alert-error flex flex-col items-center gap-3 p-10 text-center">
       <AlertTriangle className="h-6 w-6" aria-hidden />
-      <p className="font-medium">تعذّر تحميل التقارير. تأكد من اتصالك ثم أعد المحاولة.</p>
-      <button
-        type="button"
-        onClick={onRetry}
-        className="rounded-lg bg-red-700 px-4 py-2 text-sm font-medium text-white hover:bg-red-800"
-      >
-        إعادة المحاولة
+      <p className="font-medium">{t("loadError")}</p>
+      <button type="button" onClick={onRetry} className="ds-btn adm-btn-sm adm-btn-danger-solid">
+        {tc("retry")}
       </button>
     </div>
   );
 }
 
 function DashboardSkeleton() {
+  const t = useTranslations("adminPanel.dashboard");
   return (
-    <div className="space-y-6" aria-busy="true" aria-label="جارٍ تحميل البيانات">
+    <div className="space-y-6" aria-busy="true" aria-label={t("loadingAria")}>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }, (_, i) => (
           <Pulse key={i} className="h-[104px]" />
@@ -166,23 +178,26 @@ function DashboardSkeleton() {
 /* ------------------------------------------------------------------ */
 
 function LowStockPanel() {
+  const t = useTranslations("adminPanel.dashboard");
+  const tc = useTranslations("common");
+  const f = useFormatters();
   const [threshold, setThreshold] = useState<number>(5);
   const { data, isLoading, isError, refetch } = useLowStockReport(threshold);
 
   return (
     <Panel
-      title="تنبيهات المخزون المنخفض"
-      subtitle="المتاح = المخزون − المحجوز للطلبات غير المدفوعة"
+      title={t("lowStock.title")}
+      subtitle={t("lowStock.subtitle")}
       action={
         <select
-          aria-label="حد التنبيه"
+          aria-label={t("lowStock.thresholdLabel")}
           value={threshold}
           onChange={(e) => setThreshold(Number(e.target.value))}
-          className="rounded-lg border border-black/10 bg-[var(--color-bg)] px-2 py-1 text-xs dark:border-white/10"
+          className="adm-control adm-control-sm"
         >
-          {THRESHOLDS.map((t) => (
-            <option key={t} value={t}>
-              متاح ≤ {t}
+          {THRESHOLDS.map((n) => (
+            <option key={n} value={n}>
+              {t("lowStock.thresholdOption", { n })}
             </option>
           ))}
         </select>
@@ -190,42 +205,38 @@ function LowStockPanel() {
     >
       {isError ? (
         <div className="py-4 text-center text-sm">
-          <p className="text-red-700 dark:text-red-300">تعذّر تحميل تنبيهات المخزون</p>
-          <button type="button" onClick={() => refetch()} className="mt-2 text-[var(--color-primary)] hover:underline">
-            إعادة المحاولة
+          <p className="text-[var(--color-danger)]">{t("lowStock.error")}</p>
+          <button type="button" onClick={() => refetch()} className="adm-link mt-2">
+            {tc("retry")}
           </button>
         </div>
       ) : isLoading || !data ? (
         <Pulse className="h-40" />
       ) : data.items.length === 0 ? (
-        <Empty>كل المنتجات النشطة بمخزون كافٍ</Empty>
+        <Empty>{t("lowStock.empty")}</Empty>
       ) : (
         <>
           <ul className={`-my-3 ${rowDivider}`}>
             {data.items.map((p) => (
               <li key={p.id} className="flex items-center justify-between gap-3 py-3">
                 <Link href={`/admin/products/${p.id}`} className="min-w-0 hover:underline">
-                  <span className="block truncate text-sm font-medium">{p.nameAr}</span>
+                  <span className="block truncate text-sm font-medium">{pickName(f.isAr, p)}</span>
                   <span dir="ltr" className={`block text-start text-xs ${muted}`}>
                     {p.sku}
                   </span>
                 </Link>
                 <div className="shrink-0 text-end">
-                  <span
-                    className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      p.available <= 0
-                        ? "bg-red-100 text-red-900 dark:bg-red-500/15 dark:text-red-300"
-                        : "bg-amber-100 text-amber-900 dark:bg-amber-500/15 dark:text-amber-300"
-                    }`}
-                  >
-                    {p.available <= 0 ? "نفد" : `متاح ${fmtNum(p.available)}`}
+                  <span className={`ds-badge ${p.available <= 0 ? "ds-badge-danger" : "ds-badge-warning"}`}>
+                    {p.available <= 0 ? t("lowStock.outOfStock") : t("lowStock.available", { n: f.num(p.available) })}
                   </span>
-                  {p.reservedStock > 0 && <p className={`mt-1 text-xs ${muted}`}>محجوز {fmtNum(p.reservedStock)}</p>}
+                  {p.reservedStock > 0 && (
+                    <p className={`mt-1 text-xs ${muted}`}>{t("lowStock.reserved", { n: f.num(p.reservedStock) })}</p>
+                  )}
                 </div>
               </li>
             ))}
           </ul>
-          {data.items.length >= 20 && <p className={`mt-4 text-xs ${muted}`}>يُعرض أول 20 منتجاً الأقرب للنفاد.</p>}
+          {data.items.length >= 20 && <p className={`mt-4 text-xs ${muted}`}>{t("lowStock.showingFirst")}</p>}
         </>
       )}
     </Panel>
@@ -237,13 +248,16 @@ function LowStockPanel() {
 /* ------------------------------------------------------------------ */
 
 function Content({ data }: { data: OverviewReport }) {
+  const t = useTranslations("adminPanel.dashboard");
+  const f = useFormatters();
+
   const countryNames = useMemo(() => {
     try {
-      return new Intl.DisplayNames(["ar"], { type: "region" });
+      return new Intl.DisplayNames([f.locale], { type: "region" });
     } catch {
       return null;
     }
-  }, []);
+  }, [f.locale]);
   const countryName = (code: string) => countryNames?.of(code) ?? code;
 
   const { kpis } = data;
@@ -251,9 +265,9 @@ function Content({ data }: { data: OverviewReport }) {
   const payRate = kpis.totalOrders ? kpis.paidOrders / kpis.totalOrders : 0;
 
   const actions = [
-    { label: "مراجعات بانتظار الاعتماد", count: kpis.pendingReviews, href: "/admin/reviews" },
-    { label: "طلبات مؤكدة بانتظار التجهيز", count: confirmed, href: "/admin/orders" },
-    { label: "منتجات بمخزون منخفض", count: data.lowStock.length, href: "/admin/products" },
+    { label: t("actions.pendingReviews"), count: kpis.pendingReviews, href: "/admin/reviews" },
+    { label: t("actions.confirmedOrders"), count: confirmed, href: "/admin/orders" },
+    { label: t("actions.lowStock"), count: data.lowStock.length, href: "/admin/products" },
   ].filter((a) => a.count > 0);
 
   const totalDaily = data.dailyOrders.reduce((s, d) => s + d.orders, 0);
@@ -262,16 +276,16 @@ function Content({ data }: { data: OverviewReport }) {
   const maxUnits = Math.max(1, ...data.topProducts.map((p) => p.unitsSold));
   const maxCountry = Math.max(1, ...data.salesByCountry.map((c) => c.orders));
   const statuses = [...data.ordersByStatus].sort(
-    (a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status)
+    (a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status),
   );
 
   return (
     <div className="space-y-6">
       {/* إجراءات تحتاج انتباهك */}
       {actions.length === 0 ? (
-        <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300">
+        <div className="adm-alert adm-alert-success flex items-center gap-3 px-5 py-3">
           <CheckCircle2 className="h-5 w-5 shrink-0" aria-hidden />
-          لا توجد إجراءات معلّقة الآن.
+          {t("actions.none")}
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -279,13 +293,13 @@ function Content({ data }: { data: OverviewReport }) {
             <Link
               key={a.href}
               href={a.href}
-              className="flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 text-amber-950 transition-colors hover:border-amber-400 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
+              className="adm-alert adm-alert-warning adm-card-link flex items-center justify-between px-5 py-3"
             >
               <span className="text-sm">
-                <span className="me-2 text-lg font-bold tabular-nums">{fmtNum(a.count)}</span>
+                <span className="me-2 text-lg font-bold tabular-nums">{f.num(a.count)}</span>
                 {a.label}
               </span>
-              <ChevronLeft className="h-4 w-4" aria-hidden />
+              <ChevronRight className="h-4 w-4 rtl:rotate-180" aria-hidden />
             </Link>
           ))}
         </div>
@@ -294,38 +308,50 @@ function Content({ data }: { data: OverviewReport }) {
       {/* المؤشرات */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
-          label="الطلبات المدفوعة"
-          value={fmtNum(kpis.paidOrders)}
-          hint={`من أصل ${fmtNum(kpis.totalOrders)} طلب`}
+          label={t("kpi.paidOrders")}
+          value={f.num(kpis.paidOrders)}
+          hint={t("kpi.paidOf", { n: f.num(kpis.totalOrders) })}
           icon={CircleDollarSign}
         />
-        <KpiCard label="نسبة الطلبات المدفوعة" value={fmtPercent(payRate)} hint="مدفوع ÷ كل الطلبات" icon={Percent} />
-        <KpiCard label="عملاء جدد" value={fmtNum(kpis.newCustomers)} hint="تسجيلات في الفترة" icon={UserPlus} />
+        <KpiCard label={t("kpi.payRate")} value={f.percent(payRate)} hint={t("kpi.payRateHint")} icon={Percent} />
         <KpiCard
-          label="مراجعات بانتظار الاعتماد"
-          value={fmtNum(kpis.pendingReviews)}
-          hint="افتح صفحة المراجعات"
+          label={t("kpi.newCustomers")}
+          value={f.num(kpis.newCustomers)}
+          hint={t("kpi.newCustomersHint")}
+          icon={UserPlus}
+        />
+        <KpiCard
+          label={t("kpi.pendingReviews")}
+          value={f.num(kpis.pendingReviews)}
+          hint={t("kpi.pendingReviewsHint")}
           icon={MessageSquareText}
           href="/admin/reviews"
         />
       </div>
 
-      {/* الإيرادات */}
-      <Panel title="الإيرادات" subtitle="الإجمالي شامل الشحن والضريبة، ويُعرض لكل عملة على حدة دون تحويل بينها">
+      {/* الإيرادات — اللمسة المميزة: بطاقات بأسود العبوة وإطار ذهبي */}
+      <Panel title={t("revenue.title")} subtitle={t("revenue.subtitle")}>
         {data.revenueByCurrency.length === 0 ? (
-          <Empty>لا توجد مبيعات مدفوعة في هذه الفترة</Empty>
+          <Empty>{t("revenue.empty")}</Empty>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {data.revenueByCurrency.map((r) => (
-              <div key={r.currency} className="rounded-xl border border-black/10 p-4 dark:border-white/10">
+              <div key={r.currency} className="ds-card-ink p-5">
                 <div className="flex items-center justify-between">
-                  <span dir="ltr" className="rounded-md bg-[var(--color-primary)]/10 px-2 py-0.5 text-xs font-semibold text-[var(--color-primary)]">
+                  <span
+                    dir="ltr"
+                    className="rounded-full border border-[rgba(201,164,92,0.4)] px-2.5 py-0.5 text-xs font-semibold text-[var(--brand-gold-light)]"
+                  >
                     {r.currency}
                   </span>
-                  <span className={`text-xs ${muted}`}>{fmtNum(r.orders)} طلب</span>
+                  <span className="text-xs text-[rgba(243,235,218,0.6)]">{t("ordersCount", { n: r.orders })}</span>
                 </div>
-                <p className="mt-3 text-2xl font-bold tabular-nums">{money(r.total, r.currency)}</p>
-                <p className={`mt-1 text-xs ${muted}`}>متوسط الطلب {money(r.orders ? r.total / r.orders : 0, r.currency)}</p>
+                <p className="ds-font-heading mt-4 text-3xl font-bold tabular-nums text-[var(--brand-gold-light)]">
+                  {f.money(r.total, r.currency)}
+                </p>
+                <p className="mt-1 text-xs text-[rgba(243,235,218,0.6)]">
+                  {t("revenue.average", { value: f.money(r.orders ? r.total / r.orders : 0, r.currency) })}
+                </p>
               </div>
             ))}
           </div>
@@ -334,11 +360,15 @@ function Content({ data }: { data: OverviewReport }) {
 
       {/* الطلبات اليومية */}
       <Panel
-        title="الطلبات المدفوعة يومياً"
+        title={t("daily.title")}
         subtitle={
           peakDay.orders > 0
-            ? `${fmtNum(totalDaily)} طلب في الفترة، وأعلى يوم ${fmtNum(peakDay.orders)} طلب (${fmtDate(peakDay.date)})`
-            : "لا توجد طلبات مدفوعة في هذه الفترة"
+            ? t("daily.subtitle", {
+                total: f.num(totalDaily),
+                peak: f.num(peakDay.orders),
+                date: f.date(peakDay.date),
+              })
+            : t("daily.empty")
         }
       >
         <DailyOrdersChart data={data.dailyOrders} />
@@ -346,19 +376,19 @@ function Content({ data }: { data: OverviewReport }) {
 
       <div className="grid gap-6 xl:grid-cols-2">
         {/* الأكثر مبيعاً */}
-        <Panel title="الأكثر مبيعاً" subtitle="حسب عدد الوحدات المباعة">
+        <Panel title={t("top.title")} subtitle={t("top.subtitle")}>
           {data.topProducts.length === 0 ? (
-            <Empty>لا توجد مبيعات بعد</Empty>
+            <Empty>{t("top.empty")}</Empty>
           ) : (
             <ol className={`-my-3 ${rowDivider}`}>
               {data.topProducts.map((p, i) => (
                 <li key={p.productId} className="py-3">
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <Link href={`/products/${p.slug}`} className="min-w-0 truncate hover:underline">
-                      <span className={`me-2 tabular-nums ${muted}`}>{fmtNum(i + 1)}.</span>
-                      {p.nameAr}
+                      <span className={`me-2 tabular-nums ${muted}`}>{f.num(i + 1)}.</span>
+                      {pickName(f.isAr, p)}
                     </Link>
-                    <span className={`shrink-0 text-xs ${muted}`}>{fmtNum(p.unitsSold)} وحدة</span>
+                    <span className={`shrink-0 text-xs ${muted}`}>{t("top.units", { n: f.num(p.unitsSold) })}</span>
                   </div>
                   <Bar pct={(p.unitsSold / maxUnits) * 100} />
                 </li>
@@ -368,16 +398,16 @@ function Content({ data }: { data: OverviewReport }) {
         </Panel>
 
         {/* الطلبات حسب الحالة */}
-        <Panel title="الطلبات حسب الحالة" subtitle="الطلبات المنشأة خلال الفترة المحددة">
+        <Panel title={t("status.title")} subtitle={t("status.subtitle")}>
           {statuses.length === 0 ? (
-            <Empty>لا توجد طلبات في هذه الفترة</Empty>
+            <Empty>{t("status.empty")}</Empty>
           ) : (
             <ul className={`-my-3 ${rowDivider}`}>
               {statuses.map((s) => (
                 <li key={s.status} className="py-3">
                   <div className="flex items-center justify-between">
                     <OrderStatusBadge status={s.status as OrderStatusValue} />
-                    <span className="text-sm font-semibold tabular-nums">{fmtNum(s.count)}</span>
+                    <span className="text-sm font-semibold tabular-nums">{f.num(s.count)}</span>
                   </div>
                   <Bar pct={kpis.totalOrders ? (s.count / kpis.totalOrders) * 100 : 0} />
                 </li>
@@ -387,9 +417,9 @@ function Content({ data }: { data: OverviewReport }) {
         </Panel>
 
         {/* المبيعات حسب الدولة */}
-        <Panel title="المبيعات حسب الدولة" subtitle="مرتبة حسب عدد الطلبات المدفوعة">
+        <Panel title={t("country.title")} subtitle={t("country.subtitle")}>
           {data.salesByCountry.length === 0 ? (
-            <Empty>لا توجد مبيعات بعد</Empty>
+            <Empty>{t("country.empty")}</Empty>
           ) : (
             <ul className={`-my-3 ${rowDivider}`}>
               {data.salesByCountry.map((c) => (
@@ -397,9 +427,9 @@ function Content({ data }: { data: OverviewReport }) {
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span>
                       {countryName(c.country)}
-                      <span className={`ms-2 text-xs ${muted}`}>{fmtNum(c.orders)} طلب</span>
+                      <span className={`ms-2 text-xs ${muted}`}>{t("ordersCount", { n: c.orders })}</span>
                     </span>
-                    <span className="shrink-0 font-medium tabular-nums">{money(c.total, c.currency)}</span>
+                    <span className="shrink-0 font-medium tabular-nums">{f.money(c.total, c.currency)}</span>
                   </div>
                   <Bar pct={(c.orders / maxCountry) * 100} />
                 </li>
@@ -419,6 +449,8 @@ function Content({ data }: { data: OverviewReport }) {
 /* ------------------------------------------------------------------ */
 
 export default function DashboardStats() {
+  const t = useTranslations("adminPanel.dashboard");
+  const f = useFormatters();
   const [days, setDays] = useState<number>(30);
   const { data, isLoading, isError, refetch } = useOverviewReport(days);
   const qc = useQueryClient();
@@ -428,45 +460,39 @@ export default function DashboardStats() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">لوحة التحكم</h1>
-          <p className={`mt-1 text-sm ${muted}`}>
-            {data ? `أداء المتجر منذ ${fmtDate(data.range.from)}` : "أداء المتجر"}
+          <h1 className="adm-heading">{t("title")}</h1>
+          <p className={`mt-3 text-sm ${muted}`}>
+            {data ? t("subtitleSince", { date: f.date(data.range.from) }) : t("subtitle")}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <div
-            role="group"
-            aria-label="الفترة الزمنية"
-            className="inline-flex rounded-xl border border-black/10 bg-[var(--color-bg)] p-1 dark:border-white/10"
-          >
+          <div role="group" aria-label={t("rangeLabel")} className="adm-segment">
             {RANGES.map((r) => (
               <button
                 key={r}
                 type="button"
                 aria-pressed={days === r}
                 onClick={() => setDays(r)}
-                className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                  days === r
-                    ? "bg-[var(--color-primary)] text-white"
-                    : `${muted} hover:bg-black/5 dark:hover:bg-white/10`
-                }`}
+                className="adm-tab"
               >
-                {r} يوماً
+                {t("days", { n: r })}
               </button>
             ))}
           </div>
           <button
             type="button"
             onClick={() => qc.invalidateQueries({ predicate: isReportQuery })}
-            aria-label="تحديث البيانات"
-            title="تحديث البيانات"
-            className="grid h-10 w-10 place-items-center rounded-xl border border-black/10 bg-[var(--color-bg)] hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/10"
+            aria-label={t("refresh")}
+            title={t("refresh")}
+            className="adm-icon-btn"
           >
             <RefreshCw className={`h-4 w-4 ${fetching ? "animate-spin" : ""}`} aria-hidden />
           </button>
         </div>
       </header>
+
+      <div aria-hidden className="ds-dune-divider opacity-40" />
 
       {isError && !data ? (
         <ErrorBox onRetry={() => refetch()} />

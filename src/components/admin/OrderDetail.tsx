@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useAdminOrder, useUpdateOrderStatus } from "@/hooks/useOrders";
 import { getApiErrorMessage, type OrderDetail as OrderDetailData } from "@/services/orders.service";
 import { OrderStatusBadge, PaymentStatusBadge } from "@/components/ui/OrderStatusBadge";
@@ -17,6 +17,8 @@ import {
 } from "@/modules/orders/order-status";
 import { formatDateTime, formatMoney } from "@/lib/order-format";
 
+type T = (key: string, values?: Record<string, string | number>) => string;
+
 /**
  * يعرض أثر الانتقال قبل تنفيذه (استرداد / مخزون) بنفس دالة planTransition
  * التي يستخدمها الخادم، فلا يختلف ما يراه المدير عما سيحدث فعلاً.
@@ -25,25 +27,26 @@ function buildImpact(
   order: OrderDetailData,
   to: OrderStatusValue,
   restock: boolean,
-  money: (v: string) => string
+  money: (v: string) => string,
+  t: T,
 ) {
-  const d = planTransition(
-    { status: order.status, paymentStatus: order.paymentStatus },
-    to,
-    { restock }
-  );
+  const d = planTransition({ status: order.status, paymentStatus: order.paymentStatus }, to, { restock });
   if (!d.ok) return { blocked: d.message, lines: [] as string[], irreversible: false };
 
   const lines: string[] = [];
   if (d.plan.refund) {
-    lines.push(`سيُسترد ${money(order.total)} كاملاً للعميل عبر ${order.paymentMethod}.`);
+    lines.push(t("impact.refund", { amount: money(order.total), method: order.paymentMethod }));
   }
-  if (d.plan.stock === "RESTOCK") lines.push("ستعود كميات المنتجات إلى المخزون المتاح.");
-  if (d.plan.stock === "RELEASE_RESERVED") lines.push("سيُحرَّر المخزون المحجوز لهذا الطلب.");
+  if (d.plan.stock === "RESTOCK") lines.push(t("impact.restock"));
+  if (d.plan.stock === "RELEASE_RESERVED") lines.push(t("impact.release"));
   return { blocked: null, lines, irreversible: isTerminalStatus(to) };
 }
 
+const panel = "adm-card p-5";
+
 export default function OrderDetail({ id }: { id: string }) {
+  const tt = useTranslations("adminPanel.orderDetail");
+  const t = tt as unknown as T;
   const locale = useLocale();
   const lang = locale === "ar" ? "ar" : "en";
   const { data: order, isLoading, isError, refetch, isFetching } = useAdminOrder(id);
@@ -56,17 +59,17 @@ export default function OrderDetail({ id }: { id: string }) {
   const [done, setDone] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  if (isLoading) return <p className="text-zinc-500">جارٍ تحميل الطلب…</p>;
+  if (isLoading) return <p className="adm-subtle">{tt("loading")}</p>;
   if (isError || !order) {
     return (
-      <div className="space-y-2">
-        <p className="text-red-600">الطلب غير موجود أو تعذّر تحميله.</p>
+      <div className="adm-alert adm-alert-error space-y-2 p-6">
+        <p>{tt("notFound")}</p>
         <div className="flex gap-4 text-sm">
           <button onClick={() => refetch()} className="underline underline-offset-2">
-            إعادة المحاولة
+            {tt("retry")}
           </button>
           <Link href="/admin/orders" className="underline underline-offset-2">
-            العودة إلى الطلبات
+            {tt("backToOrders")}
           </Link>
         </div>
       </div>
@@ -87,19 +90,19 @@ export default function OrderDetail({ id }: { id: string }) {
           setNote("");
           setRestock(false);
           setPending(null);
-          setDone(`تم تحديث الحالة إلى «${ORDER_STATUS_LABELS[status][lang]}».`);
+          setDone(tt("statusUpdated", { status: ORDER_STATUS_LABELS[status][lang] }));
           setTimeout(() => setDone(null), 5000);
         },
         onError: (e) => {
           setPending(null);
           setError(getApiErrorMessage(e));
         },
-      }
+      },
     );
   }
 
   function apply(status: OrderStatusValue) {
-    const impact = buildImpact(current, status, restock, money);
+    const impact = buildImpact(current, status, restock, money, t);
     // الانتقالات ذات الأثر المالي/المخزني أو النهائية تمر عبر نافذة تأكيد
     if (impact.lines.length > 0 || impact.irreversible) setPending(status);
     else run(status);
@@ -115,127 +118,128 @@ export default function OrderDetail({ id }: { id: string }) {
     }
   }
 
-  const pendingImpact = pending ? buildImpact(current, pending, restock, money) : null;
+  const pendingImpact = pending ? buildImpact(current, pending, restock, money, t) : null;
+
+  const summary: [string, string][] = [
+    [tt("summary.subtotal"), current.subtotal],
+    [tt("summary.discount"), current.discount],
+    [tt("summary.shipping"), current.shippingCost],
+    [tt("summary.tax"), current.tax],
+  ];
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link href="/admin/orders" className="text-sm text-zinc-500 underline underline-offset-2">
-            كل الطلبات
+          <Link href="/admin/orders" className="adm-link text-sm">
+            {tt("allOrders")}
           </Link>
-          <h1 className="mt-1 text-xl font-semibold">
-            طلب <span className="font-mono">{current.id.slice(-8)}</span>
+          <h1 className="adm-heading mt-2">
+            {tt("orderLabel")} <span className="font-mono">{current.id.slice(-8)}</span>
           </h1>
-          <p className="text-sm text-zinc-500">
+          <p className="adm-subtle mt-3 text-sm">
             {formatDateTime(current.createdAt, locale)} ·{" "}
-            <button onClick={copyId} className="underline underline-offset-2">
-              {copied ? "تم النسخ" : "نسخ المعرّف الكامل"}
+            <button onClick={copyId} className="adm-link">
+              {copied ? tt("copied") : tt("copyId")}
             </button>
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs disabled:opacity-50 dark:border-zinc-700"
-          >
-            {isFetching ? "جارٍ التحديث…" : "تحديث"}
+        <div className="flex flex-wrap items-center gap-2">
+          <button onClick={() => refetch()} disabled={isFetching} className="ds-btn ds-btn-outline adm-btn-sm">
+            {isFetching ? tt("refreshing") : tt("refresh")}
           </button>
           <PaymentStatusBadge status={current.paymentStatus} />
           <OrderStatusBadge status={current.status} />
         </div>
       </div>
 
+      <div aria-hidden className="ds-dune-divider opacity-40" />
+
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <section className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
-            <table className="w-full min-w-[520px] text-sm">
-              <thead className="bg-zinc-50 dark:bg-zinc-900">
-                <tr className="text-zinc-600 dark:text-zinc-400">
-                  <th className="px-4 py-3 text-start font-medium">المنتج</th>
-                  <th className="px-4 py-3 text-start font-medium">الكمية</th>
-                  <th className="px-4 py-3 text-start font-medium">السعر</th>
-                  <th className="px-4 py-3 text-start font-medium">الإجمالي</th>
+          <section className="adm-table-wrap">
+            <table className="adm-table min-w-[520px]">
+              <thead>
+                <tr>
+                  <th>{tt("table.product")}</th>
+                  <th>{tt("table.quantity")}</th>
+                  <th>{tt("table.price")}</th>
+                  <th>{tt("table.lineTotal")}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+              <tbody>
                 {current.items.map((it) => (
                   <tr key={it.id}>
-                    <td className="px-4 py-3">
-                      <Link href={`/products/${it.product.slug}`} className="hover:underline">
+                    <td>
+                      <Link href={`/products/${it.product.slug}`} className="font-medium hover:underline">
                         {lang === "ar" ? it.product.nameAr : it.product.nameEn}
                       </Link>
                       {it.variant && (
-                        <div className="text-xs text-zinc-500">
+                        <div className="adm-subtle text-xs">
                           {it.variant.name} · {it.variant.sku}
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-3">{it.quantity}</td>
-                    <td className="px-4 py-3">{money(it.price)}</td>
-                    <td className="px-4 py-3">{money(String(Number(it.price) * it.quantity))}</td>
+                    <td className="tabular-nums">{it.quantity}</td>
+                    <td className="tabular-nums">{money(it.price)}</td>
+                    <td className="font-semibold tabular-nums">{money(String(Number(it.price) * it.quantity))}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <dl className="space-y-1 border-t border-zinc-200 p-4 text-sm dark:border-zinc-800">
-              {[
-                ["المجموع الفرعي", current.subtotal],
-                ["الخصم", current.discount],
-                ["الشحن", current.shippingCost],
-                ["الضريبة", current.tax],
-              ].map(([label, v]) => (
+            <dl className="space-y-2 border-t border-[var(--border-color)] bg-[var(--color-bg-alt)] p-5 text-sm">
+              {summary.map(([label, v]) => (
                 <div key={label} className="flex justify-between">
-                  <dt className="text-zinc-500">{label}</dt>
-                  <dd>{money(v)}</dd>
+                  <dt className="adm-subtle">{label}</dt>
+                  <dd className="tabular-nums">{money(v)}</dd>
                 </div>
               ))}
-              <div className="flex justify-between border-t border-zinc-200 pt-2 font-semibold dark:border-zinc-800">
-                <dt>الإجمالي</dt>
-                <dd>{money(current.total)}</dd>
+              <div className="flex justify-between border-t border-[var(--border-color)] pt-3">
+                <dt className="ds-font-heading text-base font-bold">{tt("summary.total")}</dt>
+                <dd className="ds-font-heading ds-text-alt text-xl font-bold tabular-nums">{money(current.total)}</dd>
               </div>
             </dl>
           </section>
 
           <section className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-zinc-200 p-4 text-sm dark:border-zinc-800">
-              <h2 className="mb-2 font-medium">العميل</h2>
-              <p>{current.user?.name ?? "زائر"}</p>
-              <p className="text-zinc-500">{current.user?.email ?? current.guestEmail}</p>
-              {current.coupon && <p className="mt-2 text-zinc-500">كوبون: {current.coupon.code}</p>}
-              {current.vatNumber && <p className="text-zinc-500">الرقم الضريبي: {current.vatNumber}</p>}
-              {current.notes && <p className="mt-2">ملاحظات العميل: {current.notes}</p>}
+            <div className={`${panel} text-sm`}>
+              <h2 className="ds-font-heading mb-3 text-base font-bold">{tt("customer.title")}</h2>
+              <p>{current.user?.name ?? tt("customer.guest")}</p>
+              <p className="adm-subtle">{current.user?.email ?? current.guestEmail}</p>
+              {current.coupon && <p className="adm-subtle mt-2">{tt("customer.coupon", { code: current.coupon.code })}</p>}
+              {current.vatNumber && <p className="adm-subtle">{tt("customer.vat", { vat: current.vatNumber })}</p>}
+              {current.notes && <p className="mt-2">{tt("customer.notes", { notes: current.notes })}</p>}
             </div>
-            <div className="rounded-xl border border-zinc-200 p-4 text-sm dark:border-zinc-800">
-              <h2 className="mb-2 font-medium">عنوان الشحن</h2>
+            <div className={`${panel} text-sm`}>
+              <h2 className="ds-font-heading mb-3 text-base font-bold">{tt("shipping.title")}</h2>
               {current.shippingAddress ? (
                 <address className="not-italic">
                   <p>{current.shippingAddress.fullName}</p>
                   <p>{current.shippingAddress.street}</p>
                   <p>
-                    {current.shippingAddress.city}، {current.shippingAddress.country}
+                    {current.shippingAddress.city}
+                    {tt("shipping.comma")} {current.shippingAddress.country}
                     {current.shippingAddress.postalCode && ` ${current.shippingAddress.postalCode}`}
                   </p>
-                  <p className="text-zinc-500" dir="ltr">
+                  <p className="adm-subtle" dir="ltr">
                     {current.shippingAddress.phone}
                   </p>
                 </address>
               ) : (
-                <p className="text-zinc-500">لا يوجد عنوان محفوظ</p>
+                <p className="adm-subtle">{tt("shipping.none")}</p>
               )}
-              <p className="mt-2 break-all text-xs text-zinc-500">
-                الدفع: {current.paymentMethod} {current.paymentRef && `· ${current.paymentRef}`}
+              <p className="adm-subtle mt-3 break-all text-xs">
+                {tt("shipping.payment", { method: current.paymentMethod })} {current.paymentRef && `· ${current.paymentRef}`}
               </p>
             </div>
           </section>
         </div>
 
         <aside className="space-y-6">
-          <section className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-            <h2 className="mb-3 text-sm font-medium">تحديث الحالة</h2>
+          <section className={panel}>
+            <h2 className="ds-font-heading mb-4 text-base font-bold">{tt("update.title")}</h2>
             {next.length === 0 ? (
-              <p className="text-sm text-zinc-500">هذه حالة نهائية، لا توجد إجراءات متاحة.</p>
+              <p className="adm-subtle text-sm">{tt("update.terminal")}</p>
             ) : (
               <div className="space-y-3">
                 <textarea
@@ -243,31 +247,32 @@ export default function OrderDetail({ id }: { id: string }) {
                   onChange={(e) => setNote(e.target.value)}
                   maxLength={500}
                   rows={2}
-                  aria-label="ملاحظة داخلية"
-                  placeholder="ملاحظة تُحفظ في سجل الطلب (اختياري)"
-                  className="w-full rounded-lg border border-zinc-300 bg-transparent px-3 py-2 text-sm dark:border-zinc-700"
+                  aria-label={tt("update.noteAria")}
+                  placeholder={tt("update.notePlaceholder")}
+                  className="adm-control w-full"
                 />
                 {next.includes("RETURNED") && (
                   <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={restock} onChange={(e) => setRestock(e.target.checked)} />
-                    إعادة الكمية للمخزون عند الإرجاع
+                    <input
+                      type="checkbox"
+                      className="adm-check"
+                      checked={restock}
+                      onChange={(e) => setRestock(e.target.checked)}
+                    />
+                    {tt("update.restock")}
                   </label>
                 )}
                 <div className="flex flex-wrap gap-2">
                   {next.map((s) => {
                     const destructive = s === "CANCELLED" || s === "REFUNDED";
-                    const { blocked } = buildImpact(current, s, restock, money);
+                    const { blocked } = buildImpact(current, s, restock, money, t);
                     return (
                       <button
                         key={s}
                         disabled={mutation.isPending || !!blocked}
                         title={blocked ?? undefined}
                         onClick={() => apply(s)}
-                        className={`rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-50 ${
-                          destructive
-                            ? "border border-red-300 text-red-700 dark:border-red-500/40 dark:text-red-300"
-                            : "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                        }`}
+                        className={`ds-btn adm-btn-sm ${destructive ? "adm-btn-danger" : "ds-btn-primary"}`}
                       >
                         {ORDER_STATUS_LABELS[s][lang]}
                       </button>
@@ -275,21 +280,21 @@ export default function OrderDetail({ id }: { id: string }) {
                   })}
                 </div>
                 {error && (
-                  <p role="alert" className="text-sm text-red-600">
+                  <p role="alert" className="adm-alert adm-alert-error">
                     {error}
                   </p>
                 )}
               </div>
             )}
             {done && (
-              <p role="status" className="mt-3 text-sm text-emerald-700 dark:text-emerald-400">
+              <p role="status" className="adm-alert adm-alert-success mt-3">
                 {done}
               </p>
             )}
           </section>
 
-          <section className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-            <h2 className="mb-3 text-sm font-medium">سجل الحالات</h2>
+          <section className={panel}>
+            <h2 className="ds-font-heading mb-4 text-base font-bold">{tt("history.title")}</h2>
             <OrderTimeline history={current.statusHistory} showNotes />
           </section>
         </aside>
@@ -297,8 +302,8 @@ export default function OrderDetail({ id }: { id: string }) {
 
       <ConfirmDialog
         open={pending !== null}
-        title={pending ? `نقل الطلب إلى «${ORDER_STATUS_LABELS[pending][lang]}»` : ""}
-        confirmLabel={pending ? ORDER_STATUS_LABELS[pending][lang] : "تأكيد"}
+        title={pending ? tt("dialog.title", { status: ORDER_STATUS_LABELS[pending][lang] }) : ""}
+        confirmLabel={pending ? ORDER_STATUS_LABELS[pending][lang] : tt("dialog.confirm")}
         destructive={pending === "CANCELLED" || pending === "REFUNDED"}
         loading={mutation.isPending}
         onConfirm={() => pending && run(pending)}
@@ -312,9 +317,7 @@ export default function OrderDetail({ id }: { id: string }) {
           </ul>
         ) : null}
         {pendingImpact?.irreversible && (
-          <p className="font-medium text-red-600 dark:text-red-400">
-            هذه حالة نهائية ولا يمكن التراجع عنها.
-          </p>
+          <p className="font-medium text-[var(--color-danger)]">{tt("dialog.irreversible")}</p>
         )}
       </ConfirmDialog>
     </div>

@@ -4,8 +4,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { AlertCircle, Plus } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getCountryByCode, SUPPORTED_COUNTRIES } from "@/lib/shipping-rates";
+import { SUPPORTED_COUNTRIES } from "@/lib/shipping-rates";
 import { ADDRESSES_KEY } from "@/hooks/useAddresses";
 import { addressService, type AddressPayload } from "@/services/addresses";
 import type { NewAddressInput, SavedAddress } from "@/services/checkout.service";
@@ -17,6 +19,8 @@ import AddressForm, {
   type AddressFieldsValue,
   type FieldErrors,
 } from "@/components/shop/AddressForm";
+import StepHeading from "@/components/checkout/StepHeading";
+import { countryLabel } from "@/components/checkout/checkout-utils";
 
 // إعادة تصدير للحفاظ على الاستيرادات الحالية (CheckoutView وغيره)
 export { validateAddressFields };
@@ -73,6 +77,9 @@ export default function AddressStep(props: AddressStepProps) {
     onGuestChange,
   } = props;
 
+  const t = useTranslations("checkout");
+  const tc = useTranslations("common");
+  const locale = useLocale();
   const qc = useQueryClient();
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -99,16 +106,14 @@ export default function AddressStep(props: AddressStepProps) {
   if (!isAuthenticated) {
     const errors = showErrors ? validateGuestForm(guest) : {};
     return (
-      <section className="space-y-5" aria-labelledby="address-heading">
-        <h2 id="address-heading" className="text-xl font-semibold">
-          بيانات الشحن
-        </h2>
+      <section className="space-y-6" aria-labelledby="address-heading">
+        <StepHeading id="address-heading">{t("address.shippingData")}</StepHeading>
         <TextField
           id="guest-email"
-          label="البريد الإلكتروني (لإرسال تأكيد الطلب)"
+          label={t("address.guestEmail")}
           value={guest.email}
           onChange={(v) => onGuestChange({ email: v })}
-          error={errors.email}
+          error={errors.email ? t("address.emailInvalid") : undefined}
           type="email"
           dir="ltr"
           autoComplete="email"
@@ -121,36 +126,40 @@ export default function AddressStep(props: AddressStepProps) {
 
   // ---------------------------------------------------------------- مسجل
   return (
-    <section className="space-y-5" aria-labelledby="address-heading">
-      <h2 id="address-heading" className="text-xl font-semibold">
-        عنوان الشحن
-      </h2>
+    <section className="space-y-6" aria-labelledby="address-heading">
+      <StepHeading id="address-heading">{t("shippingAddress")}</StepHeading>
 
       {addressesLoading && (
         <div className="space-y-3" aria-busy="true">
-          <div className="h-20 rounded-xl bg-muted animate-pulse" />
-          <div className="h-20 rounded-xl bg-muted animate-pulse" />
+          <div className="h-24 animate-pulse rounded-[var(--radius-xl)] bg-[var(--color-form)]" />
+          <div className="h-24 animate-pulse rounded-[var(--radius-xl)] bg-[var(--color-form)]" />
         </div>
       )}
 
       {addressesError && (
-        <div role="alert" className="p-4 rounded-xl border border-red-300 text-sm">
-          تعذّر تحميل عناوينك.{" "}
-          <button type="button" onClick={onRetryAddresses} className="underline">
-            إعادة المحاولة
-          </button>
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-[var(--radius-xl)] border border-[var(--color-danger)] bg-[var(--color-danger-bg)] p-4 text-sm text-[var(--color-danger)]"
+        >
+          <AlertCircle size={18} className="mt-0.5 shrink-0" aria-hidden />
+          <p>
+            {t("address.loadError")}{" "}
+            <button type="button" onClick={onRetryAddresses} className="font-semibold underline underline-offset-4">
+              {tc("retry")}
+            </button>
+          </p>
         </div>
       )}
 
       {!addressesLoading && addresses.length > 0 && (
-        <div role="radiogroup" aria-label="العناوين المحفوظة" className="space-y-3">
+        <div role="radiogroup" aria-label={t("savedAddresses")} className="space-y-3">
           {addresses.map((a) => {
             if (editingId === a.id) {
               return (
                 <AddressForm
                   key={a.id}
                   idPrefix={`edit-${a.id}`}
-                  title="تعديل العنوان"
+                  title={t("address.editTitle")}
                   initial={{
                     fullName: a.fullName,
                     phone: a.phone,
@@ -161,7 +170,7 @@ export default function AddressStep(props: AddressStepProps) {
                     isDefault: a.isDefault,
                   }}
                   defaultCountry={a.country}
-                  submitLabel="حفظ التعديلات"
+                  submitLabel={t("address.saveEdits")}
                   showDefaultToggle
                   onSubmit={async (payload) => {
                     await handleUpdate(a.id, payload);
@@ -176,9 +185,15 @@ export default function AddressStep(props: AddressStepProps) {
             return (
               <div key={a.id} className="flex items-start gap-2">
                 <label
-                  className={`flex flex-1 items-start gap-3 p-4 rounded-xl border transition-colors ${
-                    supported ? "cursor-pointer hover:bg-muted/50" : "cursor-not-allowed opacity-60"
-                  } ${selectedId === a.id ? "border-primary bg-muted/30" : ""}`}
+                  className={`flex flex-1 items-start gap-4 rounded-[var(--radius-xl)] border p-5 transition-[border-color,background-color,box-shadow] duration-200 ${
+                    supported
+                      ? "cursor-pointer hover:border-[var(--border-color-strong)] hover:shadow-[var(--shadow-sm)]"
+                      : "cursor-not-allowed opacity-60"
+                  } ${
+                    selectedId === a.id
+                      ? "border-[var(--color-primary)] bg-[var(--color-primary-200)]"
+                      : "border-[var(--border-color)] bg-[var(--color-bg-alt)]"
+                  }`}
                 >
                   <input
                     type="radio"
@@ -186,23 +201,23 @@ export default function AddressStep(props: AddressStepProps) {
                     checked={selectedId === a.id}
                     disabled={!supported}
                     onChange={() => onSelect(a.id)}
-                    className="mt-1 accent-primary"
+                    className="mt-1 size-4 accent-[var(--color-primary)]"
                   />
-                  <div className="text-sm space-y-0.5">
-                    <p className="font-medium">
+                  <div className="space-y-1 text-sm">
+                    <p className="font-semibold">
                       {a.fullName}
-                      {a.isDefault && (
-                        <span className="ms-2 text-xs bg-muted px-2 py-0.5 rounded">الافتراضي</span>
-                      )}
+                      {a.isDefault && <span className="ds-badge ms-2">{t("address.default")}</span>}
                     </p>
-                    <p className="text-muted-foreground">
-                      {a.street}، {a.city}، {getCountryByCode(a.country)?.nameAr ?? a.country}
+                    <p className="text-[var(--color-text-secondary)]">
+                      {a.street}، {a.city}، {countryLabel(a.country, locale)}
                       {a.postalCode ? ` — ${a.postalCode}` : ""}
                     </p>
-                    <p className="text-muted-foreground" dir="ltr" style={{ textAlign: "start" }}>
+                    <p className="text-[var(--color-text-secondary)]" dir="ltr" style={{ textAlign: "start" }}>
                       {a.phone}
                     </p>
-                    {!supported && <p className="text-xs text-red-600">لا نشحن إلى هذه الدولة حالياً.</p>}
+                    {!supported && (
+                      <p className="text-xs font-medium text-[var(--color-danger)]">{t("address.unsupported")}</p>
+                    )}
                   </div>
                 </label>
                 <button
@@ -211,10 +226,10 @@ export default function AddressStep(props: AddressStepProps) {
                     setAdding(false);
                     setEditingId(a.id);
                   }}
-                  className="mt-3 px-3 py-1.5 rounded-lg border text-sm hover:bg-muted/50"
-                  aria-label={`تعديل عنوان ${a.fullName}`}
+                  className="ds-btn ds-btn-outline mt-4 px-4 text-sm"
+                  aria-label={t("address.editAria", { name: a.fullName })}
                 >
-                  تعديل
+                  {tc("edit")}
                 </button>
               </div>
             );
@@ -223,8 +238,8 @@ export default function AddressStep(props: AddressStepProps) {
       )}
 
       {showErrors && !selectedId && !addressesLoading && (
-        <p role="alert" className="text-sm text-red-600">
-          اختر عنواناً أو أضف عنواناً جديداً للمتابعة.
+        <p role="alert" className="text-sm font-medium text-[var(--color-danger)]">
+          {t("address.selectPrompt")}
         </p>
       )}
 
@@ -235,16 +250,17 @@ export default function AddressStep(props: AddressStepProps) {
             setEditingId(null);
             setAdding(true);
           }}
-          className="text-sm font-medium underline underline-offset-4"
+          className="ds-btn ds-btn-outline px-5 text-sm"
         >
-          إضافة عنوان جديد
+          <Plus size={16} aria-hidden />
+          {t("addNewAddress")}
         </button>
       ) : (
         <AddressForm
           idPrefix="new"
-          title="عنوان جديد"
+          title={t("address.newTitle")}
           defaultCountry={countryCode}
-          submitLabel="حفظ العنوان"
+          submitLabel={t("address.save")}
           showDefaultToggle
           initial={{ isDefault: addresses.length === 0 }}
           onSubmit={async (payload) => {

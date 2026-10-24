@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Minus, Plus, ShoppingCart, Check } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 
@@ -20,38 +21,9 @@ type Props = {
   locale: "ar" | "en";
 };
 
-const T = {
-  ar: {
-    inStock: "متوفر في المخزون",
-    lowStock: (n: number) => `متبقي ${n} فقط`,
-    out: "نفدت الكمية حاليًا",
-    add: "أضف إلى السلة",
-    added: "تمت الإضافة إلى السلة",
-    viewCart: "عرض السلة",
-    qty: "الكمية",
-    option: "الخيار",
-    less: "إنقاص الكمية",
-    more: "زيادة الكمية",
-    save: (p: number) => `وفّر ${p}%`,
-  },
-  en: {
-    inStock: "In stock",
-    lowStock: (n: number) => `Only ${n} left`,
-    out: "Currently out of stock",
-    add: "Add to cart",
-    added: "Added to cart",
-    viewCart: "View cart",
-    qty: "Quantity",
-    option: "Option",
-    less: "Decrease quantity",
-    more: "Increase quantity",
-    save: (p: number) => `Save ${p}%`,
-  },
-};
-
 export default function ProductPurchasePanel(props: Props) {
-  const { productId, slug, nameAr, nameEn, image, basePrice, compareAtPrice, available, variants, locale } = props;
-  const t = T[locale];
+  const { productId, slug, nameAr, nameEn, image, basePrice, compareAtPrice, available, variants } = props;
+  const t = useTranslations("productPage");
   const { addItem } = useCart();
 
   const [variantId, setVariantId] = useState<string | null>(
@@ -96,23 +68,50 @@ export default function ProductPurchasePanel(props: Props) {
     setTimeout(() => setJustAdded(false), 4000);
   }
 
+  const stepBtn =
+    "grid size-10 cursor-pointer place-items-center rounded-full ds-text-primary transition-colors hover:bg-[var(--color-primary-200)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent";
+
   return (
-    <div className="grid gap-5">
-      <div className="flex flex-wrap items-baseline gap-3">
-        <span className="text-3xl font-semibold text-stone-900">{fmt(price)}</span>
+    <div className="grid gap-6">
+      {/* السعر */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <span className="ds-price text-4xl">{fmt(price)}</span>
         {discount > 0 && compareAtPrice && (
           <>
-            <span className="text-lg text-stone-400 line-through">{fmt(compareAtPrice)}</span>
-            <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-sm font-medium text-amber-800">
-              {t.save(discount)}
+            <span className="ds-price-compare text-lg">{fmt(compareAtPrice)}</span>
+            <span className="ds-bg-gold ds-rounded-pill px-3 py-1 text-sm font-semibold">
+              {t("save", { percent: discount })}
             </span>
           </>
         )}
       </div>
 
+      {/* حالة المخزون */}
+      <div>
+        {!inStock ? (
+          <span className="ds-badge ds-badge-danger px-3 py-1 text-sm">
+            <span aria-hidden className="size-1.5 rounded-full bg-current" />
+            {t("outOfStock")}
+          </span>
+        ) : stock <= 5 ? (
+          <span className="ds-badge ds-badge-warning px-3 py-1 text-sm">
+            <span aria-hidden className="size-1.5 rounded-full bg-current" />
+            {t("lowStock", { count: stock })}
+          </span>
+        ) : (
+          <span className="ds-badge ds-badge-success px-3 py-1 text-sm">
+            <span aria-hidden className="size-1.5 rounded-full bg-current" />
+            {t("inStock")}
+          </span>
+        )}
+      </div>
+
+      <hr className="ds-gold-rule" />
+
+      {/* الخيارات */}
       {variants.length > 0 && (
-        <fieldset className="grid gap-2">
-          <legend className="mb-1 text-sm font-medium text-stone-700">{t.option}</legend>
+        <fieldset className="grid gap-3">
+          <legend className="ds-text-primary mb-1 text-sm font-semibold">{t("option")}</legend>
           <div className="flex flex-wrap gap-2">
             {variants.map((v) => {
               const selected = v.id === variantId;
@@ -124,10 +123,10 @@ export default function ProductPurchasePanel(props: Props) {
                   disabled={disabled}
                   aria-pressed={selected}
                   onClick={() => selectVariant(v.id)}
-                  className={`rounded-md border px-4 py-2 text-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 ${
+                  className={`ds-rounded-pill cursor-pointer border px-5 py-2 text-sm transition-colors ${
                     selected
-                      ? "border-emerald-700 bg-emerald-50 text-emerald-900"
-                      : "border-stone-300 text-stone-700 hover:border-stone-500"
+                      ? "ds-text-primary border-[var(--color-primary)] bg-[var(--color-primary-200)] font-semibold"
+                      : "ds-text-secondary border-[var(--border-color-strong)] hover:border-[var(--color-primary)]"
                   } ${disabled ? "cursor-not-allowed line-through opacity-40" : ""}`}
                 >
                   {v.name}
@@ -138,40 +137,31 @@ export default function ProductPurchasePanel(props: Props) {
         </fieldset>
       )}
 
-      <div>
-        {!inStock ? (
-          <span className="inline-block rounded-full bg-red-100 px-3 py-1 text-sm text-red-700">{t.out}</span>
-        ) : stock <= 5 ? (
-          <span className="inline-block rounded-full bg-amber-100 px-3 py-1 text-sm text-amber-800">
-            {t.lowStock(stock)}
-          </span>
-        ) : (
-          <span className="inline-block rounded-full bg-emerald-100 px-3 py-1 text-sm text-emerald-700">
-            {t.inStock}
-          </span>
-        )}
-      </div>
-
+      {/* الكمية + الإضافة للسلة */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="inline-flex items-center rounded-md border border-stone-300" role="group" aria-label={t.qty}>
+        <div
+          className="ds-rounded-pill inline-flex items-center gap-1 border border-[var(--border-color-strong)] bg-[var(--color-form)] p-1"
+          role="group"
+          aria-label={t("quantity")}
+        >
           <button
             type="button"
-            aria-label={t.less}
+            aria-label={t("decreaseQty")}
             disabled={!inStock || quantity <= 1}
             onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-            className="p-3 text-stone-700 disabled:opacity-40"
+            className={stepBtn}
           >
             <Minus size={16} />
           </button>
-          <output aria-live="polite" className="min-w-10 text-center tabular-nums">
+          <output aria-live="polite" className="ds-numeric ds-text-primary min-w-10 text-center font-semibold">
             {quantity}
           </output>
           <button
             type="button"
-            aria-label={t.more}
+            aria-label={t("increaseQty")}
             disabled={!inStock || quantity >= maxQty}
             onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))}
-            className="p-3 text-stone-700 disabled:opacity-40"
+            className={stepBtn}
           >
             <Plus size={16} />
           </button>
@@ -181,20 +171,20 @@ export default function ProductPurchasePanel(props: Props) {
           type="button"
           onClick={handleAdd}
           disabled={!inStock}
-          className="inline-flex flex-1 items-center justify-center gap-2 rounded-md bg-emerald-700 px-5 py-3 text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none sm:px-8"
+          className="ds-btn ds-btn-primary h-[52px] flex-1 px-8 text-base"
         >
           <ShoppingCart size={18} aria-hidden />
-          {t.add}
+          {t("addToCart")}
         </button>
       </div>
 
-      <p role="status" aria-live="polite" className="min-h-6 text-sm text-emerald-800">
+      <p role="status" aria-live="polite" className="min-h-6 text-sm text-[var(--color-success)]">
         {justAdded && (
           <span className="inline-flex items-center gap-2">
             <Check size={16} aria-hidden />
-            {t.added}
-            <Link href="/cart" className="font-medium underline underline-offset-2">
-              {t.viewCart}
+            {t("added")}
+            <Link href="/cart" className="font-semibold underline underline-offset-2">
+              {t("viewCart")}
             </Link>
           </span>
         )}

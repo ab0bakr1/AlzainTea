@@ -1,51 +1,132 @@
-/* -------------------------------------------------- */
-/*  Design Tokens - Used Globally Across the Project  */
-/* -------------------------------------------------- */
+/* ==================================================================== */
+/*  Alzain Tea — Design Tokens                                          */
+/*  مستوحاة من العبوة: أسود مطفي + ذهب النقش + رمال الكثبان + الجمل      */
+/*                                                                      */
+/*  الطبقات:                                                            */
+/*   1) Brand   : ألوان الهوية الخام (لا تُستخدم مباشرة في المكوّنات)     */
+/*   2) Semantic: أدوار الألوان (هذه ما تستخدمه المكوّنات)               */
+/*   3) Scale   : الخطوط، المسافات، الزوايا، الظلال، الحركة               */
+/*  أسماء المتغيرات القديمة محفوظة كما هي حتى لا ينكسر أي مكوّن حالي.     */
+/* ==================================================================== */
 
 @layer theme {
   :root {
-    /* Brand Colors */
-    --color-primary: #00b7c1;
-    --color-primary-200: #dbf8fa;
-    --color-primary-300: #d6f2f5;
-    --color-primary-600: #31d3dc;
-    --color-primary-900: #a0e4ef;
-    --color-secondary: #ffa630;
+    /* ============================================================ */
+    /* 1) Brand palette (raw)                                        */
+    /* ============================================================ */
+    --brand-ink: #15120e; /* الأسود المطفي لعبوة الشاي */
+    --brand-ink-soft: #1f1b15;
+    --brand-gold: #c9a45c; /* ذهب الشعار */
+    --brand-gold-light: #e4cb8e;
+    --brand-gold-deep: #8f6d2b;
+    --brand-sand: #d9bf93; /* رمال الكثبان على العبوة */
+    --brand-dune: #eadfc8;
+    --brand-cream: #f7f1e5; /* خلفية التصوير */
+    --brand-camel: #8b5e34; /* لون الجمل */
+    --brand-leaf: #5f7a4b; /* ورق الشاي */
 
-    /* UI Backgrounds */
-    --color-bg: #ffffff;
-    --color-bg-alt: #f9f9fb;
-    --color-form: #eff0f3;
+    /* ============================================================ */
+    /* 2) Semantic colors — Light                                    */
+    /* ============================================================ */
 
-    /* Text Colors */
-    --color-text-primary: #1e1f24;
-    --color-text-secondary: #62636c;
-    --color-text-disabled: #80828d;
+    /* Primary = ذهب. للأزرار والتحديد والخطوط المميزة */
+    --color-primary: var(--brand-gold);
+    --color-primary-hover: #d4b26e;
+    --color-primary-active: #b88f45;
+    --color-on-primary: var(--brand-ink); /* نص فوق الذهب (تباين ≈ 8:1) */
+    /* الأسماء القديمة (محفوظة للتوافق) */
+    --color-primary-200: #f8efd9;
+    --color-primary-300: #f1e3c2;
+    --color-primary-600: #d9bb74;
+    --color-primary-900: #ead8a8;
 
-    /* Dark Mode */
-    --color-bg-dark: #252728;
-    --color-bg-alt-dark: #1c1c1d;
-    --color-form-dark: #222325;
-    --color-text-primary-dark: #eeeef0;
-    --color-text-secondary-dark: #b2b3bd;
-    --color-text-disabled-dark: #a2a4b0;
+    /* نص بلون الذهب فوق الخلفيات الفاتحة (الذهب الفاتح لا يمر WCAG) */
+    --color-accent-text: #7a5a1e;
 
-    /* Typography */
-    --font-sans: "Inter", sans-serif;
-    --font-heading: "Poppins", sans-serif;
+    --color-secondary: var(--brand-camel);
+
+    /* Surfaces */
+    --color-bg: #fffdf8; /* البطاقات والنماذج */
+    --color-bg-alt: var(--brand-cream); /* خلفية الصفحة */
+    --color-form: #f0e8d6; /* حقول الإدخال */
+    --color-surface-inverse: var(--brand-ink); /* الهيدر / الفوتر / الهيرو */
+    --color-on-inverse: #f3ebda;
+
+    /* Text */
+    --color-text-primary: #1b1712;
+    --color-text-secondary: #5e5546;
+    --color-text-disabled: #8a8070;
+
+    /* Status */
+    --color-success: #4f7a3f;
+    --color-success-bg: #e8f0e1;
+    --color-warning: #b7791f;
+    --color-warning-bg: #fbf0d8;
+    --color-danger: #b3382c;
+    --color-danger-bg: #f9e4e0;
+    --color-info: #3f6f8a;
+    --color-info-bg: #e1edf3;
+
+    /* ============================================================ */
+    /* 2b) Dark-mode raw values (تُستعمل في :root.dark بالأسفل)       */
+    /* ============================================================ */
+    --color-bg-dark: #1b1813;
+    --color-bg-alt-dark: #110f0c;
+    --color-form-dark: #25211a;
+    --color-text-primary-dark: #f3ebda;
+    --color-text-secondary-dark: #bdb19a;
+    --color-text-disabled-dark: #8f8570;
+
+    /* ============================================================ */
+    /* Gradients — التوقيع البصري للمشروع (ذهب مطروق)                 */
+    /* ============================================================ */
+    --gradient-gold: linear-gradient(
+      135deg,
+      #e4cb8e 0%,
+      #c9a45c 45%,
+      #9f7b33 100%
+    );
+    --gradient-gold-soft: linear-gradient(135deg, #f1e3c2 0%, #e4cb8e 100%);
+    --gradient-ink: linear-gradient(180deg, #1f1b15 0%, #15120e 100%);
+    --gradient-dune: linear-gradient(180deg, #f7f1e5 0%, #eadfc8 100%);
+
+    /* ============================================================ */
+    /* 3) Typography                                                 */
+    /* ============================================================ */
+    /* الجسم: IBM Plex Sans Arabic (يغطي العربية واللاتينية بتناسق)      */
+    --font-sans:
+      var(--font-body), "IBM Plex Sans Arabic", "Segoe UI", Tahoma,
+      system-ui, sans-serif;
+    /* العناوين: Cormorant للاتيني (يحاكي حروف ALZAIN الكلاسيكية)
+       و Reem Kufi للعربي (يحاكي خط الشعار الكوفي). المتصفح يختار لكل حرف
+       الخط الذي يدعمه فيبقى ترتيب الأسماء هكذا. */
+    --font-heading:
+      var(--font-display-en), "Cormorant Garamond", var(--font-display-ar),
+      "Reem Kufi", Georgia, serif;
+
+    --text-xs: 0.75rem;
     --text-sm: 0.875rem;
     --text-base: 1rem;
     --text-lg: 1.25rem;
     --text-xl: 1.5rem;
+    --text-2xl: 2rem;
+    --text-3xl: 2.5rem;
+    --text-4xl: 3.25rem;
+    --text-5xl: 4.25rem;
+
     --font-regular: 400;
+    --font-medium: 500;
+    --font-semibold: 600;
     --font-bold: 700;
 
-    /* Line Heights */
-    --leading-tight: 1.2;
-    --leading-normal: 1.5;
-    --leading-relaxed: 1.75;
+    /* العربية تحتاج ارتفاع سطر أكبر من اللاتينية */
+    --leading-tight: 1.25;
+    --leading-normal: 1.7;
+    --leading-relaxed: 1.9;
 
-    /* Spacing */
+    /* ============================================================ */
+    /* Spacing                                                       */
+    /* ============================================================ */
     --space-xs: 4px;
     --space-sm: 8px;
     --space-md: 16px;
@@ -54,15 +135,23 @@
     --space-2xl: 28px;
     --space-3xl: 32px;
     --space-4xl: 36px;
+    --space-5xl: 56px;
+    --space-6xl: 88px; /* فواصل الأقسام الكبيرة */
 
-    /* Borders */
+    /* ============================================================ */
+    /* Borders — خطوط رفيعة بلون الرمل بدل الإطار السميك الملوّن        */
+    /* ============================================================ */
     --border-width-sm: 1px;
     --border-width-md: 2px;
-    --border-color: #00b7c1;
+    --border-color: #e2d5ba;
+    --border-color-strong: #c9b78f;
+    --border-color-gold: var(--color-primary);
     --border-color-muted: var(--color-text-secondary);
-    --border-color-focus: var(--color-disabled);
+    --border-color-focus: var(--color-primary);
 
-    /* Border Radius */
+    /* ============================================================ */
+    /* Radius — أنعم قليلاً وأكثر رقيّاً، والأزرار حبّة (pill)           */
+    /* ============================================================ */
     --radius-sm: 4px;
     --radius-md: 8px;
     --radius-lg: 12px;
@@ -70,37 +159,86 @@
     --radius-2xl: 20px;
     --radius-3xl: 24px;
     --radius-4xl: 28px;
+    --radius-pill: 999px;
 
-    /* Shadows */
-    --shadow-sm: 0 4px 16px rgba(0, 0, 8, 0.08);
-    --shadow-md: 0 8px 16px rgba(0, 0, 8, 0.08);
-    --shadow-lg: 0 12px 16px rgba(0, 0, 8, 0.08);
+    /* ============================================================ */
+    /* Shadows — ظلال دافئة بدل الرمادي البارد                        */
+    /* ============================================================ */
+    --shadow-xs: 0 1px 2px rgba(42, 30, 12, 0.06);
+    --shadow-sm: 0 4px 14px rgba(42, 30, 12, 0.07);
+    --shadow-md: 0 10px 24px rgba(42, 30, 12, 0.1);
+    --shadow-lg: 0 18px 40px rgba(42, 30, 12, 0.14);
+    --shadow-gold: 0 8px 24px rgba(201, 164, 92, 0.35);
 
-    /* Interaction States */
-    --state-hover-opacity: 0.9;
-    --state-active-opacity: 0.8;
+    /* ============================================================ */
+    /* Interaction                                                   */
+    /* ============================================================ */
+    --state-hover-opacity: 0.92;
+    --state-active-opacity: 0.85;
     --state-disabled-opacity: 0.5;
-
-    /* Opacity */
     --opacity-disabled: 0.5;
     --opacity-muted: 0.7;
 
-    /* Focus */
     --focus-ring-color: var(--color-primary);
     --focus-ring-width: 2px;
-    /* Motion */
+    --focus-ring-offset: 2px;
+
+    /* ============================================================ */
+    /* Motion                                                        */
+    /* ============================================================ */
     --motion-fast: 150ms;
     --motion-normal: 300ms;
-    --ease-out: ease-out;
+    --motion-slow: 600ms;
+    --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+    /* ============================================================ */
+    /* Layout                                                        */
+    /* ============================================================ */
+    --container-max: 1320px;
+    --header-height: 72px;
   }
-  /* Dark Variant */
+
+  /* ================================================================ */
+  /* Dark variant — أسود العبوة هو الأساس، والذهب يصبح أفتح قليلاً        */
+  /* ================================================================ */
   :root.dark {
-    /* UI Backgrounds */
     --color-bg: var(--color-bg-dark);
     --color-bg-alt: var(--color-bg-alt-dark);
     --color-form: var(--color-form-dark);
     --color-text-primary: var(--color-text-primary-dark);
     --color-text-secondary: var(--color-text-secondary-dark);
     --color-text-disabled: var(--color-text-disabled-dark);
+
+    --color-primary: #d4b06a;
+    --color-primary-hover: #e0c07e;
+    --color-primary-active: #c29c52;
+    --color-primary-200: #2d261a;
+    --color-primary-300: #3a3120;
+    --color-primary-600: #e4cb8e;
+    --color-primary-900: #4a3d25;
+    --color-accent-text: #e4cb8e;
+
+    --color-surface-inverse: #0b0a08;
+
+    --color-success: #8fbf7a;
+    --color-success-bg: #1e2a19;
+    --color-warning: #e0b255;
+    --color-warning-bg: #2e2412;
+    --color-danger: #e57b6f;
+    --color-danger-bg: #331a17;
+    --color-info: #7fb2cc;
+    --color-info-bg: #17262e;
+
+    --border-color: #3a3326;
+    --border-color-strong: #54492f;
+
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.35);
+    --shadow-md: 0 10px 24px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.55);
+    --shadow-gold: 0 8px 24px rgba(212, 176, 106, 0.22);
+
+    --gradient-gold-soft: linear-gradient(135deg, #3a3120 0%, #2d261a 100%);
+    --gradient-dune: linear-gradient(180deg, #1b1813 0%, #25211a 100%);
   }
 }

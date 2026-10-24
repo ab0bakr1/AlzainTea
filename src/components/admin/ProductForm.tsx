@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   useCategoryOptions,
   useCreateProduct,
@@ -146,17 +147,12 @@ function slugify(text: string) {
 // المكوّن
 // ---------------------------------------------------------------------------
 
-const inputClass =
-  "w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600";
+const inputClass = "adm-control w-full";
 
-const STATUS_OPTIONS: { value: ProductStatus; label: string; hint: string }[] = [
-  { value: "DRAFT", label: "مسودة", hint: "غير ظاهر في المتجر" },
-  { value: "ACTIVE", label: "نشط", hint: "ظاهر ويمكن شراؤه" },
-  { value: "OUT_OF_STOCK", label: "نفدت الكمية", hint: "ظاهر لكن غير متاح للشراء" },
-  { value: "ARCHIVED", label: "مؤرشف", hint: "مخفي ومحفوظ في السجل" },
-];
+const STATUS_VALUES: ProductStatus[] = ["DRAFT", "ACTIVE", "OUT_OF_STOCK", "ARCHIVED"];
 
 export function ProductForm({ product }: { product?: AdminProductDetail }) {
+  const t = useTranslations("adminPanel.productForm");
   const router = useRouter();
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
@@ -211,7 +207,7 @@ export function ProductForm({ product }: { product?: AdminProductDetail }) {
       setSaved(true);
       router.push("/admin/products");
     } catch (err) {
-      setError(extractApiError(err, "حدث خطأ أثناء حفظ المنتج"));
+      setError(extractApiError(err, t("saveError")));
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
@@ -224,7 +220,7 @@ export function ProductForm({ product }: { product?: AdminProductDetail }) {
       {error && (
         <div
           role="alert"
-          className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="adm-alert adm-alert-error"
         >
           {error}
         </div>
@@ -233,9 +229,9 @@ export function ProductForm({ product }: { product?: AdminProductDetail }) {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* العمود الرئيسي */}
         <div className="grid content-start gap-6 lg:col-span-2">
-          <Section title="المعلومات الأساسية">
+          <Section title={t("sections.basic")}>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="الاسم بالعربية">
+              <Field label={t("fields.nameAr")}>
                 <input
                   required
                   maxLength={150}
@@ -244,7 +240,7 @@ export function ProductForm({ product }: { product?: AdminProductDetail }) {
                   className={inputClass}
                 />
               </Field>
-              <Field label="الاسم بالإنجليزية">
+              <Field label={t("fields.nameEn")}>
                 <input
                   required
                   dir="ltr"
@@ -257,12 +253,8 @@ export function ProductForm({ product }: { product?: AdminProductDetail }) {
             </div>
 
             <Field
-              label="الرابط (Slug)"
-              hint={
-                product
-                  ? "تغيير الرابط يكسر الروابط القديمة للمنتج في محركات البحث."
-                  : "يُولَّد من الاسم الإنجليزي، ويمكنك تعديله."
-              }
+              label={t("fields.slug")}
+              hint={product ? t("hints.slugEdit") : t("hints.slugNew")}
             >
               <input
                 required
@@ -279,7 +271,7 @@ export function ProductForm({ product }: { product?: AdminProductDetail }) {
             </Field>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="الوصف بالعربية">
+              <Field label={t("fields.descAr")}>
                 <textarea
                   required
                   rows={5}
@@ -289,7 +281,7 @@ export function ProductForm({ product }: { product?: AdminProductDetail }) {
                   className={inputClass}
                 />
               </Field>
-              <Field label="الوصف بالإنجليزية">
+              <Field label={t("fields.descEn")}>
                 <textarea
                   required
                   dir="ltr"
@@ -303,38 +295,36 @@ export function ProductForm({ product }: { product?: AdminProductDetail }) {
             </div>
           </Section>
 
-          <Section title="الصور">
+          <Section title={t("sections.images")}>
             <ProductImagesField value={values.images} onChange={(v) => update("images", v)} />
           </Section>
 
-          <Section title="المتغيرات (اختياري)">
+          <Section title={t("sections.variants")}>
             <ProductVariantsField value={values.variants} onChange={(v) => update("variants", v)} />
           </Section>
         </div>
 
         {/* العمود الجانبي */}
         <div className="grid content-start gap-6">
-          <Section title="النشر">
-            <Field label="الحالة">
+          <Section title={t("sections.publish")}>
+            <Field label={t("fields.status")}>
               <select
                 value={values.status}
                 onChange={(e) => update("status", e.target.value as ProductStatus)}
                 className={inputClass}
               >
-                {STATUS_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
+                {STATUS_VALUES.map((v) => (
+                  <option key={v} value={v}>
+                    {t(`statusOptions.${v}.label`)}
                   </option>
                 ))}
               </select>
             </Field>
-            <p className="text-xs text-stone-500">
-              {STATUS_OPTIONS.find((o) => o.value === values.status)?.hint}
-            </p>
+            <p className="adm-subtle text-xs">{t(`statusOptions.${values.status}.hint`)}</p>
           </Section>
 
-          <Section title="التنظيم">
-            <Field label="الفئة">
+          <Section title={t("sections.organize")}>
+            <Field label={t("fields.category")}>
               <select
                 required
                 value={values.categoryId}
@@ -342,7 +332,7 @@ export function ProductForm({ product }: { product?: AdminProductDetail }) {
                 disabled={categoriesLoading}
                 className={inputClass}
               >
-                <option value="">{categoriesLoading ? "جارٍ التحميل..." : "اختر فئة"}</option>
+                <option value="">{categoriesLoading ? t("loading") : t("chooseCategory")}</option>
                 {categories?.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.nameAr} / {c.nameEn}
@@ -350,7 +340,7 @@ export function ProductForm({ product }: { product?: AdminProductDetail }) {
                 ))}
               </select>
             </Field>
-            <Field label="رمز SKU">
+            <Field label={t("fields.sku")}>
               <input
                 required
                 dir="ltr"
@@ -362,8 +352,8 @@ export function ProductForm({ product }: { product?: AdminProductDetail }) {
             </Field>
           </Section>
 
-          <Section title="السعر والمخزون">
-            <Field label="السعر (USD)">
+          <Section title={t("sections.pricing")}>
+            <Field label={t("fields.price")}>
               <input
                 required
                 type="number"
@@ -374,7 +364,7 @@ export function ProductForm({ product }: { product?: AdminProductDetail }) {
                 className={inputClass}
               />
             </Field>
-            <Field label="السعر قبل الخصم (اختياري)" hint="يجب أن يكون أكبر من السعر الحالي.">
+            <Field label={t("fields.compareAt")} hint={t("hints.compareAt")}>
               <input
                 type="number"
                 step="0.01"
@@ -385,13 +375,10 @@ export function ProductForm({ product }: { product?: AdminProductDetail }) {
               />
             </Field>
             <Field
-              label="المخزون الفعلي"
+              label={t("fields.stock")}
               hint={
                 product
-                  ? `محجوز لطلبات قيد الدفع: ${reserved} — المتاح للبيع بعد الحفظ: ${Math.max(
-                      0,
-                      stockNumber - reserved,
-                    )}`
+                  ? t("hints.stock", { reserved, available: Math.max(0, stockNumber - reserved) })
                   : undefined
               }
             >
@@ -409,23 +396,23 @@ export function ProductForm({ product }: { product?: AdminProductDetail }) {
         </div>
       </div>
 
-      <div className="sticky bottom-0 -mx-1 flex gap-3 border-t border-stone-200 bg-white/90 px-1 py-3 backdrop-blur">
+      <div className="adm-sticky-bar">
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-emerald-700 px-5 py-2 text-white hover:bg-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 disabled:opacity-50"
+          className="ds-btn ds-btn-primary px-8"
         >
-          {submitting ? "جارٍ الحفظ..." : product ? "حفظ التعديلات" : "إنشاء المنتج"}
+          {submitting ? t("actions.saving") : product ? t("actions.saveChanges") : t("actions.create")}
         </button>
         <button
           type="button"
           onClick={() => router.push("/admin/products")}
           disabled={submitting}
-          className="rounded-md border border-stone-300 px-5 py-2 text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+          className="ds-btn ds-btn-outline px-8"
         >
-          إلغاء
+          {t("actions.cancel")}
         </button>
-        {dirty && <span className="self-center text-xs text-amber-600">تغييرات غير محفوظة</span>}
+        {dirty && <span className="self-center text-xs text-[var(--color-warning)]">{t("actions.unsaved")}</span>}
       </div>
     </form>
   );
@@ -437,8 +424,8 @@ export function ProductForm({ product }: { product?: AdminProductDetail }) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="grid gap-4 rounded-lg border border-stone-200 bg-white p-5">
-      <h2 className="font-semibold text-stone-800">{title}</h2>
+    <section className="adm-card grid content-start gap-4 p-6">
+      <h2 className="ds-font-heading text-lg font-bold">{title}</h2>
       {children}
     </section>
   );
@@ -455,9 +442,9 @@ function Field({
 }) {
   return (
     <label className="grid gap-1.5 text-sm">
-      <span className="font-medium text-stone-700">{label}</span>
+      <span className="font-medium">{label}</span>
       {children}
-      {hint && <span className="text-xs text-stone-500">{hint}</span>}
+      {hint && <span className="adm-subtle text-xs">{hint}</span>}
     </label>
   );
 }

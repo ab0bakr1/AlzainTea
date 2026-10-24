@@ -25,6 +25,10 @@ export default function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
+  // الشفافية فقط في الصفحة الرئيسية (الـ Hero داكن). باقي الصفحات: زجاج دائماً
+  const isHome = /^\/(ar|en)?\/?$/.test(pathname);
+  const glass = !isHome || isScrolled;
+
   const mainRoutes = Routes.filter((r) => r.id <= 3);
   const dropdownRoutes = Routes.filter((r) => r.id > 3);
 
@@ -65,10 +69,19 @@ export default function Navbar() {
   return (
     <header
       className={cn(
-        "ds-bg sticky top-0 z-50 transition-shadow duration-300",
-        isScrolled ? "shadow-md" : "shadow-sm",
+        "navbar-theme sticky top-0 z-50",
+        // في الرئيسية: يطفو فوق الـ Hero (ارتفاع الهيدر h-20 = 5rem)
+        isHome && "-mb-20",
       )}
     >
+      {/* طبقة الزجاج منفصلة: backdrop-filter على الهيدر نفسه يحبس قائمة الجوال (fixed) داخله */}
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-0 -z-10 border-b border-[var(--color-glass-border)] bg-[var(--color-glass-bg)] backdrop-blur-[20px] transition-opacity duration-300 motion-reduce:transition-none",
+          glass ? "opacity-100" : "opacity-0",
+        )}
+      />
       <nav
         aria-label={t("mainNavigation")}
         className="ds-container flex h-20 items-center justify-between gap-4"
@@ -116,7 +129,7 @@ export default function Navbar() {
           aria-hidden
           onClick={closeNavbar}
           className={cn(
-            "absolute inset-0 bg-black/50 transition-opacity duration-300 motion-reduce:transition-none",
+            "absolute inset-0 bg-black/60 transition-opacity duration-300 motion-reduce:transition-none",
             open ? "opacity-100" : "opacity-0",
           )}
         />
@@ -125,7 +138,7 @@ export default function Navbar() {
           aria-modal="true"
           aria-label={t("mobileMenu")}
           className={cn(
-            "ds-bg absolute inset-y-0 end-0 flex w-full max-w-sm flex-col overflow-y-auto shadow-xl transition-transform duration-300 motion-reduce:transition-none",
+            "absolute inset-y-0 end-0 flex w-full max-w-sm flex-col overflow-y-auto border-s border-[var(--color-glass-border)] bg-[#0f0d0a] text-[#f0e6d3] shadow-xl transition-transform duration-300 motion-reduce:transition-none",
             open ? "translate-x-0" : "ltr:translate-x-full rtl:-translate-x-full",
           )}
         >
@@ -137,7 +150,7 @@ export default function Navbar() {
             toggleDropdown={() => setDropdownOpen((p) => !p)}
             closeNavbar={closeNavbar}
           />
-          <div className="mt-6 border-t border-[var(--color-form)] pt-6 pb-8">
+          <div className="mt-8 border-t border-[var(--color-glass-border)] pt-6 pb-8">
             <MobileAuthSection onNavigate={closeNavbar} />
           </div>
         </aside>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import {
   useAdminCategoryOptions,
   useCreateCategory,
@@ -68,7 +69,8 @@ function slugify(text: string) {
  * خيارات الفئة الأب: تستبعد الفئة نفسها وكل فروعها (لمنع الحلقات في الشجرة)،
  * وتعرض المسار الكامل مثل «شاي أسود › شاي سيلاني».
  */
-function buildParentChoices(options: CategoryOption[], excludeId?: string) {
+function buildParentChoices(options: CategoryOption[], excludeId?: string, lang: "ar" | "en" = "ar") {
+  const nameOf = (o: { nameAr: string; nameEn?: string | null }) => (lang === "ar" ? o.nameAr : (o.nameEn ?? o.nameAr));
   const byId = new Map(options.map((o) => [o.id, o]));
   const excluded = new Set<string>();
 
@@ -87,13 +89,13 @@ function buildParentChoices(options: CategoryOption[], excludeId?: string) {
   }
 
   const pathOf = (option: CategoryOption) => {
-    const parts = [option.nameAr];
+    const parts = [nameOf(option)];
     let cursor = option.parentId;
     let guard = 0;
     while (cursor && guard++ < 20) {
       const parent = byId.get(cursor);
       if (!parent) break;
-      parts.unshift(parent.nameAr);
+      parts.unshift(nameOf(parent));
       cursor = parent.parentId;
     }
     return parts.join(" › ");
@@ -102,7 +104,7 @@ function buildParentChoices(options: CategoryOption[], excludeId?: string) {
   return options
     .filter((o) => !excluded.has(o.id))
     .map((o) => ({ id: o.id, label: pathOf(o) }))
-    .sort((a, b) => a.label.localeCompare(b.label, "ar"));
+    .sort((a, b) => a.label.localeCompare(b.label, lang));
 }
 
 function isPreviewable(url: string) {
@@ -113,8 +115,7 @@ function isPreviewable(url: string) {
 // المكوّن
 // ---------------------------------------------------------------------------
 
-const inputClass =
-  "w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600";
+const inputClass = "adm-control w-full";
 
 export function CategoryForm({
   categoryId,
@@ -125,6 +126,8 @@ export function CategoryForm({
   initialValues?: Partial<CategoryFormValues>;
   stats?: { productsCount: number; childrenCount: number };
 }) {
+  const t = useTranslations("adminPanel.categoryForm");
+  const lang = useLocale() === "ar" ? "ar" : "en";
   const router = useRouter();
   const createMutation = useCreateCategory();
   const updateMutation = useUpdateCategory();
@@ -151,8 +154,8 @@ export function CategoryForm({
   }, [dirty]);
 
   const parentChoices = useMemo(
-    () => buildParentChoices(options ?? [], categoryId),
-    [options, categoryId],
+    () => buildParentChoices(options ?? [], categoryId, lang),
+    [options, categoryId, lang],
   );
 
   function update<K extends keyof CategoryFormValues>(key: K, value: CategoryFormValues[K]) {
@@ -185,7 +188,7 @@ export function CategoryForm({
       setSaved(true);
       router.push("/admin/categories");
     } catch (err) {
-      setError(getErrorMessage(err, "حدث خطأ أثناء حفظ الفئة"));
+      setError(getErrorMessage(err, t("saveError")));
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
@@ -198,7 +201,7 @@ export function CategoryForm({
       {error && (
         <div
           role="alert"
-          className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="adm-alert adm-alert-error"
         >
           {error}
         </div>
@@ -207,9 +210,9 @@ export function CategoryForm({
       <div className="grid gap-6 lg:grid-cols-3">
         {/* العمود الرئيسي */}
         <div className="grid content-start gap-6 lg:col-span-2">
-          <Section title="المعلومات الأساسية">
+          <Section title={t("sections.basic")}>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="الاسم بالعربية">
+              <Field label={t("fields.nameAr")}>
                 <input
                   required
                   minLength={2}
@@ -219,7 +222,7 @@ export function CategoryForm({
                   className={inputClass}
                 />
               </Field>
-              <Field label="الاسم بالإنجليزية">
+              <Field label={t("fields.nameEn")}>
                 <input
                   required
                   dir="ltr"
@@ -233,12 +236,8 @@ export function CategoryForm({
             </div>
 
             <Field
-              label="الرابط (Slug)"
-              hint={
-                categoryId
-                  ? "تغيير الرابط يكسر الروابط القديمة للفئة في محركات البحث."
-                  : "يُولَّد من الاسم الإنجليزي، ويمكنك تعديله."
-              }
+              label={t("fields.slug")}
+              hint={categoryId ? t("hints.slugEdit") : t("hints.slugNew")}
             >
               <input
                 required
@@ -246,7 +245,7 @@ export function CategoryForm({
                 minLength={2}
                 maxLength={120}
                 pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-                title="أحرف إنجليزية صغيرة وأرقام وشرطات فقط"
+                title={t("slugPatternTitle")}
                 placeholder="black-tea"
                 value={values.slug}
                 onChange={(e) => {
@@ -257,7 +256,7 @@ export function CategoryForm({
               />
             </Field>
 
-            <Field label="الوصف (اختياري)" hint={`${values.description.length} / 500`}>
+            <Field label={t("fields.description")} hint={`${values.description.length} / 500`}>
               <textarea
                 rows={4}
                 maxLength={500}
@@ -271,8 +270,8 @@ export function CategoryForm({
 
         {/* العمود الجانبي */}
         <div className="grid content-start gap-6">
-          <Section title="التنظيم">
-            <Field label="الفئة الأب (اختياري)" hint="اتركها فارغة لتكون الفئة رئيسية.">
+          <Section title={t("sections.organize")}>
+            <Field label={t("fields.parent")} hint={t("hints.parent")}>
               <select
                 value={values.parentId}
                 onChange={(e) => update("parentId", e.target.value)}
@@ -280,7 +279,7 @@ export function CategoryForm({
                 className={inputClass}
               >
                 <option value="">
-                  {optionsLoading ? "جارٍ التحميل..." : "بدون فئة أب (فئة رئيسية)"}
+                  {optionsLoading ? t("loading") : t("noParent")}
                 </option>
                 {parentChoices.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -291,8 +290,8 @@ export function CategoryForm({
             </Field>
           </Section>
 
-          <Section title="الصورة">
-            <Field label="رابط الصورة (اختياري)" hint="رابط https:// أو مسار محلي يبدأ بـ /">
+          <Section title={t("sections.image")}>
+            <Field label={t("fields.imageUrl")} hint={t("hints.imageUrl")}>
               <input
                 dir="ltr"
                 maxLength={500}
@@ -308,24 +307,24 @@ export function CategoryForm({
                 src={imageUrl}
                 alt=""
                 onError={() => setBrokenImage(imageUrl)}
-                className="aspect-video w-full rounded-md border border-stone-200 object-cover"
+                className="aspect-video w-full rounded-[var(--radius-xl)] border border-[var(--border-color)] object-cover"
               />
             )}
             {!!imageUrl && !showPreview && (
-              <p className="text-xs text-amber-700">تعذّر عرض معاينة الصورة، تحقق من الرابط.</p>
+              <p className="text-xs text-[var(--color-warning)]">{t("previewFailed")}</p>
             )}
           </Section>
 
           {categoryId && stats && (
-            <Section title="الاستخدام">
+            <Section title={t("sections.usage")}>
               <dl className="grid gap-2 text-sm">
                 <div className="flex items-center justify-between">
-                  <dt className="text-stone-500">المنتجات</dt>
-                  <dd className="font-medium text-stone-800">
+                  <dt className="adm-subtle">{t("usage.products")}</dt>
+                  <dd className="font-semibold">
                     {stats.productsCount > 0 ? (
                       <Link
                         href={`/admin/products?category=${encodeURIComponent(initial.slug)}`}
-                        className="text-emerald-700 hover:underline"
+                        className="adm-link"
                       >
                         {stats.productsCount}
                       </Link>
@@ -335,35 +334,33 @@ export function CategoryForm({
                   </dd>
                 </div>
                 <div className="flex items-center justify-between">
-                  <dt className="text-stone-500">الفئات الفرعية</dt>
-                  <dd className="font-medium text-stone-800">{stats.childrenCount}</dd>
+                  <dt className="adm-subtle">{t("usage.children")}</dt>
+                  <dd className="font-semibold">{stats.childrenCount}</dd>
                 </div>
               </dl>
               {(stats.productsCount > 0 || stats.childrenCount > 0) && (
-                <p className="text-xs text-stone-500">
-                  لا يمكن حذف الفئة طالما تحتوي على منتجات أو فئات فرعية.
-                </p>
+                <p className="adm-subtle text-xs">{t("usage.blockedNote")}</p>
               )}
             </Section>
           )}
         </div>
       </div>
 
-      <div className="sticky bottom-0 -mx-1 flex gap-3 border-t border-stone-200 bg-white/90 px-1 py-3 backdrop-blur">
+      <div className="adm-sticky-bar">
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-emerald-700 px-5 py-2 text-white hover:bg-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 disabled:opacity-50"
+          className="ds-btn ds-btn-primary px-8"
         >
-          {submitting ? "جارٍ الحفظ..." : categoryId ? "حفظ التعديلات" : "إنشاء الفئة"}
+          {submitting ? t("actions.saving") : categoryId ? t("actions.saveChanges") : t("actions.create")}
         </button>
         <button
           type="button"
           onClick={() => router.push("/admin/categories")}
           disabled={submitting}
-          className="rounded-md border border-stone-300 px-5 py-2 text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+          className="ds-btn ds-btn-outline px-8"
         >
-          إلغاء
+          {t("actions.cancel")}
         </button>
       </div>
     </form>
@@ -376,8 +373,8 @@ export function CategoryForm({
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="grid content-start gap-4 rounded-lg border border-stone-200 bg-white p-5">
-      <h2 className="text-sm font-semibold text-stone-800">{title}</h2>
+    <section className="adm-card grid content-start gap-4 p-6">
+      <h2 className="ds-font-heading text-lg font-bold">{title}</h2>
       {children}
     </section>
   );
@@ -394,9 +391,9 @@ function Field({
 }) {
   return (
     <label className="grid gap-1.5 text-sm">
-      <span className="font-medium text-stone-700">{label}</span>
+      <span className="font-medium">{label}</span>
       {children}
-      {hint && <span className="text-xs text-stone-500">{hint}</span>}
+      {hint && <span className="adm-subtle text-xs">{hint}</span>}
     </label>
   );
 }

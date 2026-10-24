@@ -1,17 +1,20 @@
 import Link from "next/link";
 import Image from "next/image";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { ProductListItem } from "@/services/products.service";
 import WishlistButton from "./WishlistButton";
 
-const COPY = {
-  ar: { soldOut: "نفدت الكمية", sale: "خصم" },
-  en: { soldOut: "Sold out", sale: "Sale" },
-} as const;
+// نفس تنسيق الأسعار المستخدم في الصفحة الرئيسية
+const money = (v: number, locale: string) =>
+  new Intl.NumberFormat(locale === "en" ? "en-US" : "ar-SA-u-nu-latn", {
+    style: "currency",
+    currency: "USD",
+  }).format(v);
 
 export function ProductCard({ product }: { product: ProductListItem }) {
-  const isAr = useLocale() !== "en";
-  const t = isAr ? COPY.ar : COPY.en;
+  const locale = useLocale();
+  const isAr = locale !== "en";
+  const t = useTranslations("products.card");
 
   const name = isAr ? product.nameAr : product.nameEn;
   const categoryName = product.category
@@ -23,56 +26,57 @@ export function ProductCard({ product }: { product: ProductListItem }) {
   const price = Number(product.price);
   const compareAt = product.compareAtPrice ? Number(product.compareAtPrice) : null;
   const hasDiscount = compareAt !== null && compareAt > price;
+  const percent = hasDiscount ? Math.round((1 - price / compareAt!) * 100) : 0;
   const available = product.stock - product.reservedStock > 0;
 
   return (
     // الغلاف relative: زر المفضلة أخ للرابط (لا يجوز وضع button داخل <a>)
-    <div className="group relative rounded-[var(--radius-lg)] border border-[var(--color-form)] bg-[var(--color-bg)] transition hover:border-[var(--color-primary)] hover:shadow-[var(--shadow-sm)]">
+    <div className="group relative transition-transform duration-200 hover:-translate-y-1">
       <Link
         href={`/products/${product.slug}`}
-        className="grid gap-3 rounded-[var(--radius-lg)] p-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring-color)]"
+        className="block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--focus-ring-color)]"
       >
-        <div className="relative aspect-square overflow-hidden rounded-[var(--radius-md)] bg-[var(--color-form)]">
+        <div className="relative aspect-[4/5] overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--border-color)] bg-[var(--color-form)] transition-[box-shadow,border-color] duration-200 group-hover:border-[var(--border-color-gold)] group-hover:shadow-[var(--shadow-gold)]">
           {product.images[0] && (
             <Image
               src={product.images[0]}
               alt={name}
               fill
               sizes="(min-width: 1024px) 25vw, 50vw"
-              className="object-cover transition duration-300 group-hover:scale-105"
+              className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
             />
           )}
           {!available && (
-            <span className="absolute start-2 top-2 rounded-full bg-black/80 px-2.5 py-1 text-xs text-white">
-              {t.soldOut}
+            <span className="absolute start-3 top-3 rounded-full bg-[var(--brand-ink)] px-3 py-1 text-xs text-[#f0e6d3]">
+              {t("soldOut")}
             </span>
           )}
-          {hasDiscount && available && (
-            <span className="absolute start-2 top-2 rounded-full bg-[var(--color-secondary)] px-2.5 py-1 text-xs font-medium text-black">
-              {t.sale}
+          {hasDiscount && available && percent > 0 && (
+            <span className="absolute start-3 top-3 rounded-full bg-[var(--brand-gold-deep)] px-3 py-1 text-xs font-semibold tabular-nums text-[#fff8e8]">
+              {t("sale", { percent })}
             </span>
           )}
         </div>
 
-        <div className="grid gap-1">
+        <div className="mt-4 grid gap-1">
           {categoryName && (
             <span className="text-xs text-[var(--color-text-secondary)]">{categoryName}</span>
           )}
-          <h3 className="line-clamp-1 font-medium text-[var(--color-text-primary)]">{name}</h3>
-          <div className="flex items-baseline gap-2">
-            <span className="font-semibold text-[var(--color-text-primary)]">
-              ${price.toFixed(2)}
-            </span>
+          <h3 className="line-clamp-1 text-base font-bold leading-snug text-[var(--color-text-primary)]">
+            {name}
+          </h3>
+          <p className="flex items-baseline gap-2 text-sm tabular-nums">
+            <span className="font-bold text-[var(--color-text-primary)]">{money(price, locale)}</span>
             {hasDiscount && (
-              <span className="text-sm text-[var(--color-text-disabled)] line-through">
-                ${compareAt!.toFixed(2)}
+              <span className="text-[var(--color-text-disabled)] line-through">
+                {money(compareAt!, locale)}
               </span>
             )}
-          </div>
+          </p>
         </div>
       </Link>
 
-      <WishlistButton productId={product.id} className="absolute end-5 top-5 z-10" />
+      <WishlistButton productId={product.id} className="absolute end-3 top-3 z-10" />
     </div>
   );
 }

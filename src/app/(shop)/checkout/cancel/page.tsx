@@ -3,11 +3,17 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
+import { ResultHero, ResultShell, resultBtn } from "@/components/checkout/ResultHero";
 
-export const metadata: Metadata = {
-  title: "لم يكتمل الدفع | الزين للشاي",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("checkout.cancel");
+  const brand = await getTranslations("brand");
+  return {
+    title: `${t("title")} | ${brand("name")}`,
+    robots: { index: false, follow: false },
+  };
+}
 
 type Props = { searchParams: Promise<{ orderId?: string | string[] }> };
 
@@ -16,25 +22,28 @@ export default async function CheckoutCancelPage({ searchParams }: Props) {
   const raw = Array.isArray(sp.orderId) ? sp.orderId[0] : sp.orderId;
   const ref = raw && /^[a-z0-9]{8,40}$/i.test(raw) ? `#${raw.slice(-8).toUpperCase()}` : null;
 
+  const t = await getTranslations("checkout");
+
   return (
-    <div className="container mx-auto px-4 py-16 max-w-2xl text-center">
-      <h1 className="text-2xl font-bold mb-3">لم يكتمل الدفع</h1>
-      {ref && <p className="text-sm text-muted-foreground mb-3">رقم الطلب: {ref}</p>}
-      <p className="text-muted-foreground mb-2">سلتك محفوظة ولم يُسجَّل طلبك كمدفوع.</p>
-      <p className="text-sm text-muted-foreground mb-8">
-        نحجز منتجاتك لمدة تصل إلى 60 دقيقة ثم تعود للمخزون تلقائياً.
-      </p>
-      <div className="flex flex-wrap justify-center gap-3">
-        <Link
-          href="/checkout"
-          className="px-6 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium"
-        >
-          إعادة المحاولة
+    <ResultShell>
+      <ResultHero
+        tone="failed"
+        title={t("cancel.title")}
+        refLabel={t("cancel.orderRef")}
+        refValue={ref}
+        description={t("cancel.savedNote")}
+        note={t("cancel.holdNote")}
+      >
+        <Link href="/checkout" className={resultBtn.primary}>
+          {t("cancel.tryAgain")}
         </Link>
-        <Link href="/cart" className="px-6 py-2 rounded-xl border text-sm font-medium">
-          العودة إلى السلة
+        <Link href="/cart" className={resultBtn.secondary}>
+          {t("cancel.backToCart")}
         </Link>
-      </div>
-    </div>
+        <Link href="/contact" className={resultBtn.ghost}>
+          {t("result.contactUs")}
+        </Link>
+      </ResultHero>
+    </ResultShell>
   );
 }

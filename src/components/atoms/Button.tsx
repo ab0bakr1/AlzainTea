@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { cn } from "@/lib/cn"; // أو حسب مكان ملف cn
+import { cn } from "@/lib/cn";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children?: ReactNode;
@@ -22,17 +22,26 @@ const Button = ({
   type = "button",
   className,
   center = false,
-  isRounded = false,
+  // نفس الصفحة الرئيسية: الأزرار حبّة (pill) افتراضياً
+  isRounded = true,
   ...props
 }: ButtonProps) => {
   const baseClasses =
-    "inline-flex items-center justify-center font-medium transition-all duration-200 hover:scale-[1.04] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed";
+    "inline-flex items-center justify-center gap-2 border font-semibold leading-none " +
+    "transition-[transform,box-shadow,background-color,border-color] duration-200 ease-out " +
+    "enabled:cursor-pointer enabled:hover:-translate-y-px enabled:active:translate-y-px " +
+    "disabled:cursor-not-allowed disabled:opacity-50 disabled:transform-none disabled:shadow-none " +
+    "motion-reduce:transition-none motion-reduce:transform-none";
 
   const variants = {
+    // ذهب مطروق + نص أسود العبوة
     primary:
-      "ds-bg-primary text-white capitalize focus:ring-blue-500 cursor-pointer hover:opacity-95",
+      "ds-bg-gold border-transparent capitalize shadow-[var(--shadow-gold)] " +
+      "enabled:hover:shadow-[0_14px_34px_rgba(201,164,92,0.5)]",
+    // أسود العبوة + نص ذهبي فاتح + إطار ذهبي رفيع (يظهر جيداً في الوضعين)
     secondary:
-      "ds-bg-secondary border-2 border-skill text-white capitalize hover:opacity-95 cursor-pointer",
+      "border-[var(--brand-gold-deep)] bg-[var(--brand-ink)] text-[var(--brand-gold-light)] capitalize " +
+      "enabled:hover:bg-[var(--brand-ink-soft)] enabled:hover:shadow-[var(--shadow-lg)]",
   };
 
   const sizes = {
@@ -47,6 +56,7 @@ const Button = ({
       <button
         type={type}
         disabled={disabled || loading}
+        aria-busy={loading || undefined}
         onClick={onClick}
         {...props}
         className={cn(
@@ -54,10 +64,18 @@ const Button = ({
           variants[variant],
           sizes[size],
           fullWidth && "w-full",
-          isRounded ? "rounded-full" : "rounded-md",
+          isRounded
+            ? "rounded-[var(--radius-pill)]"
+            : "rounded-[var(--radius-lg)]",
           className,
         )}
       >
+        {loading && (
+          <span
+            aria-hidden
+            className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+          />
+        )}
         {children}
       </button>
     </div>

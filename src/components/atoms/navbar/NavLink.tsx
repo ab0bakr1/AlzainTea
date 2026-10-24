@@ -17,7 +17,7 @@ export default function NavLink({
     <Link
       href={to}
       onClick={onClick}
-      className={`active:text-primary focus:text-primary transition-colors ${className}`}
+      className={`nav-link transition-colors hover:text-[var(--brand-gold-light)] focus-visible:text-[var(--brand-gold-light)] active:text-[var(--brand-gold-light)] ${className}`}
     >
       {children}
     </Link>

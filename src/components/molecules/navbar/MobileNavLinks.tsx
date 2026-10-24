@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import NavLink from "../../atoms/navbar/NavLink";
 
 interface RouteItem {
@@ -19,16 +20,20 @@ export default function MobileNavLinks({
 
   closeNavbar,
 }: MobileNavLinksProps) {
+  const t = useTranslations("nav");
+
   return (
-    <ul className="text-dark dark:text-light mt-4 flex flex-col items-center gap-2 px-2 text-lg font-medium">
+    <ul className="mt-6 flex flex-col items-center gap-4 px-2 text-lg font-medium text-[#f0e6d3]">
       {mainRoutes.map((item) => (
         <li key={item.id}>
           <NavLink
             to={item.path}
             onClick={closeNavbar}
-            className="text-2xl md:text-2xl"
+            className="ds-font-heading text-3xl font-semibold"
           >
-            {item.key}
+            {t.has(item.key as Parameters<typeof t>[0])
+              ? t(item.key as Parameters<typeof t>[0])
+              : item.key}
           </NavLink>
         </li>
       ))}

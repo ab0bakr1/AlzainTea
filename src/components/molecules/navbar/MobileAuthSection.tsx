@@ -50,7 +50,7 @@ export default function MobileAuthSection({ onNavigate }: { onNavigate: () => vo
       <div className="flex items-center gap-3 rounded-2xl bg-[var(--color-bg-alt)] p-3">
         <span
           aria-hidden
-          className="ds-bg-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
+          className="ds-bg-gold flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold"
         >
           {getInitials(user.name, user.email)}
         </span>
@@ -81,7 +81,7 @@ export default function MobileAuthSection({ onNavigate }: { onNavigate: () => vo
         type="button"
         onClick={handleLogout}
         disabled={isLoggingOut}
-        className={cn(menuItemBase, "mt-1 text-base text-red-600 disabled:opacity-60 dark:text-red-400")}
+        className={cn(menuItemBase, "mt-1 text-base text-red-400 disabled:opacity-60")}
       >
         <LogOut aria-hidden size={20} />
         {isLoggingOut ? t("loggingOut") : t("logout")}

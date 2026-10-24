@@ -1,11 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 import { ProductCard } from "@/components/shop/ProductCard";
 
 /* -------------------------------------------------------------------------- */
@@ -32,79 +39,12 @@ const PAGE_SIZE = 12;
 const SORTS = ["newest", "bestselling", "price_asc", "price_desc"] as const;
 type Sort = (typeof SORTS)[number];
 
-/* -------------------------------------------------------------------------- */
-/* Copy                                                                       */
-/* -------------------------------------------------------------------------- */
-
-const COPY = {
-  ar: {
-    title: "المنتجات",
-    results: (n: number) => `${n} منتج`,
-    search: "ابحث عن شاي أو ملحق",
-    sort: "الترتيب",
-    sorts: {
-      newest: "الأحدث",
-      bestselling: "الأكثر مبيعاً",
-      price_asc: "السعر: من الأقل",
-      price_desc: "السعر: من الأعلى",
-    },
-    filters: "التصفية",
-    categories: "الفئات",
-    allCategories: "كل الفئات",
-    price: "السعر (USD)",
-    min: "من",
-    max: "إلى",
-    apply: "تطبيق",
-    inStock: "المتوفر فقط",
-    clear: "مسح الكل",
-    showResults: "عرض النتائج",
-    close: "إغلاق",
-    prev: "السابق",
-    next: "التالي",
-    page: (p: number) => `صفحة ${p}`,
-    emptyTitle: "لا توجد منتجات مطابقة",
-    emptyBody: "جرّب تعديل كلمات البحث أو إزالة بعض الفلاتر.",
-    errorTitle: "تعذّر تحميل المنتجات",
-    errorBody: "تحقق من اتصالك ثم أعد المحاولة.",
-    retry: "إعادة المحاولة",
-    searchChip: (q: string) => `بحث: ${q}`,
-    priceChip: (a: string, b: string) => `السعر ${a}–${b}`,
-    remove: "إزالة الفلتر",
-  },
-  en: {
-    title: "Products",
-    results: (n: number) => `${n} ${n === 1 ? "product" : "products"}`,
-    search: "Search teas and accessories",
-    sort: "Sort by",
-    sorts: {
-      newest: "Newest",
-      bestselling: "Best selling",
-      price_asc: "Price: low to high",
-      price_desc: "Price: high to low",
-    },
-    filters: "Filters",
-    categories: "Categories",
-    allCategories: "All categories",
-    price: "Price (USD)",
-    min: "From",
-    max: "To",
-    apply: "Apply",
-    inStock: "In stock only",
-    clear: "Clear all",
-    showResults: "Show results",
-    close: "Close",
-    prev: "Previous",
-    next: "Next",
-    page: (p: number) => `Page ${p}`,
-    emptyTitle: "No matching products",
-    emptyBody: "Try different keywords or remove some filters.",
-    errorTitle: "Couldn't load products",
-    errorBody: "Check your connection and try again.",
-    retry: "Try again",
-    searchChip: (q: string) => `Search: ${q}`,
-    priceChip: (a: string, b: string) => `Price ${a}–${b}`,
-    remove: "Remove filter",
-  },
+/* مفاتيح الترجمة (ar.json / en.json → products.sortOptions.*) */
+const SORT_LABEL_KEY = {
+  newest: "sortOptions.newest",
+  bestselling: "sortOptions.bestselling",
+  price_asc: "sortOptions.priceAsc",
+  price_desc: "sortOptions.priceDesc",
 } as const;
 
 /* -------------------------------------------------------------------------- */
@@ -178,21 +118,46 @@ const usd = new Intl.NumberFormat("en-US", {
 });
 
 /* -------------------------------------------------------------------------- */
+/* Visual tokens (كلاسات التصميم فقط — تعتمد على variables.css و globals.css)  */
+/* -------------------------------------------------------------------------- */
+
+const inputCls = "ds-input rounded-[var(--radius-lg)]";
+
+const skeletonBlock = "animate-pulse bg-[var(--color-form)]";
+
+const pageBtnBase =
+  "grid size-10 place-items-center rounded-full border border-[var(--border-color)] text-sm tabular-nums text-[var(--color-text-primary)] transition hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-200)] disabled:pointer-events-none disabled:opacity-40";
+
+const pageBtnActive =
+  "grid size-10 place-items-center rounded-full border border-transparent bg-[image:var(--gradient-gold)] text-sm font-semibold tabular-nums text-[var(--color-on-primary)] shadow-[var(--shadow-gold)]";
+
+/* -------------------------------------------------------------------------- */
 /* Skeleton                                                                   */
 /* -------------------------------------------------------------------------- */
 
 export function CatalogSkeleton() {
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
-      <div className="mb-6 h-9 w-48 animate-pulse rounded bg-stone-200 dark:bg-stone-800" />
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="space-y-3">
-            <div className="aspect-square animate-pulse rounded-lg bg-stone-200 dark:bg-stone-800" />
-            <div className="h-4 w-3/4 animate-pulse rounded bg-stone-200 dark:bg-stone-800" />
-            <div className="h-4 w-1/3 animate-pulse rounded bg-stone-200 dark:bg-stone-800" />
-          </div>
-        ))}
+    <div>
+      <div
+        className="h-40 sm:h-48"
+        style={{ backgroundImage: "var(--gradient-ink)" }}
+      />
+      <div className="ds-container py-8 lg:py-12">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="space-y-3">
+              <div
+                className={`${skeletonBlock} aspect-square rounded-[var(--radius-lg)]`}
+              />
+              <div
+                className={`${skeletonBlock} h-4 w-3/4 rounded-[var(--radius-sm)]`}
+              />
+              <div
+                className={`${skeletonBlock} h-4 w-1/3 rounded-[var(--radius-sm)]`}
+              />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -204,7 +169,9 @@ export function CatalogSkeleton() {
 
 export default function ProductsCatalog() {
   const locale = useLocale();
-  const t = COPY[locale === "ar" ? "ar" : "en"];
+  const t = useTranslations("products");
+  const tc = useTranslations("common");
+  const tn = useTranslations("nav");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -236,7 +203,7 @@ export default function ProductsCatalog() {
   /* ----- البحث النصي (Debounce 300ms) ----- */
   const [searchInput, setSearchInput] = useState(q);
   const debouncedSearch = useDebounced(searchInput.trim(), 300);
-  
+
   useEffect(() => {
     if (debouncedSearch !== q) updateUrl({ q: debouncedSearch || undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -245,7 +212,7 @@ export default function ProductsCatalog() {
   /* ----- حقول السعر (تُطبَّق عند الضغط على تطبيق/Enter) ----- */
   const [minInput, setMinInput] = useState(minPrice);
   const [maxInput, setMaxInput] = useState(maxPrice);
-  
+
   const [prevQ, setPrevQ] = useState(q);
   if (q !== prevQ) {
     setPrevQ(q);
@@ -321,7 +288,7 @@ export default function ProductsCatalog() {
     if (q)
       list.push({
         key: "q",
-        label: t.searchChip(q),
+        label: t("catalog.searchChip", { query: q }),
         clear: () => updateUrl({ q: undefined }),
       });
     if (category)
@@ -333,23 +300,22 @@ export default function ProductsCatalog() {
     if (minPrice || maxPrice)
       list.push({
         key: "price",
-        label: t.priceChip(
-          minPrice ? usd.format(Number(minPrice)) : "0",
-          maxPrice ? usd.format(Number(maxPrice)) : "∞"
-        ),
+        label: t("catalog.priceChip", {
+          from: minPrice ? usd.format(Number(minPrice)) : "0",
+          to: maxPrice ? usd.format(Number(maxPrice)) : "∞",
+        }),
         clear: () => updateUrl({ minPrice: undefined, maxPrice: undefined }),
       });
     if (inStock)
       list.push({
         key: "inStock",
-        label: t.inStock,
+        label: t("inStockOnly"),
         clear: () => updateUrl({ inStock: undefined }),
       });
     return list;
   }, [q, category, minPrice, maxPrice, inStock, activeCategory, catLabel, t, updateUrl]);
 
-  const clearAll = () =>
-    router.replace(pathname, { scroll: false });
+  const clearAll = () => router.replace(pathname, { scroll: false });
 
   const goToPage = (p: number) => {
     updateUrl({ page: p === 1 ? undefined : String(p) }, true);
@@ -372,20 +338,31 @@ export default function ProductsCatalog() {
     };
   }, [drawerOpen]);
 
-  /* ----- لوحة الفلاتر (تُستخدم في الشريط الجانبي والدرج) ----- */
-  const inputCls =
-    "w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none transition focus-visible:border-emerald-800 focus-visible:ring-2 focus-visible:ring-emerald-800/30 dark:border-stone-700 dark:bg-stone-900";
+  /* ----- شكل زر الفئة (تصميم فقط) ----- */
+  const catBtnCls = (active: boolean) =>
+    `flex w-full items-center justify-between gap-2 rounded-[var(--radius-md)] border-s-2 px-3 py-2 text-sm transition ${
+      active
+        ? "border-[var(--color-primary)] bg-[var(--color-primary-200)] font-semibold text-[var(--color-accent-text)]"
+        : "border-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-primary-200)] hover:text-[var(--color-text-primary)]"
+    }`;
 
+  /* ----- لوحة الفلاتر (تُستخدم في الشريط الجانبي والدرج) ----- */
   const filtersPanel = (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <section aria-labelledby="f-cat">
-        <h2 id="f-cat" className="mb-3 text-sm font-semibold">
-          {t.categories}
+        <h2
+          id="f-cat"
+          className="ds-font-heading mb-3 text-lg font-semibold text-[var(--color-text-primary)]"
+        >
+          {t("categories")}
         </h2>
         {facets.isLoading ? (
           <div className="space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-5 animate-pulse rounded bg-stone-200 dark:bg-stone-800" />
+              <div
+                key={i}
+                className={`${skeletonBlock} h-9 rounded-[var(--radius-md)]`}
+              />
             ))}
           </div>
         ) : (
@@ -395,11 +372,9 @@ export default function ProductsCatalog() {
                 type="button"
                 onClick={() => updateUrl({ category: undefined })}
                 aria-pressed={!category}
-                className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm transition hover:bg-stone-100 dark:hover:bg-stone-800 ${
-                  !category ? "bg-stone-100 font-semibold dark:bg-stone-800" : ""
-                }`}
+                className={catBtnCls(!category)}
               >
-                {t.allCategories}
+                {t("allCategories")}
               </button>
             </li>
             {facets.data?.categories.map((c) => (
@@ -408,13 +383,13 @@ export default function ProductsCatalog() {
                   type="button"
                   onClick={() => updateUrl({ category: c.slug })}
                   aria-pressed={category === c.slug}
-                  className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm transition hover:bg-stone-100 dark:hover:bg-stone-800 ${
-                    category === c.slug ? "bg-stone-100 font-semibold dark:bg-stone-800" : ""
-                  }`}
+                  className={catBtnCls(category === c.slug)}
                 >
                   <span>{catLabel(c)}</span>
                   {typeof c.count === "number" && (
-                    <span className="text-xs text-stone-500 tabular-nums">{c.count}</span>
+                    <span className="text-xs tabular-nums text-[var(--color-text-disabled)]">
+                      {c.count}
+                    </span>
                   )}
                 </button>
               </li>
@@ -423,9 +398,14 @@ export default function ProductsCatalog() {
         )}
       </section>
 
+      <hr className="ds-gold-rule" />
+
       <section aria-labelledby="f-price">
-        <h2 id="f-price" className="mb-3 text-sm font-semibold">
-          {t.price}
+        <h2
+          id="f-price"
+          className="ds-font-heading mb-3 text-lg font-semibold text-[var(--color-text-primary)]"
+        >
+          {t("priceRange")}
         </h2>
         <form
           onSubmit={(e) => {
@@ -443,13 +423,15 @@ export default function ProductsCatalog() {
               onChange={(e) => setMinInput(e.target.value)}
               placeholder={
                 facets.data && facets.data.maxPrice > 0
-                  ? `${t.min} ${Math.floor(facets.data.minPrice)}`
-                  : t.min
+                  ? `${t("catalog.from")} ${Math.floor(facets.data.minPrice)}`
+                  : t("catalog.from")
               }
-              aria-label={t.min}
+              aria-label={t("catalog.from")}
               className={inputCls}
             />
-            <span aria-hidden className="text-stone-400">–</span>
+            <span aria-hidden className="text-[var(--color-text-disabled)]">
+              –
+            </span>
             <input
               type="number"
               inputMode="decimal"
@@ -458,31 +440,30 @@ export default function ProductsCatalog() {
               onChange={(e) => setMaxInput(e.target.value)}
               placeholder={
                 facets.data && facets.data.maxPrice > 0
-                  ? `${t.max} ${Math.ceil(facets.data.maxPrice)}`
-                  : t.max
+                  ? `${t("catalog.to")} ${Math.ceil(facets.data.maxPrice)}`
+                  : t("catalog.to")
               }
-              aria-label={t.max}
+              aria-label={t("catalog.to")}
               className={inputCls}
             />
           </div>
-          <button
-            type="submit"
-            className="w-full rounded-md border border-emerald-900 px-3 py-2 text-sm font-medium text-emerald-900 transition hover:bg-emerald-900 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800 dark:border-emerald-400 dark:text-emerald-300 dark:hover:bg-emerald-400 dark:hover:text-stone-900"
-          >
-            {t.apply}
+          <button type="submit" className="ds-btn ds-btn-primary w-full">
+            {tc("apply")}
           </button>
         </form>
       </section>
 
+      <hr className="ds-gold-rule" />
+
       <section>
-        <label className="flex cursor-pointer items-center gap-3 text-sm">
+        <label className="flex cursor-pointer items-center gap-3 text-sm text-[var(--color-text-primary)]">
           <input
             type="checkbox"
             checked={inStock}
             onChange={(e) => updateUrl({ inStock: e.target.checked ? "true" : undefined })}
-            className="size-4 accent-emerald-800"
+            className="size-4 accent-[var(--color-primary)]"
           />
-          {t.inStock}
+          {t("inStockOnly")}
         </label>
       </section>
 
@@ -490,9 +471,9 @@ export default function ProductsCatalog() {
         <button
           type="button"
           onClick={clearAll}
-          className="text-sm text-emerald-900 underline underline-offset-4 dark:text-emerald-300"
+          className="ds-btn ds-btn-ghost w-full"
         >
-          {t.clear}
+          {t("clearFilters")}
         </button>
       )}
     </div>
@@ -503,218 +484,316 @@ export default function ProductsCatalog() {
   /* ---------------------------------------------------------------------- */
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:py-12">
-      {/* العنوان + عدد النتائج */}
-      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{t.title}</h1>
-        <p className="text-sm text-stone-600 dark:text-stone-400" aria-live="polite">
-          {products.data ? t.results(total) : "\u00A0"}
-        </p>
+    <div>
+      {/* ===== Header: عنوان كبير + breadcrumb خفيف (نفس لغة هيرو الرئيسية) ===== */}
+      <header
+        className="relative isolate overflow-hidden"
+        style={{ backgroundImage: "var(--gradient-ink)" }}
+      >
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10"
+          style={{
+            background:
+              "radial-gradient(ellipse at 15% 0%, rgba(201,164,92,0.18) 0%, transparent 60%)",
+          }}
+        />
+        <div className="ds-container py-10 sm:py-14">
+          <nav aria-label={t("catalog.breadcrumbLabel")}>
+            <ol className="flex items-center gap-1.5 text-sm text-[var(--color-on-inverse)]/70">
+              <li>
+                <Link
+                  href="/"
+                  className="transition hover:text-[var(--brand-gold-light)]"
+                >
+                  {tn("home")}
+                </Link>
+              </li>
+              <li aria-hidden>
+                <ChevronRight className="size-3.5 rtl:rotate-180" />
+              </li>
+              <li
+                aria-current="page"
+                className="text-[var(--brand-gold-light)]"
+              >
+                {t("title")}
+              </li>
+            </ol>
+          </nav>
+
+          <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
+            <div className="max-w-2xl">
+              <h1 className="ds-text-gold text-4xl leading-[1.35] sm:text-5xl">
+                {t("title")}
+              </h1>
+              <p className="mt-3 text-[var(--color-on-inverse)]/80">
+                {t("catalog.subtitle")}
+              </p>
+            </div>
+            <p
+              className="ds-badge !px-4 !py-1 !text-sm"
+              aria-live="polite"
+            >
+              {products.data ? t("catalog.results", { count: total }) : "\u00A0"}
+            </p>
+          </div>
+        </div>
+        <hr className="ds-gold-rule" />
       </header>
 
-      {/* شريط الأدوات */}
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search
-            aria-hidden
-            className="pointer-events-none absolute inset-y-0 start-3 my-auto size-4 text-stone-500"
-          />
-          <input
-            type="search"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder={t.search}
-            aria-label={t.search}
-            className={`${inputCls} ps-9`}
-          />
-        </div>
+      {/* ===== شريط الفلاتر: خلفية كريمية + border سفلي ===== */}
+      <div className="border-b border-[var(--border-color)] bg-[var(--color-bg-alt)]">
+        <div className="ds-container py-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 start-4 my-auto size-4 text-[var(--color-text-disabled)]"
+              />
+              <input
+                type="search"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder={t("catalog.searchCatalogPlaceholder")}
+                aria-label={t("catalog.searchCatalogPlaceholder")}
+                className={`${inputCls} ps-11`}
+              />
+            </div>
 
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => setDrawerOpen(true)}
-            className="inline-flex items-center gap-2 rounded-md border border-stone-300 px-3 py-2 text-sm lg:hidden dark:border-stone-700"
-          >
-            <SlidersHorizontal className="size-4" aria-hidden />
-            {t.filters}
-            {chips.length > 0 && (
-              <span className="rounded-full bg-emerald-900 px-1.5 text-xs text-white">
-                {chips.length}
-              </span>
-            )}
-          </button>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(true)}
+                className="ds-btn ds-btn-outline lg:hidden"
+              >
+                <SlidersHorizontal className="size-4" aria-hidden />
+                {t("filtersTitle")}
+                {chips.length > 0 && (
+                  <span className="grid min-w-5 place-items-center rounded-full bg-[var(--color-primary)] px-1.5 text-xs font-semibold text-[var(--color-on-primary)]">
+                    {chips.length}
+                  </span>
+                )}
+              </button>
 
-          <label className="flex flex-1 items-center gap-2 text-sm sm:flex-none">
-            <span className="sr-only sm:not-sr-only text-stone-600 dark:text-stone-400">
-              {t.sort}
-            </span>
-            <select
-              value={sort}
-              onChange={(e) => updateUrl({ sort: e.target.value === "newest" ? undefined : e.target.value })}
-              className={`${inputCls} sm:w-auto`}
+              <label className="flex flex-1 items-center gap-2 text-sm sm:flex-none">
+                <span className="sr-only text-[var(--color-text-secondary)] sm:not-sr-only">
+                  {t("sortBy")}
+                </span>
+                <select
+                  value={sort}
+                  onChange={(e) =>
+                    updateUrl({
+                      sort: e.target.value === "newest" ? undefined : e.target.value,
+                    })
+                  }
+                  className={`${inputCls} cursor-pointer sm:w-auto`}
+                >
+                  {SORTS.map((s) => (
+                    <option key={s} value={s}>
+                      {t(SORT_LABEL_KEY[s])}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </div>
+
+          {/* الفلاتر النشطة (chips) */}
+          {chips.length > 0 && (
+            <ul
+              className="mt-4 flex flex-wrap gap-2"
+              aria-label={t("catalog.activeFilters")}
             >
-              {SORTS.map((s) => (
-                <option key={s} value={s}>
-                  {t.sorts[s]}
-                </option>
+              {chips.map((c) => (
+                <li key={c.key}>
+                  <button
+                    type="button"
+                    onClick={c.clear}
+                    aria-label={`${t("catalog.removeFilter")}: ${c.label}`}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-color)] bg-[var(--color-primary-200)] py-1.5 ps-3.5 pe-2.5 text-xs font-medium text-[var(--color-accent-text)] transition hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-[var(--color-on-primary)]"
+                  >
+                    {c.label}
+                    <X className="size-3.5" aria-hidden />
+                  </button>
+                </li>
               ))}
-            </select>
-          </label>
+            </ul>
+          )}
         </div>
       </div>
 
-      {/* الفلاتر النشطة */}
-      {chips.length > 0 && (
-        <ul className="mb-6 flex flex-wrap gap-2" aria-label={t.filters}>
-          {chips.map((c) => (
-            <li key={c.key}>
-              <button
-                type="button"
-                onClick={c.clear}
-                aria-label={`${t.remove}: ${c.label}`}
-                className="inline-flex items-center gap-1.5 rounded-full border border-stone-300 bg-stone-50 py-1 ps-3 pe-2 text-xs transition hover:border-stone-500 dark:border-stone-700 dark:bg-stone-900"
-              >
-                {c.label}
-                <X className="size-3.5" aria-hidden />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      {/* ===== المحتوى ===== */}
+      <div className="ds-container py-8 lg:py-12">
+        <div className="grid gap-8 lg:grid-cols-[17rem_1fr] lg:gap-10">
+          {/* الشريط الجانبي (سطح المكتب) */}
+          <aside className="hidden lg:block">
+            <div className="ds-card sticky top-24 p-5">{filtersPanel}</div>
+          </aside>
 
-      <div className="grid gap-8 lg:grid-cols-[16rem_1fr]">
-        {/* الشريط الجانبي (سطح المكتب) */}
-        <aside className="hidden lg:block">
-          <div className="sticky top-24">{filtersPanel}</div>
-        </aside>
-
-        {/* الشبكة */}
-        <main aria-busy={products.isFetching}>
-          {products.isError && !products.data ? (
-            <div role="alert" className="rounded-lg border border-stone-300 p-10 text-center dark:border-stone-700">
-              <h2 className="text-lg font-semibold">{t.errorTitle}</h2>
-              <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">{t.errorBody}</p>
-              <button
-                type="button"
-                onClick={() => products.refetch()}
-                className="mt-4 rounded-md bg-emerald-900 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
-              >
-                {t.retry}
-              </button>
-            </div>
-          ) : products.isLoading ? (
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-              {Array.from({ length: PAGE_SIZE }).map((_, i) => (
-                <div key={i} className="space-y-3">
-                  <div className="aspect-square animate-pulse rounded-lg bg-stone-200 dark:bg-stone-800" />
-                  <div className="h-4 w-3/4 animate-pulse rounded bg-stone-200 dark:bg-stone-800" />
-                  <div className="h-4 w-1/3 animate-pulse rounded bg-stone-200 dark:bg-stone-800" />
+          {/* الشبكة */}
+          <main aria-busy={products.isFetching}>
+            {products.isError && !products.data ? (
+              <div role="alert" className="ds-card p-10 text-center">
+                <div className="mx-auto mb-4 grid size-14 place-items-center rounded-full bg-[var(--color-danger-bg)] text-[var(--color-danger)]">
+                  <X className="size-6" aria-hidden />
                 </div>
-              ))}
-            </div>
-          ) : items.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-stone-300 p-10 text-center dark:border-stone-700">
-              <h2 className="text-lg font-semibold">{t.emptyTitle}</h2>
-              <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">{t.emptyBody}</p>
-              {chips.length > 0 && (
+                <h2 className="text-xl">{t("catalog.errorTitle")}</h2>
+                <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                  {t("catalog.errorBody")}
+                </p>
                 <button
                   type="button"
-                  onClick={clearAll}
-                  className="mt-4 rounded-md bg-emerald-900 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
+                  onClick={() => products.refetch()}
+                  className="ds-btn ds-btn-primary mt-5"
                 >
-                  {t.clear}
+                  {tc("retry")}
                 </button>
-              )}
-            </div>
-          ) : (
-            <>
-              <ul
-                className={`grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 ${
-                  products.isFetching && products.isPlaceholderData ? "opacity-60 transition-opacity" : ""
-                }`}
-              >
-                {items.map((p, i) => {
-                  const product = p as { id?: string; slug?: string };
-                  return (
-                    <li key={product.id ?? product.slug ?? i}>
-                      {/* ProductCard يتولى السعر والمخزون وزر المفضلة (WishlistButton) */}
-                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                      <ProductCard product={p as any} />
-                    </li>
-                  );
-                })}
-              </ul>
+              </div>
+            ) : products.isLoading ? (
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6">
+                {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+                  <div key={i} className="space-y-3">
+                    <div
+                      className={`${skeletonBlock} aspect-square rounded-[var(--radius-lg)]`}
+                    />
+                    <div
+                      className={`${skeletonBlock} h-4 w-3/4 rounded-[var(--radius-sm)]`}
+                    />
+                    <div
+                      className={`${skeletonBlock} h-4 w-1/3 rounded-[var(--radius-sm)]`}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : items.length === 0 ? (
+              <div className="ds-card border-dashed p-10 text-center">
+                <div className="mx-auto mb-4 grid size-14 place-items-center rounded-full bg-[var(--color-primary-200)] text-[var(--color-accent-text)]">
+                  <Search className="size-6" aria-hidden />
+                </div>
+                <h2 className="text-xl">{t("catalog.emptyTitle")}</h2>
+                <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                  {t("catalog.emptyBody")}
+                </p>
+                {chips.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearAll}
+                    className="ds-btn ds-btn-primary mt-5"
+                  >
+                    {t("clearFilters")}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <>
+                <ul
+                  className={`grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 md:gap-x-6 md:gap-y-10 ${
+                    products.isFetching && products.isPlaceholderData
+                      ? "opacity-60 transition-opacity"
+                      : ""
+                  }`}
+                >
+                  {items.map((p, i) => {
+                    const product = p as { id?: string; slug?: string };
+                    return (
+                      <li key={product.id ?? product.slug ?? i}>
+                        {/* ProductCard يتولى السعر والمخزون وزر المفضلة (WishlistButton) */}
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        <ProductCard product={p as any} />
+                      </li>
+                    );
+                  })}
+                </ul>
 
-              {totalPages > 1 && (
-                <nav className="mt-12 flex flex-wrap items-center justify-center gap-1" aria-label="Pagination">
-                  <button
-                    type="button"
-                    disabled={page <= 1}
-                    onClick={() => goToPage(page - 1)}
-                    className="rounded-md px-3 py-2 text-sm hover:bg-stone-100 disabled:opacity-40 dark:hover:bg-stone-800"
+                {totalPages > 1 && (
+                  <nav
+                    className="mt-14 flex flex-wrap items-center justify-center gap-2"
+                    aria-label={t("catalog.paginationLabel")}
                   >
-                    {t.prev}
-                  </button>
-                  {pageWindow(page, totalPages).map((p, i) =>
-                    p === "…" ? (
-                      <span key={`e${i}`} className="px-2 text-stone-400" aria-hidden>
-                        …
-                      </span>
-                    ) : (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => goToPage(p)}
-                        aria-label={t.page(p)}
-                        aria-current={p === page ? "page" : undefined}
-                        className={`min-w-9 rounded-md px-3 py-2 text-sm tabular-nums ${
-                          p === page
-                            ? "bg-emerald-900 font-semibold text-white"
-                            : "hover:bg-stone-100 dark:hover:bg-stone-800"
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    )
-                  )}
-                  <button
-                    type="button"
-                    disabled={page >= totalPages}
-                    onClick={() => goToPage(page + 1)}
-                    className="rounded-md px-3 py-2 text-sm hover:bg-stone-100 disabled:opacity-40 dark:hover:bg-stone-800"
-                  >
-                    {t.next}
-                  </button>
-                </nav>
-              )}
-            </>
-          )}
-        </main>
+                    <button
+                      type="button"
+                      disabled={page <= 1}
+                      onClick={() => goToPage(page - 1)}
+                      className={pageBtnBase}
+                    >
+                      <ChevronLeft className="size-4 rtl:rotate-180" aria-hidden />
+                      <span className="sr-only">{tc("previous")}</span>
+                    </button>
+                    {pageWindow(page, totalPages).map((p, i) =>
+                      p === "…" ? (
+                        <span
+                          key={`e${i}`}
+                          className="px-1 text-[var(--color-text-disabled)]"
+                          aria-hidden
+                        >
+                          …
+                        </span>
+                      ) : (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => goToPage(p)}
+                          aria-label={t("catalog.pageLabel", { page: p })}
+                          aria-current={p === page ? "page" : undefined}
+                          className={p === page ? pageBtnActive : pageBtnBase}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
+                    <button
+                      type="button"
+                      disabled={page >= totalPages}
+                      onClick={() => goToPage(page + 1)}
+                      className={pageBtnBase}
+                    >
+                      <ChevronRight className="size-4 rtl:rotate-180" aria-hidden />
+                      <span className="sr-only">{tc("next")}</span>
+                    </button>
+                  </nav>
+                )}
+              </>
+            )}
+          </main>
+        </div>
       </div>
 
-      {/* درج الفلاتر (جوال) */}
+      {/* ===== درج الفلاتر (جوال): خلفية بيضاء/داكنة + ظل جانبي ===== */}
       {drawerOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label={t.filters}>
-          <div className="absolute inset-0 bg-black/50" onClick={() => setDrawerOpen(false)} />
+        <div
+          className="fixed inset-0 z-50 lg:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("filtersTitle")}
+        >
+          <div
+            className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
+            onClick={() => setDrawerOpen(false)}
+          />
           <div
             ref={drawerRef}
             tabIndex={-1}
-            className="absolute inset-y-0 end-0 flex w-[min(22rem,90vw)] flex-col bg-white shadow-xl outline-none dark:bg-stone-950"
+            className="absolute inset-y-0 end-0 flex w-[min(22rem,90vw)] flex-col border-s border-[var(--border-color)] bg-[var(--color-bg)] shadow-[var(--shadow-lg)] outline-none"
           >
-            <div className="flex items-center justify-between border-b border-stone-200 p-4 dark:border-stone-800">
-              <h2 className="font-semibold">{t.filters}</h2>
-              <button type="button" onClick={() => setDrawerOpen(false)} aria-label={t.close}>
-                <X className="size-5" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4">{filtersPanel}</div>
-            <div className="border-t border-stone-200 p-4 dark:border-stone-800">
+            <div className="flex items-center justify-between border-b border-[var(--border-color)] p-4">
+              <h2 className="ds-font-heading text-xl">{t("filtersTitle")}</h2>
               <button
                 type="button"
                 onClick={() => setDrawerOpen(false)}
-                className="w-full rounded-md bg-emerald-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-800"
+                aria-label={tc("close")}
+                className="grid size-10 place-items-center rounded-full text-[var(--color-text-secondary)] transition hover:bg-[var(--color-primary-200)] hover:text-[var(--color-text-primary)]"
               >
-                {t.showResults}
+                <X className="size-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5">{filtersPanel}</div>
+            <div className="border-t border-[var(--border-color)] p-4">
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(false)}
+                className="ds-btn ds-btn-primary w-full"
+              >
+                {t("catalog.showResults")}
                 {products.data ? ` (${total})` : ""}
               </button>
             </div>

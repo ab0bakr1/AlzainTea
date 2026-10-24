@@ -28,7 +28,7 @@ export default function CartLink() {
       {shown > 0 && (
         <span
           aria-hidden
-          className="absolute -end-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-secondary)] px-1 text-[11px] font-bold leading-none text-[var(--color-text-primary-dark)]"
+          className="absolute -end-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full ds-bg-gold px-1 text-[11px] font-bold leading-none shadow-[var(--shadow-gold)]"
         >
           {shown > 99 ? "99+" : shown}
         </span>

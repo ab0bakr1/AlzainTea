@@ -16,7 +16,11 @@ export default function StarRating({ value, size = 18, onChange }: Props) {
         const star = (
           <Star
             size={size}
-            className={filled ? "fill-amber-400 text-amber-400" : "text-gray-300 dark:text-gray-600"}
+            className={
+              filled
+                ? "fill-[var(--color-primary)] text-[var(--color-primary)]"
+                : "text-[var(--border-color-strong)]"
+            }
           />
         );
         return onChange ? (
@@ -25,7 +29,7 @@ export default function StarRating({ value, size = 18, onChange }: Props) {
             type="button"
             onClick={() => onChange(n)}
             aria-label={`${n}`}
-            className="p-0.5 transition-transform hover:scale-110"
+            className="cursor-pointer p-0.5 transition-transform hover:scale-110"
           >
             {star}
           </button>

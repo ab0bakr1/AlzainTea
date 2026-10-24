@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import StarRating from "@/components/shop/StarRating";
 import { ReviewStatusBadge, REVIEW_STATUS_LABELS } from "@/components/ui/ReviewStatusBadge";
 import { useAdminReviewFilters } from "@/hooks/useAdminReviewFilters";
@@ -21,21 +21,20 @@ const PAGE_SIZE = 20;
 const COMMENT_PREVIEW_CHARS = 140;
 const EMPTY_SET: ReadonlySet<string> = new Set<string>();
 
-const field =
-  "rounded-lg border border-zinc-300 bg-transparent px-3 py-2 text-sm dark:border-zinc-700";
-const ghostBtn =
-  "rounded-lg border border-zinc-300 px-3 py-1.5 text-sm disabled:opacity-40 dark:border-zinc-700";
-
-const SORT_LABELS: Record<ReviewSort, string> = {
-  newest: "الأحدث أولاً",
-  oldest: "الأقدم أولاً",
-  rating_desc: "الأعلى تقييماً",
-  rating_asc: "الأقل تقييماً",
+const field = "adm-control";
+const ghostBtn = "ds-btn ds-btn-outline adm-btn-sm";
+const SORT_KEYS: Record<ReviewSort, string> = {
+  newest: "newest",
+  oldest: "oldest",
+  rating_desc: "ratingDesc",
+  rating_asc: "ratingAsc",
 };
 
 type Notice = { type: "success" | "error"; text: string };
 
 export default function ReviewsTable() {
+  const t = useTranslations("adminPanel.reviews");
+  const tc = useTranslations("adminPanel.common");
   const locale = useLocale();
   const lang = locale === "ar" ? "ar" : "en";
   const { filters, setFilters, reset, activeCount } = useAdminReviewFilters();
@@ -56,8 +55,8 @@ export default function ReviewsTable() {
   // Debounce للبحث النصي ثم كتابته في الرابط
   useEffect(() => {
     if (search.trim() === filters.q) return;
-    const t = setTimeout(() => setFilters({ q: search.trim() }), 300);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setFilters({ q: search.trim() }), 300);
+    return () => clearTimeout(timer);
   }, [search, filters.q, setFilters]);
 
   // Escape يغلق حوار الحذف
@@ -93,7 +92,7 @@ export default function ReviewsTable() {
     { value: "PENDING", label: REVIEW_STATUS_LABELS.PENDING[lang], count: stats?.pending },
     { value: "APPROVED", label: REVIEW_STATUS_LABELS.APPROVED[lang], count: stats?.approved },
     { value: "REJECTED", label: REVIEW_STATUS_LABELS.REJECTED[lang], count: stats?.rejected },
-    { value: "", label: "الكل", count: stats?.total },
+    { value: "", label: tc("all"), count: stats?.total },
   ];
 
   function setSelection(ids: Iterable<string>) {
@@ -119,10 +118,7 @@ export default function ReviewsTable() {
     setNotice(null);
     try {
       await moderate.mutateAsync({ id, status });
-      setNotice({
-        type: "success",
-        text: status === "APPROVED" ? "تم نشر المراجعة." : "تم رفض المراجعة.",
-      });
+      setNotice({ type: "success", text: status === "APPROVED" ? t("notice.published") : t("notice.rejected") });
     } catch (e) {
       setNotice({ type: "error", text: getErrorMessage(e) });
     }
@@ -134,7 +130,10 @@ export default function ReviewsTable() {
       const r = await bulk.mutateAsync({ ids: selectedIds, action });
       setNotice({
         type: "success",
-        text: `${action === "APPROVE" ? "تم نشر" : "تم رفض"} ${r.affected} من ${r.requested} مراجعة.`,
+        text: t(action === "APPROVE" ? "notice.bulkApproved" : "notice.bulkRejected", {
+          affected: r.affected,
+          requested: r.requested,
+        }),
       });
       setSelection([]);
     } catch (e) {
@@ -149,7 +148,10 @@ export default function ReviewsTable() {
     try {
       if (ids.length === 1) await remove.mutateAsync(ids[0]);
       else await bulk.mutateAsync({ ids, action: "DELETE" });
-      setNotice({ type: "success", text: ids.length === 1 ? "تم حذف المراجعة." : `تم حذف ${ids.length} مراجعات.` });
+      setNotice({
+        type: "success",
+        text: ids.length === 1 ? t("notice.deletedOne") : t("notice.deletedMany", { n: ids.length }),
+      });
       setSelection([]);
     } catch (e) {
       setNotice({ type: "error", text: getErrorMessage(e) });
@@ -158,12 +160,13 @@ export default function ReviewsTable() {
     }
   }
 
-  const colCount = 7;
+  const headers = [t("cols.product"), t("cols.reviewer"), t("cols.ratingComment"), t("cols.status"), t("cols.date"), ""];
+  const colCount = headers.length + 1;
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-5">
       {/* تبويبات الحالة */}
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="حالة المراجعة">
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label={t("tabsAria")}>
         {tabs.map((tab) => {
           const active = filters.status === tab.value;
           return (
@@ -172,64 +175,56 @@ export default function ReviewsTable() {
               role="tab"
               aria-selected={active}
               onClick={() => setFilters({ status: tab.value })}
-              className={`rounded-full border px-4 py-1.5 text-sm transition-colors ${
-                active
-                  ? "border-emerald-700 bg-emerald-700 text-white"
-                  : "border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-              }`}
+              className="adm-tab"
             >
               {tab.label}
-              {tab.count !== undefined && (
-                <span className={`ms-2 tabular-nums ${active ? "text-white/80" : "text-zinc-500"}`}>
-                  {tab.count}
-                </span>
-              )}
+              {tab.count !== undefined && <span className="adm-tab-count">{tab.count}</span>}
             </button>
           );
         })}
       </div>
 
       {/* البحث والفلاتر */}
-      <div className="flex flex-wrap items-end gap-3" role="search">
+      <div className="adm-card flex flex-wrap items-end gap-3 p-4" role="search">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          aria-label="بحث في المراجعات"
-          placeholder="ابحث في التعليق أو المنتج أو اسم/بريد المراجع"
+          aria-label={t("searchAria")}
+          placeholder={t("searchPlaceholder")}
           className={`${field} w-full max-w-sm`}
         />
         <select
-          aria-label="التقييم"
+          aria-label={t("ratingAria")}
           value={filters.rating}
           onChange={(e) => setFilters({ rating: e.target.value as typeof filters.rating })}
           className={field}
         >
-          <option value="">كل التقييمات</option>
+          <option value="">{t("allRatings")}</option>
           {[5, 4, 3, 2, 1].map((n) => (
             <option key={n} value={n}>
-              {n} {n === 1 ? "نجمة" : "نجوم"}
+              {t("stars", { n })}
             </option>
           ))}
         </select>
         <select
-          aria-label="الشراء الموثّق"
+          aria-label={t("verifiedAria")}
           value={filters.verified}
           onChange={(e) => setFilters({ verified: e.target.value as typeof filters.verified })}
           className={field}
         >
-          <option value="">موثّق وغير موثّق</option>
-          <option value="true">شراء موثّق فقط</option>
-          <option value="false">غير موثّق فقط</option>
+          <option value="">{t("allVerified")}</option>
+          <option value="true">{t("verifiedOnly")}</option>
+          <option value="false">{t("unverifiedOnly")}</option>
         </select>
         <select
-          aria-label="الترتيب"
+          aria-label={t("sortAria")}
           value={filters.sort}
           onChange={(e) => setFilters({ sort: e.target.value as ReviewSort })}
           className={field}
         >
-          {(Object.keys(SORT_LABELS) as ReviewSort[]).map((s) => (
+          {(Object.keys(SORT_KEYS) as ReviewSort[]).map((s) => (
             <option key={s} value={s}>
-              {SORT_LABELS[s]}
+              {t(`sort.${SORT_KEYS[s]}`)}
             </option>
           ))}
         </select>
@@ -239,22 +234,18 @@ export default function ReviewsTable() {
               setSearch("");
               reset();
             }}
-            className="text-sm text-zinc-600 underline underline-offset-2 dark:text-zinc-400"
+            className="adm-link text-sm"
           >
-            مسح الفلاتر ({activeCount})
+            {tc("clearFiltersCount", { n: activeCount })}
           </button>
         )}
-        {isFetching && !isLoading && <span className="text-xs text-zinc-500">جارٍ التحديث…</span>}
+        {isFetching && !isLoading && <span className="adm-subtle text-xs">{tc("updating")}</span>}
       </div>
 
       {notice && (
         <p
           role={notice.type === "error" ? "alert" : "status"}
-          className={`rounded-lg p-3 text-sm ${
-            notice.type === "error"
-              ? "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300"
-              : "bg-emerald-50 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300"
-          }`}
+          className={`adm-alert ${notice.type === "error" ? "adm-alert-error" : "adm-alert-success"}`}
         >
           {notice.text}
         </p>
@@ -264,42 +255,39 @@ export default function ReviewsTable() {
       {selectedIds.length > 0 && (
         <div
           role="region"
-          aria-label="إجراءات جماعية"
-          className="flex flex-wrap items-center gap-2 rounded-xl border border-emerald-700/40 bg-emerald-50 p-3 dark:bg-emerald-500/10"
+          aria-label={t("bulk.region")}
+          className="flex flex-wrap items-center gap-2 rounded-[var(--radius-2xl)] border border-[var(--border-color-gold)] bg-[var(--color-primary-200)] p-3"
         >
-          <span className="me-2 text-sm font-medium">تم تحديد {selectedIds.length}</span>
-          <button
-            disabled={busy}
-            onClick={() => handleBulk("APPROVE")}
-            className="rounded-lg bg-emerald-700 px-3 py-1.5 text-sm text-white disabled:opacity-50"
-          >
-            نشر المحدد
+          <span className="me-2 text-sm font-semibold">{t("bulk.selected", { n: selectedIds.length })}</span>
+          <button disabled={busy} onClick={() => handleBulk("APPROVE")} className="ds-btn ds-btn-primary adm-btn-sm">
+            {t("bulk.approve")}
           </button>
           <button disabled={busy} onClick={() => handleBulk("REJECT")} className={ghostBtn}>
-            رفض المحدد
+            {t("bulk.reject")}
           </button>
           <button
             disabled={busy}
             onClick={() => setConfirm({ ids: selectedIds })}
-            className="rounded-lg border border-red-300 px-3 py-1.5 text-sm text-red-600 disabled:opacity-40 dark:border-red-500/40 dark:text-red-400"
+            className="ds-btn adm-btn-sm adm-btn-danger"
           >
-            حذف المحدد
+            {t("bulk.delete")}
           </button>
-          <button onClick={() => setSelection([])} className="ms-auto text-sm underline underline-offset-2">
-            إلغاء التحديد
+          <button onClick={() => setSelection([])} className="adm-link ms-auto text-sm">
+            {t("bulk.clear")}
           </button>
         </div>
       )}
 
       {/* الجدول */}
-      <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
-        <table className="w-full min-w-[960px] text-sm">
-          <thead className="bg-zinc-50 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
+      <div className="adm-table-wrap">
+        <table className="adm-table is-top min-w-[960px]">
+          <thead>
             <tr>
-              <th className="w-10 px-4 py-3">
+              <th className="w-10">
                 <input
                   type="checkbox"
-                  aria-label="تحديد كل المراجعات في هذه الصفحة"
+                  className="adm-check"
+                  aria-label={t("selectAll")}
                   checked={allSelected}
                   ref={(el) => {
                     if (el) el.indeterminate = someSelected;
@@ -308,29 +296,27 @@ export default function ReviewsTable() {
                   disabled={items.length === 0 || busy}
                 />
               </th>
-              {["المنتج", "المراجع", "التقييم والتعليق", "الحالة", "التاريخ", ""].map((h, i) => (
-                <th key={i} className="px-4 py-3 text-start font-medium">
-                  {h}
-                </th>
+              {headers.map((h, i) => (
+                <th key={i}>{h}</th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+          <tbody>
             {isLoading &&
               [0, 1, 2, 3, 4].map((i) => (
                 <tr key={i} aria-hidden="true">
-                  <td colSpan={colCount} className="px-4 py-4">
-                    <div className="h-8 animate-pulse rounded-md bg-zinc-100 dark:bg-zinc-900" />
+                  <td colSpan={colCount}>
+                    <div className="adm-skeleton h-8" />
                   </td>
                 </tr>
               ))}
 
             {isError && (
               <tr>
-                <td colSpan={colCount} className="px-4 py-10 text-center">
-                  <p className="text-red-600">تعذّر تحميل المراجعات.</p>
-                  <button onClick={() => refetch()} className="mt-2 text-sm underline underline-offset-2">
-                    إعادة المحاولة
+                <td colSpan={colCount} className="!py-10 text-center">
+                  <p className="text-[var(--color-danger)]">{t("loadError")}</p>
+                  <button onClick={() => refetch()} className="adm-link mt-2 text-sm">
+                    {tc("retry")}
                   </button>
                 </td>
               </tr>
@@ -338,23 +324,20 @@ export default function ReviewsTable() {
 
             {!isLoading && !isError && items.length === 0 && (
               <tr>
-                <td colSpan={colCount} className="px-4 py-10 text-center text-zinc-500">
+                <td colSpan={colCount} className="adm-subtle !py-10 text-center">
                   {filters.page > 1 ? (
                     <>
-                      لا توجد نتائج في هذه الصفحة.{" "}
-                      <button
-                        onClick={() => setFilters({ page: 1 })}
-                        className="underline underline-offset-2"
-                      >
-                        العودة إلى الصفحة الأولى
+                      {t("empty.page")}{" "}
+                      <button onClick={() => setFilters({ page: 1 })} className="adm-link">
+                        {t("empty.backFirst")}
                       </button>
                     </>
                   ) : activeCount > 0 ? (
-                    "لا توجد مراجعات تطابق هذه الفلاتر. خفّف الفلاتر أو امسحها."
+                    t("empty.filtered")
                   ) : filters.status === "PENDING" ? (
-                    "لا توجد مراجعات بانتظار القرار. ستظهر هنا فور إرسال العملاء تقييماتهم."
+                    t("empty.pending")
                   ) : (
-                    "لا توجد مراجعات في هذا التبويب."
+                    t("empty.tab")
                   )}
                 </td>
               </tr>
@@ -366,106 +349,78 @@ export default function ReviewsTable() {
               const isOpen = expanded.has(r.id);
               const rowBusy = moderate.isPending && moderate.variables?.id === r.id;
               return (
-                <tr
-                  key={r.id}
-                  className={`align-top hover:bg-zinc-50 dark:hover:bg-zinc-900/60 ${
-                    activeIds.has(r.id) ? "bg-emerald-50/60 dark:bg-emerald-500/5" : ""
-                  }`}
-                >
-                  <td className="px-4 py-3">
+                <tr key={r.id} className={activeIds.has(r.id) ? "adm-row-selected" : ""}>
+                  <td>
                     <input
                       type="checkbox"
-                      aria-label={`تحديد مراجعة ${r.user.name}`}
+                      className="adm-check"
+                      aria-label={t("selectReview", { name: r.user.name })}
                       checked={activeIds.has(r.id)}
                       onChange={() => toggleOne(r.id)}
                       disabled={busy}
                     />
                   </td>
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/products/${r.product.slug}`}
-                      target="_blank"
-                      className="flex items-center gap-3"
-                    >
+                  <td>
+                    <Link href={`/products/${r.product.slug}`} target="_blank" className="flex items-center gap-3">
                       {r.product.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={r.product.image}
-                          alt=""
-                          loading="lazy"
-                          className="h-10 w-10 shrink-0 rounded-lg border border-zinc-200 object-cover dark:border-zinc-800"
-                        />
+                        <img src={r.product.image} alt="" loading="lazy" className="adm-thumb !h-10 !w-10" />
                       ) : (
-                        <span className="h-10 w-10 shrink-0 rounded-lg bg-zinc-100 dark:bg-zinc-800" />
+                        <span className="adm-thumb adm-thumb-empty !h-10 !w-10" />
                       )}
-                      <span className="max-w-[180px] font-medium underline-offset-2 hover:underline">
-                        {productName}
-                      </span>
+                      <span className="max-w-[180px] font-medium hover:underline">{productName}</span>
                     </Link>
                   </td>
-                  <td className="px-4 py-3">
+                  <td>
                     <div>{r.user.name}</div>
-                    <div className="text-xs text-zinc-500">{r.user.email}</div>
+                    <div className="adm-subtle text-xs">{r.user.email}</div>
                   </td>
-                  <td className="max-w-md px-4 py-3">
+                  <td className="max-w-md">
                     <div className="flex flex-wrap items-center gap-2">
                       <StarRating value={r.rating} size={14} />
-                      {r.verifiedPurchase && (
-                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-300">
-                          شراء موثّق
-                        </span>
-                      )}
+                      {r.verifiedPurchase && <span className="ds-badge ds-badge-success">{t("verifiedBadge")}</span>}
                     </div>
                     {r.comment ? (
                       <>
-                        <p className="mt-1.5 whitespace-pre-line break-words text-zinc-700 dark:text-zinc-300">
+                        <p className="mt-2 whitespace-pre-line break-words leading-7">
                           {long && !isOpen ? `${r.comment.slice(0, COMMENT_PREVIEW_CHARS)}…` : r.comment}
                         </p>
                         {long && (
-                          <button
-                            onClick={() => toggleExpanded(r.id)}
-                            className="mt-1 text-xs underline underline-offset-2"
-                          >
-                            {isOpen ? "عرض أقل" : "عرض المزيد"}
+                          <button onClick={() => toggleExpanded(r.id)} className="adm-link mt-1 text-xs">
+                            {isOpen ? t("showLess") : t("showMore")}
                           </button>
                         )}
                       </>
                     ) : (
-                      <p className="mt-1.5 text-xs text-zinc-500">تقييم بدون تعليق</p>
+                      <p className="adm-subtle mt-2 text-xs">{t("noComment")}</p>
                     )}
                   </td>
-                  <td className="px-4 py-3">
+                  <td>
                     <ReviewStatusBadge status={r.status} />
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-zinc-600 dark:text-zinc-400">
-                    {formatDateTime(r.createdAt, locale)}
-                  </td>
-                  <td className="px-4 py-3">
+                  <td className="adm-subtle whitespace-nowrap">{formatDateTime(r.createdAt, locale)}</td>
+                  <td>
                     <div className="flex flex-wrap justify-end gap-2">
                       {r.status !== "APPROVED" && (
                         <button
                           disabled={busy}
                           onClick={() => handleModerate(r.id, "APPROVED")}
-                          className="rounded-lg bg-emerald-700 px-3 py-1 text-sm text-white disabled:opacity-50"
+                          className="ds-btn ds-btn-primary adm-btn-sm"
                         >
-                          {rowBusy ? "…" : "نشر"}
+                          {rowBusy ? "…" : t("approve")}
                         </button>
                       )}
                       {r.status !== "REJECTED" && (
-                        <button
-                          disabled={busy}
-                          onClick={() => handleModerate(r.id, "REJECTED")}
-                          className="rounded-lg border border-zinc-300 px-3 py-1 text-sm disabled:opacity-50 dark:border-zinc-700"
-                        >
-                          رفض
+                        <button disabled={busy} onClick={() => handleModerate(r.id, "REJECTED")} className={ghostBtn}>
+                          {t("reject")}
                         </button>
                       )}
                       <button
                         disabled={busy}
                         onClick={() => setConfirm({ ids: [r.id] })}
-                        className="rounded-lg border border-red-300 px-3 py-1 text-sm text-red-600 disabled:opacity-50 dark:border-red-500/40 dark:text-red-400"
+                        className="ds-btn adm-btn-sm adm-btn-danger"
                       >
-                        حذف
+                        {tc("delete")}
                       </button>
                     </div>
                   </td>
@@ -478,24 +433,20 @@ export default function ReviewsTable() {
 
       {/* الترقيم */}
       {data && data.meta.totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-zinc-500">
-            الصفحة {data.meta.page} من {data.meta.totalPages} — {data.meta.total} مراجعة
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+          <span className="adm-subtle">
+            {t("pageInfo", { page: data.meta.page, pages: data.meta.totalPages, total: data.meta.total })}
           </span>
           <div className="flex gap-2">
-            <button
-              disabled={filters.page <= 1}
-              onClick={() => setFilters({ page: filters.page - 1 })}
-              className={ghostBtn}
-            >
-              السابق
+            <button disabled={filters.page <= 1} onClick={() => setFilters({ page: filters.page - 1 })} className={ghostBtn}>
+              {tc("previous")}
             </button>
             <button
               disabled={filters.page >= data.meta.totalPages}
               onClick={() => setFilters({ page: filters.page + 1 })}
               className={ghostBtn}
             >
-              التالي
+              {tc("next")}
             </button>
           </div>
         </div>
@@ -503,34 +454,31 @@ export default function ReviewsTable() {
 
       {/* حوار تأكيد الحذف */}
       {confirm && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => !busy && setConfirm(null)}
-        >
+        <div className="adm-overlay" onClick={() => !busy && setConfirm(null)}>
           <div
             role="alertdialog"
             aria-modal="true"
             aria-labelledby="review-delete-title"
             aria-describedby="review-delete-desc"
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl dark:bg-zinc-900"
+            className="adm-dialog max-w-sm"
           >
-            <h2 id="review-delete-title" className="text-base font-semibold">
-              {confirm.ids.length > 1 ? `حذف ${confirm.ids.length} مراجعات؟` : "حذف المراجعة؟"}
+            <h2 id="review-delete-title" className="ds-font-heading text-xl font-bold">
+              {confirm.ids.length > 1 ? t("dialog.titleMany", { n: confirm.ids.length }) : t("dialog.titleOne")}
             </h2>
-            <p id="review-delete-desc" className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-              الحذف نهائي ولا يمكن التراجع عنه. إذا كنت تريد إخفاءها عن العملاء فقط، استخدم «رفض» بدلاً من ذلك.
+            <p id="review-delete-desc" className="adm-subtle mt-3 text-sm leading-7">
+              {t("dialog.desc")}
             </p>
-            <div className="mt-5 flex justify-end gap-2">
+            <div className="mt-6 flex justify-end gap-2">
               <button autoFocus disabled={busy} onClick={() => setConfirm(null)} className={ghostBtn}>
-                إلغاء
+                {tc("cancel")}
               </button>
               <button
                 disabled={busy}
                 onClick={handleConfirmedDelete}
-                className="rounded-lg bg-red-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+                className="ds-btn adm-btn-sm adm-btn-danger-solid"
               >
-                {busy ? "جارٍ الحذف…" : "حذف نهائياً"}
+                {busy ? t("dialog.deleting") : t("dialog.deleteForever")}
               </button>
             </div>
           </div>

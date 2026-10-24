@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 const MAX_IMAGES = 10;
 
-const inputClass =
-  "w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600";
+const inputClass = "adm-control w-full";
 
 const iconButtonClass =
-  "grid size-8 place-items-center rounded-md border border-stone-300 text-stone-600 hover:bg-stone-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 disabled:cursor-not-allowed disabled:opacity-30";
+  "grid size-9 place-items-center rounded-full border border-[var(--border-color-strong)] bg-[var(--color-bg)] text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-200)] disabled:cursor-not-allowed disabled:opacity-30";
 
 /** قائمة روابط الصور. الصورة الأولى هي الرئيسية في المتجر. */
 export function ProductImagesField({
@@ -18,6 +18,8 @@ export function ProductImagesField({
   value: string[];
   onChange: (next: string[]) => void;
 }) {
+  const t = useTranslations("adminPanel.productImages");
+
   function setAt(index: number, url: string) {
     onChange(value.map((item, i) => (i === index ? url : item)));
   }
@@ -37,9 +39,7 @@ export function ProductImagesField({
   return (
     <div className="grid gap-3">
       {value.length === 0 && (
-        <p className="rounded-md border border-dashed border-stone-300 p-4 text-center text-sm text-stone-500">
-          لم تُضف صوراً بعد. المنتج النشط يحتاج صورة واحدة على الأقل.
-        </p>
+        <p className="adm-empty !p-4 text-sm">{t("empty")}</p>
       )}
 
       {value.map((url, index) => (
@@ -52,11 +52,11 @@ export function ProductImagesField({
               value={url}
               onChange={(e) => setAt(index, e.target.value)}
               placeholder="https://.../image.jpg"
-              aria-label={`رابط الصورة ${index + 1}`}
+              aria-label={t("urlAria", { n: index + 1 })}
               className={inputClass}
             />
             {index === 0 && url.trim() && (
-              <span className="text-xs text-emerald-700">الصورة الرئيسية</span>
+              <span className="ds-text-alt text-xs font-medium">{t("primary")}</span>
             )}
           </div>
           <div className="flex gap-1">
@@ -64,7 +64,7 @@ export function ProductImagesField({
               type="button"
               onClick={() => move(index, -1)}
               disabled={index === 0}
-              aria-label="نقل للأعلى"
+              aria-label={t("moveUp")}
               className={iconButtonClass}
             >
               ↑
@@ -73,7 +73,7 @@ export function ProductImagesField({
               type="button"
               onClick={() => move(index, 1)}
               disabled={index === value.length - 1}
-              aria-label="نقل للأسفل"
+              aria-label={t("moveDown")}
               className={iconButtonClass}
             >
               ↓
@@ -81,8 +81,8 @@ export function ProductImagesField({
             <button
               type="button"
               onClick={() => removeAt(index)}
-              aria-label="حذف الصورة"
-              className={`${iconButtonClass} text-red-600`}
+              aria-label={t("remove")}
+              className={`${iconButtonClass} !text-[var(--color-danger)]`}
             >
               ✕
             </button>
@@ -95,11 +95,11 @@ export function ProductImagesField({
           type="button"
           onClick={() => onChange([...value, ""])}
           disabled={value.length >= MAX_IMAGES}
-          className="rounded-md border border-stone-300 px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40"
+          className="ds-btn ds-btn-outline adm-btn-sm"
         >
-          إضافة صورة
+          {t("add")}
         </button>
-        <span className="ms-3 text-xs text-stone-400">
+        <span className="adm-subtle ms-3 text-xs">
           {value.length} / {MAX_IMAGES}
         </span>
       </div>
@@ -108,6 +108,7 @@ export function ProductImagesField({
 }
 
 function Thumb({ url }: { url: string }) {
+  const t = useTranslations("adminPanel.productImages");
   const [failed, setFailed] = useState(false);
   const src = url.trim();
   const valid = /^(https?:\/\/|\/)\S+$/.test(src);
@@ -115,10 +116,10 @@ function Thumb({ url }: { url: string }) {
   if (!valid || failed) {
     return (
       <div
-        className="grid size-14 shrink-0 place-items-center rounded-md border border-dashed border-stone-300 bg-stone-50 text-[10px] text-stone-400"
-        title={src && !failed ? "رابط غير صالح" : undefined}
+        className="adm-thumb adm-thumb-empty grid !size-14 place-items-center text-[10px] text-[var(--color-text-disabled)]"
+        title={src && !failed ? t("invalidUrl") : undefined}
       >
-        {src ? "تعذّر" : ""}
+        {src ? t("failed") : ""}
       </div>
     );
   }
@@ -129,7 +130,7 @@ function Thumb({ url }: { url: string }) {
       src={src}
       alt=""
       onError={() => setFailed(true)}
-      className="size-14 shrink-0 rounded-md border border-stone-200 object-cover"
+      className="adm-thumb !size-14"
     />
   );
 }

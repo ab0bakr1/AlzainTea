@@ -5,6 +5,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 
 type VatFieldProps = {
   value: string
@@ -12,11 +13,12 @@ type VatFieldProps = {
 }
 
 export default function VatField({ value, onChange }: VatFieldProps) {
+  const t = useTranslations('checkout')
   const [show, setShow] = useState(value.length > 0)
 
   return (
-    <div className="space-y-2">
-      <label className="flex items-center gap-2 cursor-pointer select-none">
+    <div className="space-y-3 rounded-[var(--radius-xl)] border border-[var(--border-color)] bg-[var(--color-bg-alt)] p-5">
+      <label className="flex cursor-pointer select-none items-center gap-3">
         <input
           type="checkbox"
           checked={show}
@@ -24,11 +26,9 @@ export default function VatField({ value, onChange }: VatFieldProps) {
             setShow(e.target.checked)
             if (!e.target.checked) onChange('')
           }}
-          className="accent-primary"
+          className="size-4 accent-[var(--color-primary)]"
         />
-        <span className="text-sm text-muted-foreground">
-          هل أنت مشتري تجاري؟ أضف رقمك الضريبي
-        </span>
+        <span className="text-sm text-[var(--color-text-secondary)]">{t('vat.toggle')}</span>
       </label>
 
       {show && (
@@ -36,9 +36,9 @@ export default function VatField({ value, onChange }: VatFieldProps) {
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="الرقم الضريبي / VAT Number"
-          aria-label="الرقم الضريبي"
-          className="w-full px-4 py-2 rounded-xl border bg-background text-sm"
+          placeholder={t('vat.placeholder')}
+          aria-label={t('vat.label')}
+          className="ds-input rounded-[var(--radius-lg)] text-sm"
           dir="ltr"
         />
       )}

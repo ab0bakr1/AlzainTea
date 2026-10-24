@@ -3,6 +3,7 @@
 import { Heart } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import { useToggleWishlist, useWishlistIds } from "@/hooks/useWishlist";
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export default function WishlistButton({ productId, className = "" }: Props) {
+  const t = useTranslations("wishlist");
   const { status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
@@ -35,10 +37,13 @@ export default function WishlistButton({ productId, className = "" }: Props) {
       onClick={handleClick}
       disabled={toggle.isPending}
       aria-pressed={inWishlist}
-      aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
-      className={`inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow transition hover:scale-105 dark:bg-gray-800/90 ${className}`}
+      aria-label={inWishlist ? t("remove") : t("add")}
+      className={`inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-[var(--border-color)] bg-[var(--color-bg)]/90 text-[var(--color-text-secondary)] shadow-[var(--shadow-sm)] backdrop-blur-sm transition-[transform,border-color,color] duration-200 hover:scale-105 hover:border-[var(--border-color-gold)] hover:bg-[var(--color-primary-200)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring-color)] disabled:opacity-60 ${className}`}
     >
-      <Heart size={18} className={inWishlist ? "fill-red-500 text-red-500" : "text-gray-600 dark:text-gray-300"} />
+      <Heart
+        size={18}
+        className={inWishlist ? "fill-[var(--color-danger)] text-[var(--color-danger)]" : "text-current"}
+      />
     </button>
   );
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useAdminOrders } from "@/hooks/useOrders";
 import { useAdminOrderFilters } from "@/hooks/useAdminOrderFilters";
 import { OrderStatusBadge, PaymentStatusBadge } from "@/components/ui/OrderStatusBadge";
@@ -21,10 +21,11 @@ import { formatDateTime, formatMoney } from "@/lib/order-format";
 const PAGE_SIZE = 20;
 const COUNTRY_CODES = ["SA", "AE", "OM", "KW", "BH", "QA", "US", "GB"] as const;
 
-const field =
-  "rounded-lg border border-zinc-300 bg-transparent px-3 py-2 text-sm dark:border-zinc-700";
+const field = "adm-control";
 
 export default function OrdersTable() {
+  const t = useTranslations("adminPanel.orders");
+  const tc = useTranslations("adminPanel.common");
   const locale = useLocale();
   const lang = locale === "ar" ? "ar" : "en";
   const { filters, setFilters, reset, activeCount } = useAdminOrderFilters();
@@ -36,8 +37,8 @@ export default function OrdersTable() {
   // Debounce للبحث النصي ثم كتابته في الرابط
   useEffect(() => {
     if (search.trim() === filters.q) return;
-    const t = setTimeout(() => setFilters({ q: search.trim() }), 300);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setFilters({ q: search.trim() }), 300);
+    return () => clearTimeout(timer);
   }, [search, filters.q, setFilters]);
 
   const countryNames = useMemo(() => {
@@ -66,53 +67,50 @@ export default function OrdersTable() {
     try {
       const { items, truncated } = await fetchAllAdminOrders(apiFilters);
       if (items.length === 0) {
-        setExportMsg("لا توجد طلبات مطابقة للتصدير.");
+        setExportMsg(t("exportNone"));
         return;
       }
       const day = new Date().toISOString().slice(0, 10);
       downloadCsv(`orders-${day}.csv`, buildOrdersCsv(items, lang));
-      setExportMsg(
-        truncated
-          ? `تم تصدير أول ${EXPORT_MAX_ROWS} طلب فقط. ضيّق الفلاتر لتصدير الباقي.`
-          : `تم تصدير ${items.length} طلب.`
-      );
+      setExportMsg(truncated ? t("exportTruncated", { max: EXPORT_MAX_ROWS }) : t("exportDone", { n: items.length }));
     } catch (e) {
-      setExportMsg(getApiErrorMessage(e, "تعذّر التصدير، حاول مجدداً."));
+      setExportMsg(getApiErrorMessage(e, t("exportFailed")));
     } finally {
       setExporting(false);
     }
   }
 
-  const colCount = 8;
+  const headers = [t("cols.order"), t("cols.customer"), t("cols.country"), t("cols.total"), t("cols.payment"), t("cols.status"), t("cols.date"), ""];
+  const colCount = headers.length;
 
   return (
-    <section className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">الطلبات</h1>
+    <section className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <h1 className="adm-heading">{t("title")}</h1>
         <button
           onClick={handleExport}
           disabled={exporting || isLoading || !data?.meta.total}
-          className="rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:opacity-40 dark:border-zinc-700"
+          className="ds-btn ds-btn-outline adm-btn-sm"
         >
-          {exporting ? "جارٍ التصدير…" : "تصدير CSV"}
+          {exporting ? t("exporting") : t("export")}
         </button>
       </div>
 
-      <div className="flex flex-wrap items-end gap-3" role="search">
+      <div className="adm-card flex flex-wrap items-end gap-3 p-4" role="search">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          aria-label="بحث في الطلبات"
-          placeholder="رقم الطلب أو مرجع الدفع أو البريد أو الاسم"
+          aria-label={t("searchAria")}
+          placeholder={t("searchPlaceholder")}
           className={`${field} w-full max-w-sm`}
         />
         <select
-          aria-label="حالة الطلب"
+          aria-label={t("orderStatusAria")}
           value={filters.status}
           onChange={(e) => setFilters({ status: e.target.value as OrderStatusValue | "" })}
           className={field}
         >
-          <option value="">كل حالات الطلب</option>
+          <option value="">{t("allOrderStatuses")}</option>
           {ORDER_STATUSES.map((s) => (
             <option key={s} value={s}>
               {ORDER_STATUS_LABELS[s][lang]}
@@ -120,12 +118,12 @@ export default function OrdersTable() {
           ))}
         </select>
         <select
-          aria-label="حالة الدفع"
+          aria-label={t("paymentStatusAria")}
           value={filters.paymentStatus}
           onChange={(e) => setFilters({ paymentStatus: e.target.value as PaymentStatusValue | "" })}
           className={field}
         >
-          <option value="">كل حالات الدفع</option>
+          <option value="">{t("allPaymentStatuses")}</option>
           {PAYMENT_STATUSES.map((s) => (
             <option key={s} value={s}>
               {PAYMENT_STATUS_LABELS[s][lang]}
@@ -133,20 +131,20 @@ export default function OrdersTable() {
           ))}
         </select>
         <select
-          aria-label="الدولة"
+          aria-label={t("countryAria")}
           value={filters.country}
           onChange={(e) => setFilters({ country: e.target.value })}
           className={field}
         >
-          <option value="">كل الدول</option>
+          <option value="">{t("allCountries")}</option>
           {countryNames.map(([code, name]) => (
             <option key={code} value={code}>
               {name}
             </option>
           ))}
         </select>
-        <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-          من
+        <label className="adm-subtle flex items-center gap-2 text-sm">
+          {t("from")}
           <input
             type="date"
             value={filters.from}
@@ -155,8 +153,8 @@ export default function OrdersTable() {
             className={field}
           />
         </label>
-        <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-          إلى
+        <label className="adm-subtle flex items-center gap-2 text-sm">
+          {t("to")}
           <input
             type="date"
             value={filters.to}
@@ -171,85 +169,79 @@ export default function OrdersTable() {
               setSearch("");
               reset();
             }}
-            className="text-sm text-zinc-600 underline underline-offset-2 dark:text-zinc-400"
+            className="adm-link text-sm"
           >
-            مسح الفلاتر ({activeCount})
+            {tc("clearFiltersCount", { n: activeCount })}
           </button>
         )}
-        {isFetching && !isLoading && <span className="text-xs text-zinc-500">جارٍ التحديث…</span>}
+        {isFetching && !isLoading && <span className="adm-subtle text-xs">{tc("updating")}</span>}
       </div>
 
       {exportMsg && (
-        <p role="status" className="text-sm text-zinc-600 dark:text-zinc-400">
+        <p role="status" className="adm-subtle text-sm">
           {exportMsg}
         </p>
       )}
 
-      <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
-        <table className="w-full min-w-[900px] text-sm">
-          <thead className="bg-zinc-50 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
+      <div className="adm-table-wrap">
+        <table className="adm-table min-w-[900px]">
+          <thead>
             <tr>
-              {["الطلب", "العميل", "الدولة", "الإجمالي", "الدفع", "الحالة", "التاريخ", ""].map((h, i) => (
-                <th key={i} className="px-4 py-3 text-start font-medium">
-                  {h}
-                </th>
+              {headers.map((h, i) => (
+                <th key={i}>{h}</th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+          <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={colCount} className="px-4 py-10 text-center text-zinc-500">
-                  جارٍ تحميل الطلبات…
+                <td colSpan={colCount} className="adm-subtle !py-10 text-center">
+                  {t("loading")}
                 </td>
               </tr>
             )}
             {isError && (
               <tr>
-                <td colSpan={colCount} className="px-4 py-10 text-center">
-                  <p className="text-red-600">تعذّر تحميل الطلبات.</p>
-                  <button onClick={() => refetch()} className="mt-2 text-sm underline underline-offset-2">
-                    إعادة المحاولة
+                <td colSpan={colCount} className="!py-10 text-center">
+                  <p className="text-[var(--color-danger)]">{t("loadError")}</p>
+                  <button onClick={() => refetch()} className="adm-link mt-2 text-sm">
+                    {tc("retry")}
                   </button>
                 </td>
               </tr>
             )}
             {!isLoading && !isError && data?.items.length === 0 && (
               <tr>
-                <td colSpan={colCount} className="px-4 py-10 text-center text-zinc-500">
-                  {activeCount > 0
-                    ? "لا توجد طلبات تطابق هذه الفلاتر. خفّف الفلاتر أو امسحها."
-                    : "لا توجد طلبات بعد. ستظهر هنا فور إتمام أول عملية شراء."}
+                <td colSpan={colCount} className="adm-subtle !py-10 text-center">
+                  {activeCount > 0 ? t("emptyFiltered") : t("empty")}
                 </td>
               </tr>
             )}
             {data?.items.map((o) => (
-              <tr key={o.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/60">
-                <td className="px-4 py-3">
-                  <Link href={`/admin/orders/${o.id}`} className="font-mono text-xs underline underline-offset-2">
+              <tr key={o.id}>
+                <td>
+                  <Link href={`/admin/orders/${o.id}`} className="adm-link font-mono text-xs">
                     {o.id.slice(-8)}
                   </Link>
-                  <div className="text-xs text-zinc-500">{o._count.items} منتج</div>
+                  <div className="adm-subtle text-xs">{t("itemsCount", { n: o._count.items })}</div>
                 </td>
-                <td className="px-4 py-3">
-                  <div>{o.user?.name ?? "زائر"}</div>
-                  <div className="text-xs text-zinc-500">{o.user?.email ?? o.guestEmail}</div>
+                <td>
+                  <div>{o.user?.name ?? t("guest")}</div>
+                  <div className="adm-subtle text-xs">{o.user?.email ?? o.guestEmail}</div>
                 </td>
-                <td className="px-4 py-3">{o.country}</td>
-                <td className="whitespace-nowrap px-4 py-3">{formatMoney(o.total, o.currency, locale)}</td>
-                <td className="px-4 py-3">
+                <td>{o.country}</td>
+                <td className="whitespace-nowrap font-semibold tabular-nums">{formatMoney(o.total, o.currency, locale)}</td>
+                <td>
                   <PaymentStatusBadge status={o.paymentStatus} />
-                  <div className="mt-1 text-xs text-zinc-500">{o.paymentMethod}</div>
+                  <div className="adm-subtle mt-1 text-xs">{o.paymentMethod}</div>
                 </td>
-                <td className="px-4 py-3">
+                <td>
                   <OrderStatusBadge status={o.status} />
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-zinc-600 dark:text-zinc-400">
-                  {formatDateTime(o.createdAt, locale)}
-                </td>
-                <td className="px-4 py-3">
-                  <Link href={`/admin/orders/${o.id}`} className="text-sm underline underline-offset-2">
-                    فتح
+                <td className="adm-subtle whitespace-nowrap">{formatDateTime(o.createdAt, locale)}</td>
+                <td>
+                  <Link href={`/admin/orders/${o.id}`} className="ds-btn ds-btn-ghost adm-btn-sm">
+                    {tc("open")}
                   </Link>
                 </td>
               </tr>
@@ -259,24 +251,24 @@ export default function OrdersTable() {
       </div>
 
       {data && data.meta.totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-zinc-500">
-            الصفحة {data.meta.page} من {data.meta.totalPages} — {data.meta.total} طلب
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+          <span className="adm-subtle">
+            {t("pageInfo", { page: data.meta.page, pages: data.meta.totalPages, total: data.meta.total })}
           </span>
           <div className="flex gap-2">
             <button
               disabled={filters.page <= 1}
               onClick={() => setFilters({ page: filters.page - 1 })}
-              className="rounded-lg border border-zinc-300 px-3 py-1.5 disabled:opacity-40 dark:border-zinc-700"
+              className="ds-btn ds-btn-outline adm-btn-sm"
             >
-              السابق
+              {tc("previous")}
             </button>
             <button
               disabled={filters.page >= data.meta.totalPages}
               onClick={() => setFilters({ page: filters.page + 1 })}
-              className="rounded-lg border border-zinc-300 px-3 py-1.5 disabled:opacity-40 dark:border-zinc-700"
+              className="ds-btn ds-btn-outline adm-btn-sm"
             >
-              التالي
+              {tc("next")}
             </button>
           </div>
         </div>
