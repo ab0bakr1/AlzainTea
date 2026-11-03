@@ -5,7 +5,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }, // نفس إعداد Neon المستخدم في src/lib/prisma.ts
+  ssl: { rejectUnauthorized: true }, // نفس إعداد Neon المستخدم في src/lib/prisma.ts
 });
 
 const prisma = new PrismaClient({ adapter });

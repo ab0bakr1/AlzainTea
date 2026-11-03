@@ -1,20 +1,19 @@
 import { NextRequest } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { ok, fail } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
+import { requireUser } from "@/lib/require-user"; // ✅ جديد
 import { updateAddressSchema } from "@/modules/addresses/address.validators";
 import { editAddress, removeAddress } from "@/modules/addresses/address.service";
 
+// ✅ معدّل: params أصبح Promise وفق Next.js 15/16
 interface Params {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
-export async function PATCH(req: NextRequest, { params }: Params) {
-  const { id } = await params;
+export async function PATCH(req: NextRequest, context: Params) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) throw new ApiError("UNAUTHORIZED", "يجب تسجيل الدخول", 401);
+    const { id } = await context.params; // ✅ معدّل: نُقل داخل try، وبصيغة context.params
+    const user = await requireUser(); // ✅ معدّل
 
     const body = await req.json();
     const parsed = updateAddressSchema.safeParse(body);
@@ -26,20 +25,19 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       );
     }
 
-    const address = await editAddress(session.user.id, id, parsed.data);
+    const address = await editAddress(user.id, id, parsed.data);
     return ok(address);
   } catch (err) {
     return fail(err as ApiError);
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: Params) {
-  const { id } = await params;
+export async function DELETE(_req: NextRequest, context: Params) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) throw new ApiError("UNAUTHORIZED", "يجب تسجيل الدخول", 401);
+    const { id } = await context.params; // ✅ معدّل
+    const user = await requireUser(); // ✅ معدّل
 
-    await removeAddress(session.user.id, id);
+    await removeAddress(user.id, id);
     return ok({ deleted: true });
   } catch (err) {
     return fail(err as ApiError);

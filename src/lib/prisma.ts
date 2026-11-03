@@ -6,7 +6,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 // في Prisma 7 أصبح أكثر صرامة تجاه شهادات SSL مقارنة بمحرك Rust القديم.
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: { rejectUnauthorized: true },
 });
 
 // نمنع إنشاء اتصالات متعددة أثناء Hot Reload في بيئة التطوير

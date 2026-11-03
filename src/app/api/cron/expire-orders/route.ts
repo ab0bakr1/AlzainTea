@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { fail } from "@/lib/api-response"; // ✅ جديد
 import { expireStalePendingOrders } from "@/modules/orders/order.service";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +24,12 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const result = await expireStalePendingOrders(60);
-  return NextResponse.json({ success: true, data: result });
+  // ✅ جديد: try/catch حول العملية الوحيدة التي قد ترمي
+  try {
+    const result = await expireStalePendingOrders(60);
+    return NextResponse.json({ success: true, data: result });
+  } catch (err) {
+    console.error("[GET /api/cron/expire-orders] error:", err);
+    return fail(err as Error);
+  }
 }

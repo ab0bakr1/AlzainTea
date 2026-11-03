@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fail } from "@/lib/api-response"; // ✅ جديد
 import { getHealthReport } from "@/modules/health/health.service";
 
 // لا نريد أي تخزين مؤقت لنتيجة الفحص
@@ -10,14 +11,20 @@ export const dynamic = "force-dynamic";
  * مسار عام عمداً (لأدوات المراقبة) ولا يحتوي على أي بيانات حساسة.
  */
 export async function GET() {
-  const report = await getHealthReport();
-  const healthy = report.status === "ok";
+  // ✅ جديد: try/catch لحالة رمي getHealthReport استثناءً غير متوقع
+  try {
+    const report = await getHealthReport();
+    const healthy = report.status === "ok";
 
-  return NextResponse.json(
-    { success: healthy, data: report },
-    {
-      status: healthy ? 200 : 503,
-      headers: { "Cache-Control": "no-store" },
-    },
-  );
+    return NextResponse.json(
+      { success: healthy, data: report },
+      {
+        status: healthy ? 200 : 503,
+        headers: { "Cache-Control": "no-store" },
+      },
+    );
+  } catch (err) {
+    console.error("[GET /api/health] error:", err);
+    return fail(err as Error);
+  }
 }

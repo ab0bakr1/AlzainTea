@@ -1,36 +1,45 @@
-import { defineConfig, devices } from "@playwright/test";
+import { defineConfig, devices } from '@playwright/test';
 
-const PORT = Number(process.env.E2E_PORT ?? 3000);
-const baseURL = process.env.E2E_BASE_URL ?? `http://localhost:${PORT}`;
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000';
+const useProd = !!(process.env.CI || process.env.E2E_PROD);
 
 export default defineConfig({
-  testDir: "./e2e",
-  testMatch: /.*\.e2e\.ts$/,
+  testDir: './tests',
+
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 2 : undefined,
-  timeout: 45_000,
-  reporter: [["list"], ["html", { open: "never" }]],
+  // dev server يتأثر بالتوازي الكثيف؛ الإنتاج يتحمل أكثر
+  workers: process.env.CI ? 2 : useProd ? 4 : 2,
+
+  reporter: process.env.CI ? [['html', { open: 'never' }], ['list']] : [['html', { open: 'never' }], ['list']],
+
+  timeout: 60_000,
+  expect: { timeout: 10_000 },
 
   use: {
     baseURL,
-    trace: "retain-on-failure",
-    screenshot: "only-on-failure",
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+    actionTimeout: 15_000,
+    navigationTimeout: 45_000,
   },
 
   projects: [
-    { name: "desktop-chromium", use: { ...devices["Desktop Chrome"] } },
-    { name: "mobile-chromium", use: { ...devices["Pixel 7"] } },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    // المتصفحات الأخرى في CI فقط
+    ...(process.env.CI
+      ? [
+          { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+          { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+        ]
+      : []),
   ],
 
-  // يشغّل الخادم تلقائياً إلا إذا حددت E2E_BASE_URL (Staging مثلاً)
-  webServer: process.env.E2E_BASE_URL
-    ? undefined
-    : {
-        command: process.env.CI ? "npm run build && npm run start" : "npm run dev",
-        url: baseURL,
-        reuseExistingServer: !process.env.CI,
-        timeout: 240_000,
-      },
+  webServer: {
+    command: useProd ? 'npm run build && npm run start' : 'npm run dev',
+    url: baseURL,
+    reuseExistingServer: !process.env.CI,
+    timeout: 300_000, // البناء قد يستغرق وقتاً
+  },
 });

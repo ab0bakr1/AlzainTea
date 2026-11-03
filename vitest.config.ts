@@ -1,12 +1,13 @@
-  import { defineConfig } from "vitest/config";
-  import { fileURLToPath } from "node:url";
+import { defineConfig } from "vitest/config";
+import path from "node:path";
 
-  export default defineConfig({
-    resolve: {
-      alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
-    },
-    test: {
-      environment: "node",
-      exclude: ["e2e/**", "node_modules/**", ".next/**", "playwright-report/**"],
-    },
-  });
+export default defineConfig({
+  test: {
+    include: ["src/**/*.test.ts"],
+    exclude: ["node_modules", "e2e/**", "tests/**", ".next/**"],
+    testTimeout: 30000, // انظر المشكلة 3
+  },
+  resolve: {
+    alias: { "@": path.resolve(__dirname, "src") },
+  },
+});

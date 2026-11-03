@@ -1,17 +1,15 @@
 import { NextRequest } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { ok, fail } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
+import { requireUser } from "@/lib/require-user"; // ✅ جديد: بدل getServerSession + authOptions
 import { addressSchema } from "@/modules/addresses/address.validators";
 import { addAddress, getUserAddresses } from "@/modules/addresses/address.service";
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) throw new ApiError("UNAUTHORIZED", "يجب تسجيل الدخول", 401);
+    const user = await requireUser(); // ✅ معدّل: بدل فحص الجلسة اليدوي
 
-    const addresses = await getUserAddresses(session.user.id);
+    const addresses = await getUserAddresses(user.id);
     return ok(addresses);
   } catch (err) {
     return fail(err as ApiError);
@@ -20,8 +18,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) throw new ApiError("UNAUTHORIZED", "يجب تسجيل الدخول", 401);
+    const user = await requireUser(); // ✅ معدّل
 
     const body = await req.json();
     const parsed = addressSchema.safeParse(body);
@@ -33,8 +30,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-
-    const address = await addAddress(session.user.id, parsed.data);
+    const address = await addAddress(user.id, parsed.data);
     return ok(address);
   } catch (err) {
     return fail(err as ApiError);
